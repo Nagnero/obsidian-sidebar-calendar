@@ -1,6 +1,8 @@
 import { setIcon } from 'obsidian';
 import { DayKey, makeDayKey, Weekday, yearMonth } from '../date/dayKey';
 import { buildMonthGrid, weekdayOrder } from '../date/monthGrid';
+import { layoutWeek } from '../layout/weekLayout';
+import type { CalendarEvent } from '../types';
 
 export interface MonthViewModel {
 	year: number;
@@ -9,6 +11,8 @@ export interface MonthViewModel {
 	today: DayKey;
 	weekStart: Weekday;
 	locale: string;
+	events: readonly CalendarEvent[];
+	maxLanes: number;
 }
 
 export interface MonthViewHandlers {
@@ -62,10 +66,18 @@ function renderWeekdays(parent: HTMLElement, model: MonthViewModel): void {
 
 /**
  * One week is a 7-column grid. Day cells span every row so they act as the background and
- * click target; row 1 holds the date numbers and later rows will hold event bars.
+ * click target; row 1 holds the date numbers, then one row per bar lane, then a "+N" row.
  */
 function renderWeek(parent: HTMLElement, week: DayKey[], model: MonthViewModel): void {
+	const layout = layoutWeek(week, model.events, model.maxLanes);
+	const hasHidden = layout.hiddenCounts.some((n) => n > 0);
+
 	const weekEl = parent.createDiv({ cls: 'sidebar-calendar__week' });
+	const rows = ['auto'];
+	for (let i = 0; i < layout.laneCount; i++) rows.push('var(--sidebar-calendar-lane-height)');
+	if (hasHidden) rows.push('auto');
+	weekEl.style.gridTemplateRows = rows.join(' ');
+
 	week.forEach((day, i) => {
 		const { month } = yearMonth(day);
 		const cell = weekEl.createDiv({ cls: 'sidebar-calendar__day', attr: { 'data-date': day } });
@@ -73,8 +85,29 @@ function renderWeek(parent: HTMLElement, week: DayKey[], model: MonthViewModel):
 		if (month !== model.month) cell.addClass('is-other-month');
 		if (day === model.today) cell.addClass('is-today');
 
-		cell.createSpan({ cls: 'sidebar-calendar__day-number', text: String(Number(day.slice(8))) });
+
+		// The number is its own grid item so row 1 gets its height; the cell behind it spans all rows.
+		const number = weekEl.createDiv({ cls: 'sidebar-calendar__day-number-slot' });
+		number.style.gridColumn = String(i + 1);
+		if (month !== model.month) number.addClass('is-other-month');
+		if (day === model.today) number.addClass('is-today');
+		number.createSpan({ cls: 'sidebar-calendar__day-number', text: String(Number(day.slice(8))) });
 	});
+
+	for (const bar of layout.bars) {
+		const barEl = weekEl.createDiv({ cls: 'sidebar-calendar__bar', attr: { 'data-event': bar.event.id } });
+		barEl.style.gridColumn = `${bar.startCol + 1} / ${bar.endCol + 2}`;
+		barEl.style.gridRow = String(bar.lane + 2);
+	}
+
+	if (hasHidden) {
+		layout.hiddenCounts.forEach((count, col) => {
+			if (count === 0) return;
+			const more = weekEl.createDiv({ cls: 'sidebar-calendar__more', text: `+${count}` });
+			more.style.gridColumn = String(col + 1);
+			more.style.gridRow = String(layout.laneCount + 2);
+		});
+	}
 }
 
 /** Short English month name ("Oct") regardless of app language. */

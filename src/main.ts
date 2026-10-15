@@ -35,6 +35,7 @@ export default class SidebarCalendarPlugin extends Plugin {
 			name: 'Log events to console',
 			callback: () => {
 				this.eventStore.reload();
+				this.refreshViews();
 				this.eventStore.logToConsole();
 				new Notice(`Sidebar Calendar: ${this.eventStore.summary()}`);
 			},
@@ -45,6 +46,7 @@ export default class SidebarCalendarPlugin extends Plugin {
 		// Open the view on first load; afterwards the workspace layout restores it.
 		this.app.workspace.onLayoutReady(() => {
 			this.eventStore.reload();
+			this.refreshViews();
 			if (this.app.workspace.getLeavesOfType(VIEW_TYPE_SIDEBAR_CALENDAR).length === 0) {
 				void this.activateView(false);
 			}

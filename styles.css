@@ -1,4 +1,6 @@
 .sidebar-calendar {
+	--sidebar-calendar-lane-height: 6px;
+	--sidebar-calendar-bar-height: 4px;
 	padding: var(--size-4-2) var(--size-4-3);
 }
 
@@ -61,9 +63,14 @@
 
 .sidebar-calendar__day {
 	grid-row: 1 / -1;
+}
+
+.sidebar-calendar__day-number-slot {
+	grid-row: 1;
 	display: flex;
 	justify-content: center;
-	padding: var(--size-2-2) 0;
+	padding: var(--size-2-2) 0 var(--size-2-1);
+	pointer-events: none;
 }
 
 .sidebar-calendar__day-number {
@@ -77,12 +84,32 @@
 	color: var(--text-normal);
 }
 
-.sidebar-calendar__day.is-other-month .sidebar-calendar__day-number {
+.sidebar-calendar__day-number-slot.is-other-month .sidebar-calendar__day-number {
 	color: var(--text-faint);
 }
 
-.sidebar-calendar__day.is-today .sidebar-calendar__day-number {
+.sidebar-calendar__day-number-slot.is-today .sidebar-calendar__day-number {
 	background-color: var(--interactive-accent);
 	color: var(--text-on-accent);
 	font-weight: var(--font-semibold);
+}
+
+.sidebar-calendar__bar {
+	z-index: 1;
+	align-self: center;
+	height: var(--sidebar-calendar-bar-height);
+	margin: 0 var(--size-4-1);
+	border-radius: var(--sidebar-calendar-bar-height);
+	background-color: var(--interactive-accent);
+	pointer-events: none;
+}
+
+.sidebar-calendar__more {
+	z-index: 1;
+	padding-bottom: var(--size-2-1);
+	text-align: center;
+	font-size: var(--font-ui-smaller);
+	line-height: 1.2;
+	color: var(--text-muted);
+	pointer-events: none;
 }
