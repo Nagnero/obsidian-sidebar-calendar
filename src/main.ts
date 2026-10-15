@@ -1,17 +1,20 @@
-import { Plugin, WorkspaceLeaf } from 'obsidian';
+import { Notice, Plugin, WorkspaceLeaf } from 'obsidian';
 import { VIEW_TYPE_SIDEBAR_CALENDAR } from './constants';
 import {
 	DEFAULT_SETTINGS,
 	SidebarCalendarSettings,
 	SidebarCalendarSettingTab,
 } from './settings';
+import { EventStore } from './data/EventStore';
 import { CalendarView } from './ui/CalendarView';
 
 export default class SidebarCalendarPlugin extends Plugin {
 	settings!: SidebarCalendarSettings;
+	eventStore!: EventStore;
 
 	async onload() {
 		await this.loadSettings();
+		this.eventStore = new EventStore(this.app, () => this.settings.eventsFolder);
 
 		this.registerView(VIEW_TYPE_SIDEBAR_CALENDAR, (leaf) => new CalendarView(leaf, this));
 
@@ -27,10 +30,21 @@ export default class SidebarCalendarPlugin extends Plugin {
 			},
 		});
 
+		this.addCommand({
+			id: 'log-events',
+			name: 'Log events to console',
+			callback: () => {
+				this.eventStore.reload();
+				this.eventStore.logToConsole();
+				new Notice(`Sidebar Calendar: ${this.eventStore.summary()}`);
+			},
+		});
+
 		this.addSettingTab(new SidebarCalendarSettingTab(this.app, this));
 
 		// Open the view on first load; afterwards the workspace layout restores it.
 		this.app.workspace.onLayoutReady(() => {
+			this.eventStore.reload();
 			if (this.app.workspace.getLeavesOfType(VIEW_TYPE_SIDEBAR_CALENDAR).length === 0) {
 				void this.activateView(false);
 			}
@@ -60,6 +74,7 @@ export default class SidebarCalendarPlugin extends Plugin {
 
 	async saveSettings() {
 		await this.saveData(this.settings);
+		this.eventStore.reload();
 		this.refreshViews();
 	}
 
