@@ -29,10 +29,9 @@ export function renderMonth(parent: HTMLElement, model: MonthViewModel, handlers
 
 function renderHeader(parent: HTMLElement, model: MonthViewModel, handlers: MonthViewHandlers): void {
 	const header = parent.createDiv({ cls: 'sidebar-calendar__header' });
-	header.createDiv({
-		cls: 'sidebar-calendar__title',
-		text: formatMonthTitle(model.year, model.month, model.locale),
-	});
+	const title = header.createDiv({ cls: 'sidebar-calendar__title' });
+	title.createSpan({ cls: 'sidebar-calendar__title-month', text: formatMonthShort(model.year, model.month) });
+	title.createSpan({ cls: 'sidebar-calendar__title-year', text: String(model.year) });
 
 	const nav = header.createDiv({ cls: 'sidebar-calendar__nav' });
 	const prev = nav.createDiv({ cls: 'clickable-icon', attr: { 'aria-label': 'Previous month' } });
@@ -78,8 +77,9 @@ function renderWeek(parent: HTMLElement, week: DayKey[], model: MonthViewModel):
 	});
 }
 
-function formatMonthTitle(year: number, month: number, locale: string): string {
-	return new Intl.DateTimeFormat(locale, { year: 'numeric', month: 'long', timeZone: 'UTC' }).format(
+/** Short English month name ("Oct") regardless of app language. */
+function formatMonthShort(year: number, month: number): string {
+	return new Intl.DateTimeFormat('en', { month: 'short', timeZone: 'UTC' }).format(
 		utcDate(makeDayKey(year, month, 1)),
 	);
 }

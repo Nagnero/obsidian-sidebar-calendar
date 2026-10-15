@@ -11,9 +11,21 @@
 }
 
 .sidebar-calendar__title {
-	font-size: var(--font-ui-medium);
-	font-weight: var(--font-semibold);
+	display: flex;
+	align-items: baseline;
+	gap: var(--size-4-2);
+	font-size: 1.6em;
+	line-height: 1.2;
 	color: var(--text-normal);
+}
+
+.sidebar-calendar__title-month {
+	font-weight: var(--font-bold);
+}
+
+.sidebar-calendar__title-year {
+	font-weight: var(--font-normal);
+	color: var(--text-muted);
 }
 
 .sidebar-calendar__nav {
