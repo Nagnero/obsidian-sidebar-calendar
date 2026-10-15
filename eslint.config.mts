@@ -29,4 +29,17 @@ export default defineConfig(
 		},
 	},
 	...obsidianmd.configs.recommended,
+	{
+		// Unit tests run in Node, never inside Obsidian.
+		files: ['tests/**/*.ts'],
+		languageOptions: {
+			globals: {
+				...globals.node,
+			},
+		},
+		rules: {
+			'obsidianmd/no-nodejs-modules': 'off',
+			'@typescript-eslint/no-floating-promises': 'off',
+		},
+	},
 );

@@ -1,5 +1,88 @@
-.sidebar-calendar__placeholder {
-	padding: var(--size-4-4);
+.sidebar-calendar {
+	padding: var(--size-4-2) var(--size-4-3);
+}
+
+.sidebar-calendar__header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--size-4-2);
+	margin-bottom: var(--size-4-2);
+}
+
+.sidebar-calendar__title {
+	display: flex;
+	align-items: baseline;
+	gap: var(--size-4-2);
+	font-size: 1.6em;
+	line-height: 1.2;
+	color: var(--text-normal);
+}
+
+.sidebar-calendar__title-month {
+	font-weight: var(--font-bold);
+}
+
+.sidebar-calendar__title-year {
+	font-weight: var(--font-normal);
 	color: var(--text-muted);
+}
+
+.sidebar-calendar__nav {
+	display: flex;
+	align-items: center;
+	gap: var(--size-2-1);
+}
+
+.sidebar-calendar__today-btn {
+	font-size: var(--font-ui-smaller);
+	padding: var(--size-2-1) var(--size-4-1);
+}
+
+.sidebar-calendar__weekdays,
+.sidebar-calendar__week {
+	display: grid;
+	grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+
+.sidebar-calendar__weekday {
 	text-align: center;
+	font-size: var(--font-ui-smaller);
+	color: var(--text-muted);
+	padding-bottom: var(--size-2-2);
+}
+
+.sidebar-calendar__week {
+	/* Explicit rows so day cells (grid-row: 1 / -1) span all of them. Row 1 holds the
+	   date numbers; event bar rows will be added to this template. */
+	grid-template-rows: auto;
+	border-top: 1px solid var(--background-modifier-border);
+}
+
+.sidebar-calendar__day {
+	grid-row: 1 / -1;
+	display: flex;
+	justify-content: center;
+	padding: var(--size-2-2) 0;
+}
+
+.sidebar-calendar__day-number {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 1.75em;
+	height: 1.75em;
+	border-radius: 50%;
+	font-size: var(--font-ui-small);
+	color: var(--text-normal);
+}
+
+.sidebar-calendar__day.is-other-month .sidebar-calendar__day-number {
+	color: var(--text-faint);
+}
+
+.sidebar-calendar__day.is-today .sidebar-calendar__day-number {
+	background-color: var(--interactive-accent);
+	color: var(--text-on-accent);
+	font-weight: var(--font-semibold);
 }

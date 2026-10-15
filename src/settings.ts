@@ -1,12 +1,15 @@
 import { App, normalizePath, PluginSettingTab, Setting } from 'obsidian';
+import type { Weekday } from './date/dayKey';
 import type SidebarCalendarPlugin from './main';
 
 export interface SidebarCalendarSettings {
 	eventsFolder: string;
+	weekStart: Weekday;
 }
 
 export const DEFAULT_SETTINGS: SidebarCalendarSettings = {
 	eventsFolder: 'Events',
+	weekStart: 0,
 };
 
 export class SidebarCalendarSettingTab extends PluginSettingTab {
@@ -31,6 +34,19 @@ export class SidebarCalendarSettingTab extends PluginSettingTab {
 					.onChange(async (value) => {
 						this.plugin.settings.eventsFolder =
 							normalizePath(value.trim() || DEFAULT_SETTINGS.eventsFolder);
+						await this.plugin.saveSettings();
+					}),
+			);
+
+		new Setting(containerEl)
+			.setName('Start week on')
+			.addDropdown((dropdown) =>
+				dropdown
+					.addOption('0', 'Sunday')
+					.addOption('1', 'Monday')
+					.setValue(String(this.plugin.settings.weekStart))
+					.onChange(async (value) => {
+						this.plugin.settings.weekStart = value === '1' ? 1 : 0;
 						await this.plugin.saveSettings();
 					}),
 			);
