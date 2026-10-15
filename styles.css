@@ -105,6 +105,19 @@
 	pointer-events: none;
 }
 
+/* A bar cut at the week edge runs to the edge with a flat end, so it reads as continuing. */
+.sidebar-calendar__bar.is-continued-before {
+	margin-left: 0;
+	border-top-left-radius: 0;
+	border-bottom-left-radius: 0;
+}
+
+.sidebar-calendar__bar.is-continued-after {
+	margin-right: 0;
+	border-top-right-radius: 0;
+	border-bottom-right-radius: 0;
+}
+
 .sidebar-calendar__more {
 	z-index: 1;
 	text-align: center;

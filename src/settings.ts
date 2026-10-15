@@ -5,11 +5,13 @@ import type SidebarCalendarPlugin from './main';
 export interface SidebarCalendarSettings {
 	eventsFolder: string;
 	weekStart: Weekday;
+	maxLanes: number;
 }
 
 export const DEFAULT_SETTINGS: SidebarCalendarSettings = {
 	eventsFolder: 'Events',
 	weekStart: 0,
+	maxLanes: 3,
 };
 
 export class SidebarCalendarSettingTab extends PluginSettingTab {
@@ -47,6 +49,20 @@ export class SidebarCalendarSettingTab extends PluginSettingTab {
 					.setValue(String(this.plugin.settings.weekStart))
 					.onChange(async (value) => {
 						this.plugin.settings.weekStart = value === '1' ? 1 : 0;
+						await this.plugin.saveSettings();
+					}),
+			);
+
+		new Setting(containerEl)
+			.setName('Bar rows per week')
+			.setDesc('Events that do not fit are shown as "+N" on their days.')
+			.addSlider((slider) =>
+				slider
+					.setLimits(1, 6, 1)
+					.setValue(this.plugin.settings.maxLanes)
+					.setDynamicTooltip()
+					.onChange(async (value) => {
+						this.plugin.settings.maxLanes = value;
 						await this.plugin.saveSettings();
 					}),
 			);

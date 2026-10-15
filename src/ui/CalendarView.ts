@@ -1,5 +1,5 @@
 import { ItemView, moment, WorkspaceLeaf } from 'obsidian';
-import { DEFAULT_MAX_LANES, VIEW_TYPE_SIDEBAR_CALENDAR } from '../constants';
+import { VIEW_TYPE_SIDEBAR_CALENDAR } from '../constants';
 import { todayKey, yearMonth } from '../date/dayKey';
 import type SidebarCalendarPlugin from '../main';
 import { renderMonth } from './renderMonth';
@@ -50,7 +50,7 @@ export class CalendarView extends ItemView {
 				weekStart: this.plugin.settings.weekStart,
 				locale: appLocale(),
 				events: this.plugin.eventStore.getEvents(),
-				maxLanes: DEFAULT_MAX_LANES,
+				maxLanes: this.plugin.settings.maxLanes,
 			},
 			{
 				onPrev: () => this.shiftMonth(-1),
