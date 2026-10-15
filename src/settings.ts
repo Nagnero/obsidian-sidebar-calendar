@@ -1,4 +1,5 @@
 import { App, normalizePath, PluginSettingTab, Setting } from 'obsidian';
+import type { Category } from './categoryColor';
 import type { Weekday } from './date/dayKey';
 import type SidebarCalendarPlugin from './main';
 
@@ -6,13 +7,22 @@ export interface SidebarCalendarSettings {
 	eventsFolder: string;
 	weekStart: Weekday;
 	maxLanes: number;
+	categories: Category[];
+	/** Bar color for events without a known category. Empty means the theme's accent color. */
+	defaultColor: string;
 }
 
 export const DEFAULT_SETTINGS: SidebarCalendarSettings = {
 	eventsFolder: 'Events',
 	weekStart: 0,
 	maxLanes: 3,
+	categories: [],
+	defaultColor: '',
 };
+
+/** Shown in color pickers when a color is unset; roughly Obsidian's default accent. */
+const PICKER_FALLBACK = '#7f6df2';
+const NEW_CATEGORY_COLORS = ['#e5484d', '#30a46c', '#0090ff', '#f76b15', '#8e4ec6', '#ffc53d', '#12a594'];
 
 export class SidebarCalendarSettingTab extends PluginSettingTab {
 	plugin: SidebarCalendarPlugin;
@@ -55,7 +65,7 @@ export class SidebarCalendarSettingTab extends PluginSettingTab {
 
 		new Setting(containerEl)
 			.setName('Bar rows per week')
-			.setDesc('Events that do not fit are shown as "+N" on their days.')
+			.setDesc('Events that do not fit are counted in the number shown under their days.')
 			.addSlider((slider) =>
 				slider
 					.setLimits(1, 6, 1)
@@ -65,6 +75,70 @@ export class SidebarCalendarSettingTab extends PluginSettingTab {
 						this.plugin.settings.maxLanes = value;
 						await this.plugin.saveSettings();
 					}),
+			);
+
+		new Setting(containerEl).setName('Colors').setHeading();
+
+		new Setting(containerEl)
+			.setName('Default color')
+			.setDesc('For events with no category, or a category not in the list below.')
+			.addColorPicker((picker) =>
+				picker.setValue(this.plugin.settings.defaultColor || PICKER_FALLBACK).onChange(async (value) => {
+					this.plugin.settings.defaultColor = value;
+					await this.plugin.saveSettings();
+				}),
+			)
+			.addExtraButton((button) =>
+				button
+					.setIcon('rotate-ccw')
+					.setTooltip('Use theme accent color')
+					.onClick(async () => {
+						this.plugin.settings.defaultColor = '';
+						await this.plugin.saveSettings();
+						this.display();
+					}),
+			);
+
+		this.plugin.settings.categories.forEach((category, index) => {
+			new Setting(containerEl)
+				.setClass('sidebar-calendar-category-setting')
+				.addText((text) =>
+					text
+						.setPlaceholder('Category name')
+						.setValue(category.name)
+						.onChange(async (value) => {
+							category.name = value;
+							await this.plugin.saveSettings();
+						}),
+				)
+				.addColorPicker((picker) =>
+					picker.setValue(category.color || PICKER_FALLBACK).onChange(async (value) => {
+						category.color = value;
+						await this.plugin.saveSettings();
+					}),
+				)
+				.addExtraButton((button) =>
+					button
+						.setIcon('trash-2')
+						.setTooltip('Delete category')
+						.onClick(async () => {
+							this.plugin.settings.categories.splice(index, 1);
+							await this.plugin.saveSettings();
+							this.display();
+						}),
+				);
+		});
+
+		new Setting(containerEl)
+			.setDesc('Events use the color of the category named in their "category" property.')
+			.addButton((button) =>
+				button.setButtonText('Add category').onClick(async () => {
+					const { categories } = this.plugin.settings;
+					const color = NEW_CATEGORY_COLORS[categories.length % NEW_CATEGORY_COLORS.length] ?? PICKER_FALLBACK;
+					categories.push({ name: '', color });
+					await this.plugin.saveSettings();
+					this.display();
+				}),
 			);
 	}
 }

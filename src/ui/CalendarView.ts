@@ -1,6 +1,7 @@
 import { ItemView, moment, WorkspaceLeaf } from 'obsidian';
 import { VIEW_TYPE_SIDEBAR_CALENDAR } from '../constants';
 import { todayKey, yearMonth } from '../date/dayKey';
+import { resolveCategoryColor } from '../categoryColor';
 import type SidebarCalendarPlugin from '../main';
 import { renderMonth } from './renderMonth';
 
@@ -41,6 +42,7 @@ export class CalendarView extends ItemView {
 		root.empty();
 		root.addClass('sidebar-calendar');
 
+		const { categories, defaultColor } = this.plugin.settings;
 		renderMonth(
 			root,
 			{
@@ -51,6 +53,7 @@ export class CalendarView extends ItemView {
 				locale: appLocale(),
 				events: this.plugin.eventStore.getEvents(),
 				maxLanes: this.plugin.settings.maxLanes,
+				colorFor: (event) => resolveCategoryColor(event.category, categories, defaultColor),
 			},
 			{
 				onPrev: () => this.shiftMonth(-1),

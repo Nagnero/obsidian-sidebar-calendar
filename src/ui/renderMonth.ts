@@ -13,6 +13,8 @@ export interface MonthViewModel {
 	locale: string;
 	events: readonly CalendarEvent[];
 	maxLanes: number;
+	/** Bar color for an event; null means the theme's accent color. */
+	colorFor: (event: CalendarEvent) => string | null;
 }
 
 export interface MonthViewHandlers {
@@ -99,6 +101,8 @@ function renderWeek(parent: HTMLElement, week: DayKey[], model: MonthViewModel):
 		const barEl = weekEl.createDiv({ cls: 'sidebar-calendar__bar', attr: { 'data-event': bar.event.id } });
 		if (bar.continuesBefore) barEl.addClass('is-continued-before');
 		if (bar.continuesAfter) barEl.addClass('is-continued-after');
+		const color = model.colorFor(bar.event);
+		if (color) barEl.style.setProperty('--sidebar-calendar-bar-color', color);
 		barEl.style.gridColumn = `${bar.startCol + 1} / ${bar.endCol + 2}`;
 		barEl.style.gridRow = String(bar.lane + 2);
 	}

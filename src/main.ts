@@ -72,6 +72,8 @@ export default class SidebarCalendarPlugin extends Plugin {
 			DEFAULT_SETTINGS,
 			(await this.loadData()) as Partial<SidebarCalendarSettings>,
 		);
+		// Copy so edits never mutate DEFAULT_SETTINGS' shared array.
+		this.settings.categories = this.settings.categories.map((c) => ({ ...c }));
 	}
 
 	async saveSettings() {
