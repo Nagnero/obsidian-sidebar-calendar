@@ -1,6 +1,7 @@
 .sidebar-calendar {
 	--sidebar-calendar-lane-height: 6px;
 	--sidebar-calendar-bar-height: 4px;
+	--sidebar-calendar-more-height: 14px;
 	padding: var(--size-4-2) var(--size-4-3);
 }
 
@@ -106,10 +107,9 @@
 
 .sidebar-calendar__more {
 	z-index: 1;
-	padding-bottom: var(--size-2-1);
 	text-align: center;
-	font-size: var(--font-ui-smaller);
-	line-height: 1.2;
+	font-size: 10px;
+	line-height: var(--sidebar-calendar-more-height);
 	color: var(--text-muted);
 	pointer-events: none;
 }

@@ -70,13 +70,14 @@ function renderWeekdays(parent: HTMLElement, model: MonthViewModel): void {
  */
 function renderWeek(parent: HTMLElement, week: DayKey[], model: MonthViewModel): void {
 	const layout = layoutWeek(week, model.events, model.maxLanes);
-	const hasHidden = layout.hiddenCounts.some((n) => n > 0);
 
+	// Every week reserves all bar rows and the "+N" row so week heights never depend on events.
 	const weekEl = parent.createDiv({ cls: 'sidebar-calendar__week' });
-	const rows = ['auto'];
-	for (let i = 0; i < layout.laneCount; i++) rows.push('var(--sidebar-calendar-lane-height)');
-	if (hasHidden) rows.push('auto');
-	weekEl.style.gridTemplateRows = rows.join(' ');
+	weekEl.style.gridTemplateRows = [
+		'auto',
+		`repeat(${model.maxLanes}, var(--sidebar-calendar-lane-height))`,
+		'var(--sidebar-calendar-more-height)',
+	].join(' ');
 
 	week.forEach((day, i) => {
 		const { month } = yearMonth(day);
@@ -100,14 +101,12 @@ function renderWeek(parent: HTMLElement, week: DayKey[], model: MonthViewModel):
 		barEl.style.gridRow = String(bar.lane + 2);
 	}
 
-	if (hasHidden) {
-		layout.hiddenCounts.forEach((count, col) => {
-			if (count === 0) return;
-			const more = weekEl.createDiv({ cls: 'sidebar-calendar__more', text: `+${count}` });
-			more.style.gridColumn = String(col + 1);
-			more.style.gridRow = String(layout.laneCount + 2);
-		});
-	}
+	layout.hiddenCounts.forEach((count, col) => {
+		if (count === 0) return;
+		const more = weekEl.createDiv({ cls: 'sidebar-calendar__more', text: `+${count}` });
+		more.style.gridColumn = String(col + 1);
+		more.style.gridRow = String(model.maxLanes + 2);
+	});
 }
 
 /** Short English month name ("Oct") regardless of app language. */
