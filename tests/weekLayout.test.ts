@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { addDays } from '../src/date/dayKey';
 import { buildMonthGrid } from '../src/date/monthGrid';
-import { layoutWeek, splitIntoWeek } from '../src/layout/weekLayout';
+import { eventsOnDay, layoutWeek, splitIntoWeek } from '../src/layout/weekLayout';
 import type { CalendarEvent } from '../src/types';
 
 // Sunday 2026-10-18 … Saturday 2026-10-24
@@ -110,4 +110,17 @@ test('maxLanes 1 keeps only the first row', () => {
 	const result = summary(WEEK, [ev('a', '2026-10-20', '2026-10-21'), ev('b', '2026-10-21')], 1);
 	assert.deepEqual(result.bars, ['a:2-3@0']);
 	assert.deepEqual(result.hidden, [0, 0, 0, 1, 0, 0, 0]);
+});
+
+test('eventsOnDay includes every event covering the day, hidden or not', () => {
+	const events = [ev('busan', '2026-10-20', '2026-10-23'), ev('one', '2026-10-21'), ev('other', '2026-10-25')];
+	assert.deepEqual(
+		eventsOnDay(events, '2026-10-21').map((e) => e.title),
+		['busan', 'one'],
+	);
+	assert.deepEqual(
+		eventsOnDay(events, '2026-10-23').map((e) => e.title),
+		['busan'],
+	);
+	assert.deepEqual(eventsOnDay(events, '2026-10-24'), []);
 });

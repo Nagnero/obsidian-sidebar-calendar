@@ -93,3 +93,8 @@ function isFree(row: boolean[] | undefined, startCol: number, endCol: number): b
 	for (let col = startCol; col <= endCol; col++) if (row[col]) return false;
 	return true;
 }
+
+/** Events that include `day`, in input order. */
+export function eventsOnDay(events: readonly CalendarEvent[], day: DayKey): CalendarEvent[] {
+	return events.filter((event) => event.start <= day && day <= event.end);
+}

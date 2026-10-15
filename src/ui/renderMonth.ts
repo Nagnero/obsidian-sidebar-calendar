@@ -1,4 +1,4 @@
-import { setIcon } from 'obsidian';
+import { setIcon, setTooltip } from 'obsidian';
 import { DayKey, makeDayKey, Weekday, yearMonth } from '../date/dayKey';
 import { buildMonthGrid, weekdayOrder } from '../date/monthGrid';
 import { layoutWeek } from '../layout/weekLayout';
@@ -15,12 +15,17 @@ export interface MonthViewModel {
 	maxLanes: number;
 	/** Bar color for an event; null means the theme's accent color. */
 	colorFor: (event: CalendarEvent) => string | null;
+	selectedDay: DayKey | null;
+	/** Whether a daily note exists for a day; null when daily notes are off. */
+	hasDailyNote: ((day: DayKey) => boolean) | null;
 }
 
 export interface MonthViewHandlers {
 	onPrev: () => void;
 	onToday: () => void;
 	onNext: () => void;
+	onSelectDay: (day: DayKey) => void;
+	onOpenEvent: (event: CalendarEvent, evt: MouseEvent) => void;
 }
 
 export function renderMonth(parent: HTMLElement, model: MonthViewModel, handlers: MonthViewHandlers): void {
@@ -29,7 +34,7 @@ export function renderMonth(parent: HTMLElement, model: MonthViewModel, handlers
 
 	const weeksEl = parent.createDiv({ cls: 'sidebar-calendar__weeks' });
 	for (const week of buildMonthGrid(model.year, model.month, model.weekStart)) {
-		renderWeek(weeksEl, week, model);
+		renderWeek(weeksEl, week, model, handlers);
 	}
 }
 
@@ -70,7 +75,7 @@ function renderWeekdays(parent: HTMLElement, model: MonthViewModel): void {
  * One week is a 7-column grid. Day cells span every row so they act as the background and
  * click target; row 1 holds the date numbers, then one row per bar lane, then a "+N" row.
  */
-function renderWeek(parent: HTMLElement, week: DayKey[], model: MonthViewModel): void {
+function renderWeek(parent: HTMLElement, week: DayKey[], model: MonthViewModel, handlers: MonthViewHandlers): void {
 	const layout = layoutWeek(week, model.events, model.maxLanes);
 
 	// Every week reserves all bar rows and the "+N" row so week heights never depend on events.
@@ -87,7 +92,8 @@ function renderWeek(parent: HTMLElement, week: DayKey[], model: MonthViewModel):
 		cell.style.gridColumn = String(i + 1);
 		if (month !== model.month) cell.addClass('is-other-month');
 		if (day === model.today) cell.addClass('is-today');
-
+		if (day === model.selectedDay) cell.addClass('is-selected');
+		cell.addEventListener('click', () => handlers.onSelectDay(day));
 
 		// The number is its own grid item so row 1 gets its height; the cell behind it spans all rows.
 		const number = weekEl.createDiv({ cls: 'sidebar-calendar__day-number-slot' });
@@ -95,6 +101,9 @@ function renderWeek(parent: HTMLElement, week: DayKey[], model: MonthViewModel):
 		if (month !== model.month) number.addClass('is-other-month');
 		if (day === model.today) number.addClass('is-today');
 		number.createSpan({ cls: 'sidebar-calendar__day-number', text: String(Number(day.slice(8))) });
+		// Always present so every week keeps the same height; only visible on days with a daily note.
+		const dot = number.createSpan({ cls: 'sidebar-calendar__note-dot' });
+		if (model.hasDailyNote?.(day)) dot.addClass('has-note');
 	});
 
 	for (const bar of layout.bars) {
@@ -105,6 +114,10 @@ function renderWeek(parent: HTMLElement, week: DayKey[], model: MonthViewModel):
 		if (color) barEl.style.setProperty('--sidebar-calendar-bar-color', color);
 		barEl.style.gridColumn = `${bar.startCol + 1} / ${bar.endCol + 2}`;
 		barEl.style.gridRow = String(bar.lane + 2);
+		setTooltip(barEl, `${bar.event.title}\n${formatRange(bar.event.start, bar.event.end, model.locale)}`, {
+			placement: 'top',
+		});
+		barEl.addEventListener('click', (evt) => handlers.onOpenEvent(bar.event, evt));
 	}
 
 	layout.hiddenCounts.forEach((count, col) => {
@@ -132,6 +145,25 @@ function formatWeekday(weekday: Weekday, locale: string): string {
 function formatToday(locale: string): string {
 	const text = new Intl.RelativeTimeFormat(locale, { numeric: 'auto' }).format(0, 'day');
 	return text.charAt(0).toLocaleUpperCase(locale) + text.slice(1);
+}
+
+/** "10월 20일 (화)" or "10월 20일 (화) – 10월 23일 (금)", in the app language. */
+export function formatRange(start: DayKey, end: DayKey, locale: string): string {
+	const format = new Intl.DateTimeFormat(locale, {
+		month: 'short',
+		day: 'numeric',
+		weekday: 'short',
+		timeZone: 'UTC',
+	});
+	const from = format.format(utcDate(start));
+	return start === end ? from : `${from} – ${format.format(utcDate(end))}`;
+}
+
+/** "10월 20일 화요일" in the app language. */
+export function formatLongDay(day: DayKey, locale: string): string {
+	return new Intl.DateTimeFormat(locale, { month: 'long', day: 'numeric', weekday: 'long', timeZone: 'UTC' }).format(
+		utcDate(day),
+	);
 }
 
 function utcDate(key: DayKey): Date {

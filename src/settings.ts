@@ -10,6 +10,8 @@ export interface SidebarCalendarSettings {
 	categories: Category[];
 	/** Bar color for events without a known category. Empty means the theme's accent color. */
 	defaultColor: string;
+	/** Show daily note dots and the open/create button (uses the core Daily notes plugin). */
+	dailyNotes: boolean;
 }
 
 export const DEFAULT_SETTINGS: SidebarCalendarSettings = {
@@ -18,6 +20,7 @@ export const DEFAULT_SETTINGS: SidebarCalendarSettings = {
 	maxLanes: 3,
 	categories: [],
 	defaultColor: '',
+	dailyNotes: true,
 };
 
 /** Shown in color pickers when a color is unset; roughly Obsidian's default accent. */
@@ -75,6 +78,18 @@ export class SidebarCalendarSettingTab extends PluginSettingTab {
 						this.plugin.settings.maxLanes = value;
 						await this.plugin.saveSettings();
 					}),
+			);
+
+		new Setting(containerEl)
+			.setName('Daily notes')
+			.setDesc(
+				'Mark days that have a daily note and show a button to open or create it. Uses the folder, format and template of the core daily notes plugin, which must be turned on.',
+			)
+			.addToggle((toggle) =>
+				toggle.setValue(this.plugin.settings.dailyNotes).onChange(async (value) => {
+					this.plugin.settings.dailyNotes = value;
+					await this.plugin.saveSettings();
+				}),
 			);
 
 		new Setting(containerEl).setName('Colors').setHeading();

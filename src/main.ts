@@ -5,16 +5,19 @@ import {
 	SidebarCalendarSettings,
 	SidebarCalendarSettingTab,
 } from './settings';
+import { DailyNotes } from './data/DailyNotes';
 import { EventStore } from './data/EventStore';
 import { CalendarView } from './ui/CalendarView';
 
 export default class SidebarCalendarPlugin extends Plugin {
 	settings!: SidebarCalendarSettings;
 	eventStore!: EventStore;
+	dailyNotes!: DailyNotes;
 
 	async onload() {
 		await this.loadSettings();
 		this.eventStore = new EventStore(this.app, () => this.settings.eventsFolder);
+		this.dailyNotes = new DailyNotes(this.app);
 
 		this.registerView(VIEW_TYPE_SIDEBAR_CALENDAR, (leaf) => new CalendarView(leaf, this));
 
