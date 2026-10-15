@@ -1,27 +1,9 @@
 import { App, normalizePath, PluginSettingTab, Setting } from 'obsidian';
-import type { Category } from './categoryColor';
-import type { Weekday } from './date/dayKey';
+import { DEFAULT_SETTINGS, MAX_LANES, MIN_LANES } from './settingsData';
 import type SidebarCalendarPlugin from './main';
 
-export interface SidebarCalendarSettings {
-	eventsFolder: string;
-	weekStart: Weekday;
-	maxLanes: number;
-	categories: Category[];
-	/** Bar color for events without a known category. Empty means the theme's accent color. */
-	defaultColor: string;
-	/** Show daily note dots and the open/create button (uses the core Daily notes plugin). */
-	dailyNotes: boolean;
-}
-
-export const DEFAULT_SETTINGS: SidebarCalendarSettings = {
-	eventsFolder: 'Events',
-	weekStart: 0,
-	maxLanes: 3,
-	categories: [],
-	defaultColor: '',
-	dailyNotes: true,
-};
+export { DEFAULT_SETTINGS, sanitizeSettings } from './settingsData';
+export type { SidebarCalendarSettings } from './settingsData';
 
 /** Shown in color pickers when a color is unset; roughly Obsidian's default accent. */
 const PICKER_FALLBACK = '#7f6df2';
@@ -71,7 +53,7 @@ export class SidebarCalendarSettingTab extends PluginSettingTab {
 			.setDesc('Events that do not fit are counted in the number shown under their days.')
 			.addSlider((slider) =>
 				slider
-					.setLimits(1, 6, 1)
+					.setLimits(MIN_LANES, MAX_LANES, 1)
 					.setValue(this.plugin.settings.maxLanes)
 					.setDynamicTooltip()
 					.onChange(async (value) => {

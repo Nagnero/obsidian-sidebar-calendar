@@ -105,6 +105,18 @@ export class CalendarView extends ItemView {
 		);
 	}
 
+	/** Called when the date rolls over. Follows today if the user was looking at it. */
+	onDayChanged(previous: DayKey, today: DayKey): void {
+		if (this.selectedDay === previous) {
+			const shown = yearMonth(previous);
+			this.selectedDay = today;
+			if (shown.year === this.year && shown.month === this.month) {
+				({ year: this.year, month: this.month } = yearMonth(today));
+			}
+		}
+		this.render();
+	}
+
 	private async openEvent(event: CalendarEvent, evt: MouseEvent): Promise<void> {
 		const file = this.app.vault.getAbstractFileByPath(event.id);
 		if (!(file instanceof TFile)) return;

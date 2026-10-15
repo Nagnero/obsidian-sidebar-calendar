@@ -8,6 +8,8 @@ const LOG_PREFIX = '[Sidebar Calendar]';
 export class EventStore {
 	private events: CalendarEvent[] = [];
 	private skipped = 0;
+	/** Last warning printed per path, so a refresh does not repeat the same warning. */
+	private warned = new Map<string, string>();
 
 	constructor(
 		private app: App,
@@ -22,24 +24,29 @@ export class EventStore {
 	reload(): void {
 		const folder = this.getFolder();
 		const events: CalendarEvent[] = [];
+		const warned = new Map<string, string>();
 		this.skipped = 0;
 
 		for (const file of this.app.vault.getMarkdownFiles()) {
 			if (!isInFolder(file.path, folder)) continue;
-			const result = this.parseFile(file);
+			const result = this.parseFile(file, warned);
 			if (result) events.push(result);
 		}
+		this.warned = warned;
 
 		events.sort(compareEvents);
 		this.events = events;
 	}
 
-	private parseFile(file: TFile): CalendarEvent | null {
+	private parseFile(file: TFile, warned: Map<string, string>): CalendarEvent | null {
 		const frontmatter: unknown = this.app.metadataCache.getFileCache(file)?.frontmatter;
 		const result = parseEvent(frontmatter, file.path, file.basename);
 		if (!result.ok) {
 			this.skipped++;
-			console.warn(`${LOG_PREFIX} Skipped "${file.path}": ${result.reason}`);
+			if (this.warned.get(file.path) !== result.reason) {
+				console.warn(`${LOG_PREFIX} Skipped "${file.path}": ${result.reason}`);
+			}
+			warned.set(file.path, result.reason);
 			return null;
 		}
 		return result.event;
@@ -51,9 +58,12 @@ export class EventStore {
 		return `${this.events.length} event(s) in "${this.getFolder()}"${skipped}`;
 	}
 
-	/** Prints every event at debug level (shown when the console's "Verbose" level is on). */
+	/** Prints every event and every skipped note at debug level (shown when the console's "Verbose" level is on). */
 	logToConsole(): void {
 		console.debug(`${LOG_PREFIX} ${this.summary()}`);
+		for (const [path, reason] of this.warned) {
+			console.debug(`${LOG_PREFIX} skipped | ${reason} | ${path}`);
+		}
 		for (const e of this.events) {
 			const range = e.start === e.end ? e.start : `${e.start} ~ ${e.end}`;
 			console.debug(`${LOG_PREFIX} ${range} | ${e.title} | ${e.category ?? '-'} | ${e.id}`);

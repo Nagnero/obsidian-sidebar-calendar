@@ -1,10 +1,8 @@
-import { Notice, Plugin, WorkspaceLeaf } from 'obsidian';
+import { debounce, Notice, Plugin, TAbstractFile, TFile, WorkspaceLeaf } from 'obsidian';
 import { VIEW_TYPE_SIDEBAR_CALENDAR } from './constants';
-import {
-	DEFAULT_SETTINGS,
-	SidebarCalendarSettings,
-	SidebarCalendarSettingTab,
-} from './settings';
+import { sanitizeSettings, SidebarCalendarSettings, SidebarCalendarSettingTab } from './settings';
+import { todayKey } from './date/dayKey';
+import { isInFolder } from './data/parseEvent';
 import { DailyNotes } from './data/DailyNotes';
 import { EventStore } from './data/EventStore';
 import { CalendarView } from './ui/CalendarView';
@@ -34,8 +32,8 @@ export default class SidebarCalendarPlugin extends Plugin {
 		});
 
 		this.addCommand({
-			id: 'log-events',
-			name: 'Log events to console',
+			id: 'reload-events',
+			name: 'Reload events',
 			callback: () => {
 				this.eventStore.reload();
 				this.refreshViews();
@@ -45,6 +43,7 @@ export default class SidebarCalendarPlugin extends Plugin {
 		});
 
 		this.addSettingTab(new SidebarCalendarSettingTab(this.app, this));
+		this.registerAutoRefresh();
 
 		// Open the view on first load; afterwards the workspace layout restores it.
 		this.app.workspace.onLayoutReady(() => {
@@ -54,6 +53,45 @@ export default class SidebarCalendarPlugin extends Plugin {
 				void this.activateView(false);
 			}
 		});
+	}
+
+	/**
+	 * Keeps the calendar in sync with the vault. Bursts of changes (a sync, a bulk rename) are
+	 * collapsed into one reload. Event notes are re-read when their frontmatter changes; any
+	 * markdown file appearing, disappearing or moving can add or remove a daily note dot, so
+	 * those always refresh. Daily note contents are never read.
+	 */
+	private registerAutoRefresh(): void {
+		const refresh = debounce(() => {
+			this.eventStore.reload();
+			this.refreshViews();
+		}, 300, true);
+		const inEventsFolder = (path: string) => isInFolder(path, this.settings.eventsFolder);
+		const isMarkdown = (file: TAbstractFile) => file instanceof TFile && file.extension === 'md';
+
+		this.registerEvent(this.app.metadataCache.on('changed', (file) => {
+			if (inEventsFolder(file.path)) refresh();
+		}));
+		this.registerEvent(this.app.vault.on('create', (file) => {
+			if (isMarkdown(file)) refresh();
+		}));
+		this.registerEvent(this.app.vault.on('delete', (file) => {
+			if (isMarkdown(file)) refresh();
+		}));
+		this.registerEvent(this.app.vault.on('rename', (file, oldPath) => {
+			// A renamed folder moves its notes without a per-file event.
+			if (isMarkdown(file) || inEventsFolder(file.path) || inEventsFolder(oldPath)) refresh();
+		}));
+
+		// Move "today" forward when the date changes while Obsidian stays open.
+		let today = todayKey();
+		this.registerInterval(window.setInterval(() => {
+			const now = todayKey();
+			if (now === today) return;
+			const previous = today;
+			today = now;
+			for (const view of this.calendarViews()) view.onDayChanged(previous, now);
+		}, 60_000));
 	}
 
 	async activateView(reveal = true): Promise<void> {
@@ -70,13 +108,7 @@ export default class SidebarCalendarPlugin extends Plugin {
 	}
 
 	async loadSettings() {
-		this.settings = Object.assign(
-			{},
-			DEFAULT_SETTINGS,
-			(await this.loadData()) as Partial<SidebarCalendarSettings>,
-		);
-		// Copy so edits never mutate DEFAULT_SETTINGS' shared array.
-		this.settings.categories = this.settings.categories.map((c) => ({ ...c }));
+		this.settings = sanitizeSettings(await this.loadData());
 	}
 
 	async saveSettings() {
@@ -86,8 +118,13 @@ export default class SidebarCalendarPlugin extends Plugin {
 	}
 
 	refreshViews(): void {
-		for (const leaf of this.app.workspace.getLeavesOfType(VIEW_TYPE_SIDEBAR_CALENDAR)) {
-			if (leaf.view instanceof CalendarView) leaf.view.render();
-		}
+		for (const view of this.calendarViews()) view.render();
+	}
+
+	private calendarViews(): CalendarView[] {
+		return this.app.workspace
+			.getLeavesOfType(VIEW_TYPE_SIDEBAR_CALENDAR)
+			.map((leaf) => leaf.view)
+			.filter((view): view is CalendarView => view instanceof CalendarView);
 	}
 }
