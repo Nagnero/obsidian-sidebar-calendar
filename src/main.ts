@@ -13,7 +13,7 @@ export default class SidebarCalendarPlugin extends Plugin {
 	async onload() {
 		await this.loadSettings();
 
-		this.registerView(VIEW_TYPE_SIDEBAR_CALENDAR, (leaf) => new CalendarView(leaf));
+		this.registerView(VIEW_TYPE_SIDEBAR_CALENDAR, (leaf) => new CalendarView(leaf, this));
 
 		this.addRibbonIcon('calendar-range', 'Open sidebar calendar', () => {
 			void this.activateView();
@@ -60,5 +60,12 @@ export default class SidebarCalendarPlugin extends Plugin {
 
 	async saveSettings() {
 		await this.saveData(this.settings);
+		this.refreshViews();
+	}
+
+	refreshViews(): void {
+		for (const leaf of this.app.workspace.getLeavesOfType(VIEW_TYPE_SIDEBAR_CALENDAR)) {
+			if (leaf.view instanceof CalendarView) leaf.view.render();
+		}
 	}
 }
