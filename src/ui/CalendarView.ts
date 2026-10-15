@@ -78,9 +78,12 @@ export class CalendarView extends ItemView {
 					({ year: this.year, month: this.month } = yearMonth(this.selectedDay));
 					this.render();
 				},
-				onSelectDay: (day) => {
+				onSelectDay: (day, evt) => {
 					this.selectedDay = day;
 					this.render();
+					// Like the Calendar plugin, a click opens that day's note, but only one that
+					// already exists; creating a note is left to the button in the day list.
+					if (dailyNotes?.find(day)) void dailyNotes.open(day, Keymap.isModEvent(evt) !== false);
 				},
 				onOpenEvent: openEvent,
 			},

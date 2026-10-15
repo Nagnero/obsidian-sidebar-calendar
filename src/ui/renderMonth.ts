@@ -24,7 +24,7 @@ export interface MonthViewHandlers {
 	onPrev: () => void;
 	onToday: () => void;
 	onNext: () => void;
-	onSelectDay: (day: DayKey) => void;
+	onSelectDay: (day: DayKey, evt: MouseEvent) => void;
 	onOpenEvent: (event: CalendarEvent, evt: MouseEvent) => void;
 }
 
@@ -93,7 +93,7 @@ function renderWeek(parent: HTMLElement, week: DayKey[], model: MonthViewModel, 
 		if (month !== model.month) cell.addClass('is-other-month');
 		if (day === model.today) cell.addClass('is-today');
 		if (day === model.selectedDay) cell.addClass('is-selected');
-		cell.addEventListener('click', () => handlers.onSelectDay(day));
+		cell.addEventListener('click', (evt) => handlers.onSelectDay(day, evt));
 
 		// The number is its own grid item so row 1 gets its height; the cell behind it spans all rows.
 		const number = weekEl.createDiv({ cls: 'sidebar-calendar__day-number-slot' });
