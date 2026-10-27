@@ -1,0 +1,88 @@
+---
+name: verify-sidebar-calendar
+description: Drive the real Obsidian desktop app with this repo's Sidebar Calendar build and prove calendar behavior (event bars, +N, category colors, tooltips, day list, daily notes) with snapshots and screenshots. Use after any change to src/ or styles.css, or when asked to verify, reproduce, or screenshot the calendar.
+---
+
+# Verify Sidebar Calendar
+
+Sidebar Calendar is an Obsidian plugin: a month calendar in the right sidebar that draws notes in an events folder as colored bars. The only user surface is the Obsidian desktop app, so verification launches a real Obsidian (Electron) under Xvfb, loads the freshly built plugin into a throwaway vault, and drives it over the Chrome DevTools Protocol with Playwright.
+
+Everything goes through one helper, run from the repo root:
+
+```bash
+V=.claude/skills/verify-sidebar-calendar/scripts/verify.cjs
+node $V help
+```
+
+Read [features/README.md](features/README.md) before driving, then follow the feature file that matches the change.
+
+## Requirements
+
+- Linux with `xvfb-run`, `unsquashfs` (`squashfs-tools`), `curl`, Node 20+.
+- `playwright` or `playwright-core` resolvable by `require`. Cloud sessions have it preinstalled. Elsewhere run `npm i --no-save playwright-core`. No browser download is needed; Obsidian is the browser.
+- Network access to `api.snapcraft.io` and `*.snapcraftcontent.com` for the first launch. The helper downloads Obsidian's official snap, checks the SHA3-384 the store publishes, unpacks it into `~/.cache/verify-sidebar-calendar/obsidian-<version>/`, and reuses it afterwards. On another OS, or to use an installed Obsidian, set `OBSIDIAN_BIN` to its executable (only verified on Linux).
+- If `DISPLAY` is set, Obsidian opens on that display instead of Xvfb.
+
+## Launch
+
+```bash
+node $V launch
+```
+
+It runs `npm run build`, seeds a fresh vault in `$TMPDIR/verify-sidebar-calendar/<run>/vault` (fixtures: [features/README.md](features/README.md#baseline-fixtures)), starts Obsidian with its own config dir and `--remote-debugging-port`, answers the first-open "Do you trust the author of this vault?" dialog with **Trust author and enable plugins**, runs the **Sidebar Calendar: Open calendar** command, and waits until the month grid is rendered. Ready means it printed `verify: ready. run=… port=… vault=… artifacts=…`. A cold launch with the download takes about 20 s.
+
+Two runs can coexist: give each its own `VERIFY_RUN_ID` and `VERIFY_PORT`. `launch` refuses a run ID that is already running and a port that is already taken.
+
+## Doctor
+
+```bash
+node $V doctor
+```
+
+Read-only. Prints the Obsidian version, vault path, plugin version, and whether the calendar view is open, and fails unless this run owns the process, the vault is this run's vault, the plugin is loaded, and the loaded `main.js` is byte-identical to the repo's build. Run it first, and again whenever anything looks off. Never drive an instance doctor rejects. After editing code, `stop` and `launch` again; launch is what rebuilds and reloads.
+
+## Drive
+
+| Command | Does |
+| --- | --- |
+| `node $V click '<selector>'` | Clicks the first match, then waits 400 ms for the re-render. |
+| `node $V hover '<selector>'` | Hovers and prints `{"tooltip": "..."}` for the tooltip Obsidian shows. Tooltips vanish when the pointer leaves, so read them here, not in a later snapshot. |
+| `node $V fill '<selector>' <value>` | Clears an input and types like a user, so Obsidian's change handlers fire. |
+| `node $V snapshot <name>` | Saves the calendar state as JSON and prints it: title, weekdays, today, selected day, daily note dots, every bar (event path, week index, grid column, lane, computed color, continued flags), every `+N`, the day list, and the active file. |
+| `node $V screenshot <name>` | Saves a PNG of the window. |
+| `node $V eval '<js body>'` | Runs a function body in the window with `app` in scope and prints the returned JSON. For reading state (files, settings), not for driving the UI. |
+| `node $V day <n>` | Prints `YYYY-MM-DD` for day `n` of the current month, to build selectors. |
+
+Add `--settings` to `click`, `hover`, `fill`, `eval`, or `screenshot` to act on the Settings window. Obsidian 1.14 opens Settings in a separate window, so main-window selectors never see it.
+
+Stable handles, all from `src/ui/`:
+
+- Day cell: `.sidebar-calendar__day[data-date="YYYY-MM-DD"]` (classes `is-today`, `is-selected`, `is-other-month`).
+- Bar: `.sidebar-calendar__bar[data-event="Events/<file>.md"]`. A multi-week event has one bar per week.
+- Overflow: `.sidebar-calendar__more` with text `+N`.
+- Header buttons: `[aria-label="Previous month"]`, `[aria-label="Current month"]`, `[aria-label="Next month"]`.
+- Day list: `.sidebar-calendar__day-list`, items `.sidebar-calendar__event-item`, and the daily note button `[aria-label="Open daily note"]` or `[aria-label="Create daily note"]`.
+- Settings gear (main window): `.clickable-icon:has(svg.lucide-settings)`. In the Settings window: `.vertical-tab-nav-item:has-text("Sidebar Calendar")`, `button:has-text("Add category")`, category rows `.sidebar-calendar-category-setting`.
+
+## Evidence
+
+Artifacts go to `.verify-artifacts/<run>/` in the repo (git-ignored) and survive `stop`. Name them `<feature-id>/<step>`, for example `node $V snapshot d-multiday/baseline`.
+
+A proof:
+
+- Drives the real user path: clicks, hovers, the Settings window, or files appearing in the vault. Never call plugin internals or `saveSettings` to fake a user action. `eval` is for reading state.
+- Captures the action and the resulting state: a snapshot before and after, plus one screenshot that shows the calendar.
+- Checks side effects next to what is visible: the vault file that was created or opened, and `data.json` after a settings change (`node $V eval 'return app.plugins.plugins["sidebar-calendar"].settings'`).
+- Names the feature ID and entry point with every artifact. Do not report a path as verified through a different entry point.
+
+## Cleanup
+
+```bash
+node $V stop
+```
+
+Kills only the process group this run started (from its PID file, never by name) and deletes this run's vault and config. Artifacts stay in `.verify-artifacts/<run>/`. Run it after every attempt, failed ones included. The Obsidian download stays cached in `~/.cache/verify-sidebar-calendar/`.
+
+## Maintenance
+
+When a feature or handle changes, update the matching file under [features/](features/README.md). Use `/maintain-verification-skill` to bring this map back in line with the app.
