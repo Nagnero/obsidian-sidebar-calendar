@@ -50,8 +50,7 @@ try {
 	const wanted = process.argv.slice(2);
 	const selected = wanted.length > 0 ? SCENARIOS.filter((s) => wanted.includes(s.name)) : SCENARIOS;
 	if (selected.length === 0) {
-		console.error(`No scenario matches ${wanted.join(', ')}. Available: ${SCENARIOS.map((s) => s.name).join(', ')}`);
-		process.exit(1);
+		throw new Error(`No scenario matches ${wanted.join(', ')}. Available: ${SCENARIOS.map((s) => s.name).join(', ')}`);
 	}
 
 	copyFileSync(join(here, 'theme.css'), join(work, 'theme.css'));
@@ -106,6 +105,9 @@ try {
 		await browser.close();
 	}
 	if (failed > 0) process.exitCode = 1;
+} catch (error) {
+	console.error(error instanceof Error ? error.message : error);
+	process.exitCode = 1;
 } finally {
 	rmSync(work, { recursive: true, force: true });
 }
