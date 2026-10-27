@@ -13,6 +13,8 @@ export default defineConfig(
 		'package.json',
 		'package-lock.json',
 		'tsconfig.json',
+		// Vendored Claude Code skills (pstack), not part of the plugin.
+		'.claude',
 	]),
 	{
 		languageOptions: {
