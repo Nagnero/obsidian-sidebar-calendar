@@ -3,7 +3,7 @@ import SidebarCalendarPlugin from '../../src/main';
 import type { Action, PreviewScenario } from './scenarios';
 import { SCENARIOS } from './scenarios';
 import { BASE_SETTINGS, EVENT_NOTES, EVENTS_FOLDER } from './fixtures';
-import { installDomHelpers, TFile, ViewRegistry, WorkspaceLeaf } from './obsidian-stub';
+import { installDomHelpers, moment, TFile, ViewRegistry, WorkspaceLeaf } from './obsidian-stub';
 
 declare global {
 	interface Window {
@@ -86,6 +86,7 @@ async function run(): Promise<void> {
 	if (!scenario) throw new Error(`Unknown scenario "${String(name)}"`);
 
 	document.body.classList.add(`theme-${scenario.theme}`);
+	moment.locale(scenario.locale ?? 'en');
 	installDomHelpers();
 	const sidebarEl = document.getElementById('sidebar');
 	if (!sidebarEl) throw new Error('#sidebar is missing from the page');

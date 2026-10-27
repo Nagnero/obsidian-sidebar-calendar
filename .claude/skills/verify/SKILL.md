@@ -37,7 +37,7 @@ Playwright must load, the Chromium path must exist, and `node_modules` must be i
 
 ## Drive
 
-Scenarios live in one table, `SCENARIOS` in `scripts/preview/scenarios.ts`. A scenario is `{ name, theme, today, settings?, dailyNotes?, actions? }`. The runner pins the browser clock to `today` and the timezone to UTC, loads `index.html?scenario=<name>`, applies `actions`, and screenshots `#sidebar` (300px wide).
+Scenarios live in one table, `SCENARIOS` in `scripts/preview/scenarios.ts`. A scenario is `{ name, theme, today, locale?, settings?, dailyNotes?, actions? }` (`locale` is the app language, such as `ko`). The runner pins the browser clock to `today` and the timezone to UTC, loads `index.html?scenario=<name>`, applies `actions`, and screenshots `#sidebar` (300px wide).
 
 To drive something new, add a row, then run it by name:
 

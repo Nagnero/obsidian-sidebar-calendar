@@ -7,6 +7,8 @@ export interface PreviewScenario {
 	name: string;
 	theme: 'light' | 'dark';
 	today: DayKey;
+	/** App language, as Obsidian sets it on moment. Defaults to English. */
+	locale?: string;
 	settings?: Partial<SidebarCalendarSettings>;
 	/** Days that have a daily note in the fake vault. */
 	dailyNotes?: DayKey[];
@@ -29,5 +31,6 @@ export const SCENARIOS: readonly PreviewScenario[] = [
 		actions: [{ selectDay: '2026-10-20' }],
 	},
 	{ name: 'next-month-light', theme: 'light', today: TODAY, dailyNotes: NOTE_DAYS, actions: [{ click: 'next' }] },
+	{ name: 'korean-light', theme: 'light', today: TODAY, dailyNotes: NOTE_DAYS, locale: 'ko' },
 	{ name: 'monday-start-light', theme: 'light', today: TODAY, dailyNotes: NOTE_DAYS, settings: { weekStart: 1 } },
 ];
