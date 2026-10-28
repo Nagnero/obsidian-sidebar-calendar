@@ -23,7 +23,7 @@ Preconditions:
 
 - **Split.** Run `node $V snapshot d-multiday/baseline`. `D(5).md:1` has two bars in consecutive `week`s. The first has `continuedAfter: true` and ends at column 8 (Saturday). The second starts at column 1 with `continuedBefore: true`. Together they cover D(5) through D(12).
 - **Lanes.** In the same snapshot, `D(8).md:1` is in a week that also has a Trip bar, and its `lane` is `1` where it overlaps Trip in lane `0`.
-- **Overflow.** In the same snapshot, exactly three `D(20).md:*` bars sit in D(20)'s column with lanes `0`, `1`, `2`, and `more` has one entry `{ "text": "+1" }` in that column and week. No bar has ID `D(20).md:5` (the nested item).
+- **Overflow.** In the same snapshot, exactly three `D(20).md:*` bars sit in D(20)'s column with lanes `0`, `1`, `2`, and `more` has one entry `{ "text": "+1" }` in that column and week (D(27) has a `+1` of its own). No bar has ID `D(20).md:5` (the nested item).
 - **Hidden entry still listed.** Run `node $V click ".sidebar-calendar__day[data-date=\"$(node $V day 20)\"]"` and `node $V snapshot d-multiday/day-20`. `dayList.items` has all four titles `Crowded 1` to `Crowded 4` and nothing else.
 - **Proof.** Run `node $V screenshot d-multiday/day-20`. The red Trip bar runs off the right edge of one week and resumes at the left edge of the next, and `+1` shows under the 20th.
 
