@@ -65,7 +65,7 @@ export class CalendarView extends ItemView {
 				today: todayKey(),
 				weekStart: this.plugin.settings.weekStart,
 				locale,
-				events,
+				events: this.plugin.settings.showOneDay ? events : events.filter((e) => e.start !== e.end),
 				maxLanes: this.plugin.settings.maxLanes,
 				colorFor,
 				selectedDay: this.selectedDay,

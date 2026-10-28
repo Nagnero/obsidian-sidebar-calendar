@@ -96,6 +96,16 @@ export class SidebarCalendarSettingTab extends PluginSettingTab {
 			);
 
 		new Setting(containerEl)
+			.setName('Show one-day entries')
+			.setDesc('When off, the calendar shows only entries that span several days. The list under the calendar still shows every entry of the selected day.')
+			.addToggle((toggle) =>
+				toggle.setValue(settings.showOneDay).onChange(async (value) => {
+					settings.showOneDay = value;
+					await plugin.saveSettings();
+				}),
+			);
+
+		new Setting(containerEl)
 			.setName('Daily notes')
 			.setDesc(
 				'Mark days that have a daily note and show a button to open or create it. Uses the folder, format and template of the core daily notes plugin, which must be turned on.',

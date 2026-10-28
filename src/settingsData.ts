@@ -15,6 +15,8 @@ export interface SidebarCalendarSettings {
 	maxLanes: number;
 	/** Show daily note dots and the open/create button (uses the core Daily notes plugin). */
 	dailyNotes: boolean;
+	/** Draw entries whose `start` equals `end` on the grid. The day list shows them either way. */
+	showOneDay: boolean;
 	/** Every H1 seen in the template, in template order; ones no longer there come last. */
 	kinds: Kind[];
 	/** Name of the kind chosen last when adding an entry. */
@@ -25,6 +27,7 @@ export const DEFAULT_SETTINGS: SidebarCalendarSettings = {
 	weekStart: 0,
 	maxLanes: 3,
 	dailyNotes: true,
+	showOneDay: true,
 	kinds: [],
 	lastKind: '',
 };
@@ -63,6 +66,7 @@ export function sanitizeSettings(raw: unknown): SidebarCalendarSettings {
 		weekStart: data.weekStart === 1 || data.weekStart === '1' ? 1 : 0,
 		maxLanes: lanes,
 		dailyNotes: typeof data.dailyNotes === 'boolean' ? data.dailyNotes : d.dailyNotes,
+		showOneDay: typeof data.showOneDay === 'boolean' ? data.showOneDay : d.showOneDay,
 		kinds,
 		lastKind: typeof data.lastKind === 'string' ? data.lastKind : d.lastKind,
 	};

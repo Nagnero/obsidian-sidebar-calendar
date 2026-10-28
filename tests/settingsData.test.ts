@@ -13,6 +13,7 @@ test('valid values are kept', () => {
 		weekStart: 1,
 		maxLanes: 5,
 		dailyNotes: false,
+		showOneDay: false,
 		kinds: [
 			{ name: '업무', enabled: true, color: '#0090ff' },
 			{ name: 'Journaling', enabled: false, color: '' },
@@ -44,6 +45,13 @@ test('week start accepts only Sunday or Monday', () => {
 	assert.equal(sanitizeSettings({ weekStart: 1 }).weekStart, 1);
 	assert.equal(sanitizeSettings({ weekStart: '1' }).weekStart, 1);
 	assert.equal(sanitizeSettings({ weekStart: 3 }).weekStart, 0);
+});
+
+test('show one-day entries accepts only a boolean', () => {
+	assert.equal(sanitizeSettings({ showOneDay: false }).showOneDay, false);
+	assert.equal(sanitizeSettings({ showOneDay: 'false' }).showOneDay, true);
+	assert.equal(sanitizeSettings({ showOneDay: 0 }).showOneDay, true);
+	assert.equal(sanitizeSettings({}).showOneDay, true);
 });
 
 test('malformed kinds are dropped or repaired, names trimmed and unique', () => {
