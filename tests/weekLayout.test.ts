@@ -9,7 +9,7 @@ import type { CalendarEvent } from '../src/types';
 const WEEK = Array.from({ length: 7 }, (_, i) => addDays('2026-10-18', i));
 
 function ev(title: string, start: string, end = start): CalendarEvent {
-	return { id: title, title, start, end };
+	return { id: `${start}.md:${title}`, path: `${start}.md`, line: 0, title, start, end, done: false };
 }
 
 function summary(week: string[], events: CalendarEvent[], maxLanes = 3) {

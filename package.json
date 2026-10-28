@@ -1,7 +1,7 @@
 {
 	"name": "obsidian-sidebar-calendar",
 	"version": "0.1.0",
-	"description": "Obsidian sidebar calendar that shows event notes as multi-day bars",
+	"description": "Obsidian sidebar calendar that shows the schedule in your daily notes as multi-day bars",
 	"main": "main.js",
 	"type": "module",
 	"scripts": {

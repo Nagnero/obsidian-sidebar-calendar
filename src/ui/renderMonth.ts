@@ -3,6 +3,7 @@ import { DayKey, makeDayKey, Weekday, yearMonth } from '../date/dayKey';
 import { buildMonthGrid, weekdayOrder } from '../date/monthGrid';
 import { layoutWeek } from '../layout/weekLayout';
 import type { CalendarEvent } from '../types';
+import { enableRangeSelect } from './rangeSelect';
 
 export interface MonthViewModel {
 	year: number;
@@ -26,6 +27,8 @@ export interface MonthViewHandlers {
 	onNext: () => void;
 	onSelectDay: (day: DayKey, evt: MouseEvent) => void;
 	onOpenEvent: (event: CalendarEvent, evt: MouseEvent) => void;
+	/** A range of days was dragged across, or one day double-clicked. */
+	onAddEntry: (start: DayKey, end: DayKey) => void;
 }
 
 export function renderMonth(parent: HTMLElement, model: MonthViewModel, handlers: MonthViewHandlers): void {
@@ -33,6 +36,7 @@ export function renderMonth(parent: HTMLElement, model: MonthViewModel, handlers
 	renderWeekdays(parent, model);
 
 	const weeksEl = parent.createDiv({ cls: 'sidebar-calendar__weeks' });
+	enableRangeSelect(weeksEl, handlers.onAddEntry);
 	for (const week of buildMonthGrid(model.year, model.month, model.weekStart)) {
 		renderWeek(weeksEl, week, model, handlers);
 	}
@@ -110,6 +114,7 @@ function renderWeek(parent: HTMLElement, week: DayKey[], model: MonthViewModel, 
 		const barEl = weekEl.createDiv({ cls: 'sidebar-calendar__bar', attr: { 'data-event': bar.event.id } });
 		if (bar.continuesBefore) barEl.addClass('is-continued-before');
 		if (bar.continuesAfter) barEl.addClass('is-continued-after');
+		if (bar.event.done) barEl.addClass('is-done');
 		const color = model.colorFor(bar.event);
 		if (color) barEl.style.setProperty('--sidebar-calendar-bar-color', color);
 		barEl.style.gridColumn = `${bar.startCol + 1} / ${bar.endCol + 2}`;

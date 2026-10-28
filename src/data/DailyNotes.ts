@@ -1,6 +1,7 @@
 import { App, moment, normalizePath, TFile, TFolder } from 'obsidian';
-import type { DayKey } from '../date/dayKey';
-import { dailyNotePath, fillDailyTemplate } from './dailyNotePath';
+import { DayKey, parseDayKey } from '../date/dayKey';
+import { dailyNoteName, dailyNotePath, fillDailyTemplate } from './dailyNotePath';
+import { appendScheduleLine, NewEntry } from './parseSchedule';
 
 interface DailyNoteOptions {
 	folder: string;
@@ -15,10 +16,7 @@ interface InternalPlugins {
 	getPluginById?(id: string): { enabled?: boolean; instance?: { options?: Partial<DailyNoteOptions> } } | null;
 }
 
-/**
- * Opens and creates daily notes using the core Daily notes plugin's folder, format and template.
- * Never reads a daily note's content; it only checks whether the file exists.
- */
+/** Finds, opens and creates daily notes using the core Daily notes plugin's folder, format and template. */
 export class DailyNotes {
 	constructor(private app: App) {}
 
@@ -44,6 +42,16 @@ export class DailyNotes {
 		return normalizePath(dailyNotePath(options.folder, fileName));
 	}
 
+	/** The date of a daily note, or null when `file` is not one (or the core plugin is off). */
+	dayOf(file: TFile): DayKey | null {
+		const options = this.options();
+		if (!options) return null;
+		const name = dailyNoteName(options.folder, file.path);
+		if (name === null) return null;
+		const date = moment(name, options.format, true);
+		return date.isValid() ? parseDayKey(date.format('YYYY-MM-DD')) : null;
+	}
+
 	/** The existing daily note for `day`, if any. */
 	find(day: DayKey): TFile | null {
 		const options = this.options();
@@ -58,6 +66,14 @@ export class DailyNotes {
 		if (!options) return;
 		const file = this.find(day) ?? (await this.create(day, options));
 		await this.app.workspace.getLeaf(newLeaf).openFile(file);
+	}
+
+	/** Adds `entry` to the `heading` section of its start day's note, creating the note if needed. */
+	async addEntry(entry: NewEntry, heading: string): Promise<void> {
+		const options = this.options();
+		if (!options) return;
+		const file = this.find(entry.start) ?? (await this.create(entry.start, options));
+		await this.app.vault.process(file, (text) => appendScheduleLine(text, heading, entry));
 	}
 
 	private async create(day: DayKey, options: DailyNoteOptions): Promise<TFile> {

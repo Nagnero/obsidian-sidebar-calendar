@@ -72,8 +72,16 @@
 	background-color: var(--background-modifier-hover);
 }
 
+.sidebar-calendar__weeks {
+	user-select: none;
+}
+
 .sidebar-calendar__day.is-selected {
 	background-color: var(--background-modifier-active-hover);
+}
+
+.sidebar-calendar__day.is-in-range {
+	background-color: hsla(var(--interactive-accent-hsl), 0.2);
 }
 
 .sidebar-calendar__day-number-slot {
@@ -132,6 +140,10 @@
 	margin-right: 0;
 	border-top-right-radius: 0;
 	border-bottom-right-radius: 0;
+}
+
+.sidebar-calendar__bar.is-done {
+	opacity: 0.35;
 }
 
 .sidebar-calendar__more {
@@ -226,4 +238,17 @@
 .sidebar-calendar__event-range {
 	font-size: var(--font-ui-smaller);
 	color: var(--text-muted);
+}
+
+.sidebar-calendar__event-item.is-done .sidebar-calendar__event-swatch {
+	opacity: 0.35;
+}
+
+.sidebar-calendar__event-item.is-done .sidebar-calendar__event-title {
+	color: var(--text-muted);
+	text-decoration: line-through;
+}
+
+.sidebar-calendar__entry-input {
+	width: 100%;
 }

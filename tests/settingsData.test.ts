@@ -10,7 +10,7 @@ test('missing or broken data gives the defaults', () => {
 
 test('valid values are kept', () => {
 	const raw = {
-		eventsFolder: 'Calendar/Events',
+		scheduleHeading: 'Schedule',
 		weekStart: 1,
 		maxLanes: 5,
 		categories: [{ name: '업무', color: '#0090ff' }],
@@ -34,9 +34,12 @@ test('week start accepts only Sunday or Monday', () => {
 	assert.equal(sanitizeSettings({ weekStart: 3 }).weekStart, 0);
 });
 
-test('blank folder falls back to the default', () => {
-	assert.equal(sanitizeSettings({ eventsFolder: '   ' }).eventsFolder, 'Events');
-	assert.equal(sanitizeSettings({ eventsFolder: 7 }).eventsFolder, 'Events');
+test('schedule heading is trimmed, loses leading #s, and falls back to 일정', () => {
+	assert.equal(sanitizeSettings({ scheduleHeading: '  ## 할 일  ' }).scheduleHeading, '할 일');
+	assert.equal(sanitizeSettings({ scheduleHeading: '#일정' }).scheduleHeading, '일정');
+	assert.equal(sanitizeSettings({ scheduleHeading: ' ### ' }).scheduleHeading, '일정');
+	assert.equal(sanitizeSettings({ scheduleHeading: '' }).scheduleHeading, '일정');
+	assert.equal(sanitizeSettings({ scheduleHeading: 7 }).scheduleHeading, '일정');
 });
 
 test('malformed categories are dropped or repaired', () => {

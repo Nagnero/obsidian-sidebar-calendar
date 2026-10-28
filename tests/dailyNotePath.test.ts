@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { dailyNotePath, fillDailyTemplate } from '../src/data/dailyNotePath';
+import { dailyNoteName, dailyNotePath, fillDailyTemplate } from '../src/data/dailyNotePath';
 
 test('dailyNotePath joins folder and file name', () => {
 	assert.equal(dailyNotePath('Daily', '2026-10-15'), 'Daily/2026-10-15.md');
@@ -25,4 +25,13 @@ test('fillDailyTemplate replaces title, date and time variables', () => {
 test('fillDailyTemplate leaves other text alone', () => {
 	const id = () => 'x';
 	assert.equal(fillDailyTemplate('{{other}} plain', 't', id, id), '{{other}} plain');
+});
+
+test('dailyNoteName is the path inside the folder without .md', () => {
+	assert.equal(dailyNoteName('Daily', 'Daily/2026-10-15.md'), '2026-10-15');
+	assert.equal(dailyNoteName('/Journal/', 'Journal/2026/10/2026-10-15.md'), '2026/10/2026-10-15');
+	assert.equal(dailyNoteName('', '2026-10-15.md'), '2026-10-15');
+	assert.equal(dailyNoteName('Daily', 'Other/2026-10-15.md'), null);
+	assert.equal(dailyNoteName('Daily', 'Dailyx/2026-10-15.md'), null);
+	assert.equal(dailyNoteName('', 'image.png'), null);
 });
