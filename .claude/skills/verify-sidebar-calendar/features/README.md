@@ -45,7 +45,7 @@ Each feature file starts with an H1 title and one paragraph of user-visible beha
 ## Features
 
 - [One-day events](./one-day-events.md) (`c-*`) covers short bars for single-day entries and which list items count as entries.
-- [Multi-day event bars](./multi-day-bars.md) (`d-*`) covers bars split across weeks, lane stacking, and `+N` overflow.
+- [Multi-day event bars](./multi-day-bars.md) (`d-*`) covers bars split across weeks, lane stacking, `+N` overflow, and hiding one-day entries.
 - [Kind colors and settings](./kind-colors.md) (`e-*`) covers kind colors, the template status line, turning kinds on and off, and kinds following template edits.
 - [Tooltips and day list](./tooltips-day-list.md) (`f-*`) covers bar tooltips, the selected day's list, done styling, and opening an entry at its line.
 - [Daily notes](./daily-notes.md) (`g-*`) covers note dots, opening an existing daily note, and creating a missing one.
