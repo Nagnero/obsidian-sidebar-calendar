@@ -13,7 +13,7 @@ export interface Kind {
 export interface SidebarCalendarSettings {
 	weekStart: Weekday;
 	maxLanes: number;
-	/** Mark days that have a daily note (uses the core Daily notes plugin). */
+	/** Mark days that have a daily note, and ones with an unchecked task (uses the core Daily notes plugin). */
 	dailyNotes: boolean;
 	/** Draw entries whose `start` equals `end` on the grid. The day list shows them either way. */
 	showOneDay: boolean;

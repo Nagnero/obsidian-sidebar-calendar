@@ -2,6 +2,7 @@
 	--sidebar-calendar-lane-height: 6px;
 	--sidebar-calendar-bar-height: 4px;
 	--sidebar-calendar-more-height: 14px;
+	--sidebar-calendar-mark-size: 4px;
 	padding: var(--size-4-2) var(--size-4-3);
 }
 
@@ -155,16 +156,27 @@
 	pointer-events: none;
 }
 
-.sidebar-calendar__note-dot {
-	width: 4px;
-	height: 4px;
+.sidebar-calendar__note-marks {
+	display: flex;
+	gap: 2px;
+	height: var(--sidebar-calendar-mark-size);
+}
+
+.sidebar-calendar__note-dot,
+.sidebar-calendar__task-ring {
+	box-sizing: border-box;
+	width: var(--sidebar-calendar-mark-size);
+	height: var(--sidebar-calendar-mark-size);
 	border-radius: 50%;
-	visibility: hidden;
+}
+
+.sidebar-calendar__note-dot {
 	background-color: var(--text-muted);
 }
 
-.sidebar-calendar__note-dot.has-note {
-	visibility: visible;
+.sidebar-calendar__task-ring {
+	border: 1px solid var(--text-muted);
+	background-color: transparent;
 }
 
 /* Selected day's events */

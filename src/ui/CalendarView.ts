@@ -7,7 +7,7 @@ import type SidebarCalendarPlugin from '../main';
 import type { CalendarEvent } from '../types';
 import { AddEntryModal } from './AddEntryModal';
 import { renderDayList } from './renderDayList';
-import { formatRange, renderMonth } from './renderMonth';
+import { formatRange, NoteMark, renderMonth } from './renderMonth';
 
 export class CalendarView extends ItemView {
 	private plugin: SidebarCalendarPlugin;
@@ -56,6 +56,11 @@ export class CalendarView extends ItemView {
 			? this.plugin.dailyNotes
 			: null;
 		const openEvent = (event: CalendarEvent, evt: MouseEvent) => void this.openEvent(event, evt);
+		const openTaskDays = new Set(events.filter((e) => e.task === 'open').map((e) => e.start));
+		const noteMark = (day: DayKey): NoteMark => {
+			if (!dailyNotes?.find(day)) return 'none';
+			return openTaskDays.has(day) ? 'open-tasks' : 'note';
+		};
 
 		renderMonth(
 			root,
@@ -69,7 +74,7 @@ export class CalendarView extends ItemView {
 				maxLanes: this.plugin.settings.maxLanes,
 				colorFor,
 				selectedDay: this.selectedDay,
-				hasDailyNote: dailyNotes ? (day) => dailyNotes.find(day) !== null : null,
+				noteMark,
 			},
 			{
 				onPrev: () => this.shiftMonth(-1),

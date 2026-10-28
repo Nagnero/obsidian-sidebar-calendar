@@ -117,11 +117,12 @@ function seedVault() {
 	const mm = day(1).slice(5, 7);
 	writeFile('Templates/Daily.md', '# 업무\n\n# 개인\n\n# Journaling\nHow was today?\n');
 	writeFile(`${day(3)}.md`, '# 개인\n\n## Morning\n- Dentist\n\n# Notes\n- not an entry\n');
-	writeFile(`${day(5)}.md`, `# 업무\n- Summer trip ~${mm}-12\n`);
+	writeFile(`${day(5)}.md`, `# 업무\n- [ ] Summer trip ~${mm}-12\n`);
 	writeFile(`${day(8)}.md`, `# 개인\n- Workshop (hobby) ~${mm}-09\n`);
 	writeFile(`${day(15)}.md`, 'Existing daily note\n');
 	writeFile(`${day(20)}.md`, '# 업무\n- Crowded 1\n- Crowded 2\n- Crowded 3\n- Crowded 4\n  - nested note, not an entry\n');
 	writeFile(`${day(22)}.md`, '# 업무\n- [ ] Report\n- [x] Groceries\n\n# Journaling\n- Journal line, not an entry\n');
+	writeFile(`${day(25)}.md`, '# 업무\n- [x] Paid rent\n- Lunch\n\n# Journaling\n- [ ] Journal task, not read\n');
 }
 
 // ---------- process control ----------
@@ -316,15 +317,21 @@ async function snapshot(name) {
 		const root = document.querySelector('.sidebar-calendar');
 		if (!root) return null;
 		const text = (el) => el?.textContent?.trim() ?? null;
+		/** The dates of the day cells whose number slot holds a match of `selector`. */
+		const marked = (selector) => [...root.querySelectorAll(selector)].map((mark) => {
+			const slot = mark.closest('.sidebar-calendar__day-number-slot');
+			return [...slot.parentElement.querySelectorAll('.sidebar-calendar__day')]
+				.find((c) => c.style.gridColumn === slot.style.gridColumn)?.dataset.date;
+		});
 		return {
 			title: text(root.querySelector('.sidebar-calendar__title')),
 			weekdays: [...root.querySelectorAll('.sidebar-calendar__weekday')].map(text),
 			today: root.querySelector('.sidebar-calendar__day.is-today')?.dataset.date ?? null,
 			selected: root.querySelector('.sidebar-calendar__day.is-selected')?.dataset.date ?? null,
-			noteDots: [...root.querySelectorAll('.sidebar-calendar__note-dot.has-note')].map(
-				(dot) => [...dot.closest('.sidebar-calendar__week').querySelectorAll('.sidebar-calendar__day')]
-					.find((c) => c.style.gridColumn === dot.parentElement.style.gridColumn)?.dataset.date,
-			),
+			noteDots: marked('.sidebar-calendar__note-dot'),
+			taskRings: marked('.sidebar-calendar__task-ring'),
+			markRowHeights: [...new Set([...root.querySelectorAll('.sidebar-calendar__note-marks')].map((m) => m.getBoundingClientRect().height))],
+			weekHeights: [...new Set([...root.querySelectorAll('.sidebar-calendar__week')].map((w) => w.getBoundingClientRect().height))],
 			bars: [...root.querySelectorAll('.sidebar-calendar__bar')].map((b) => ({
 				event: b.dataset.event,
 				week: [...root.querySelectorAll('.sidebar-calendar__week')].indexOf(b.parentElement),
