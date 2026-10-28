@@ -70,7 +70,7 @@ const ko: SettingsStrings = {
 	weekStart: '주 시작 요일',
 	sunday: '일요일',
 	monday: '월요일',
-	maxLanes: '주당 막대 줄 수',
+	maxLanes: '주당 일정 수',
 	maxLanesDesc: '들어가지 못한 일정은 날짜 아래에 표시되는 숫자에 포함됩니다.',
 	showOneDay: '하루짜리 일정 표시',
 	showOneDayDesc: '끄면 Calendar에는 여러 날에 걸친 일정만 표시됩니다. Calendar 아래 목록에는 선택한 날의 일정이 모두 그대로 표시됩니다.',
