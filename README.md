@@ -21,6 +21,8 @@ Write entries as list items under a `일정` heading (any level; change the text
 
 The section ends at the next heading of the same or a higher level.
 
+To add an entry from the calendar, drag across days or double-click a day, type a title (optionally ending in `(category)`), and press Enter. The line is added to the first day's daily note, which is created from your daily note template if needed. Clicking a bar or a list entry opens its daily note at that line.
+
 ## Development
 
 1. Clone this repository into `<your vault>/.obsidian/plugins/sidebar-calendar`.

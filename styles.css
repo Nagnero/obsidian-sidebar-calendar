@@ -72,8 +72,16 @@
 	background-color: var(--background-modifier-hover);
 }
 
+.sidebar-calendar__weeks {
+	user-select: none;
+}
+
 .sidebar-calendar__day.is-selected {
 	background-color: var(--background-modifier-active-hover);
+}
+
+.sidebar-calendar__day.is-in-range {
+	background-color: hsla(var(--interactive-accent-hsl), 0.2);
 }
 
 .sidebar-calendar__day-number-slot {
@@ -239,4 +247,8 @@
 .sidebar-calendar__event-item.is-done .sidebar-calendar__event-title {
 	color: var(--text-muted);
 	text-decoration: line-through;
+}
+
+.sidebar-calendar__entry-input {
+	width: 100%;
 }

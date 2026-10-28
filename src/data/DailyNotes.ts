@@ -1,6 +1,7 @@
 import { App, moment, normalizePath, TFile, TFolder } from 'obsidian';
 import { DayKey, parseDayKey } from '../date/dayKey';
 import { dailyNoteName, dailyNotePath, fillDailyTemplate } from './dailyNotePath';
+import { appendScheduleLine, NewEntry } from './parseSchedule';
 
 interface DailyNoteOptions {
 	folder: string;
@@ -65,6 +66,14 @@ export class DailyNotes {
 		if (!options) return;
 		const file = this.find(day) ?? (await this.create(day, options));
 		await this.app.workspace.getLeaf(newLeaf).openFile(file);
+	}
+
+	/** Adds `entry` to the `heading` section of its start day's note, creating the note if needed. */
+	async addEntry(entry: NewEntry, heading: string): Promise<void> {
+		const options = this.options();
+		if (!options) return;
+		const file = this.find(entry.start) ?? (await this.create(entry.start, options));
+		await this.app.vault.process(file, (text) => appendScheduleLine(text, heading, entry));
 	}
 
 	private async create(day: DayKey, options: DailyNoteOptions): Promise<TFile> {

@@ -1,12 +1,14 @@
-import { ItemView, Keymap, moment, TFile, WorkspaceLeaf } from 'obsidian';
+import { ItemView, Keymap, moment, Notice, TFile, WorkspaceLeaf } from 'obsidian';
 import { VIEW_TYPE_SIDEBAR_CALENDAR } from '../constants';
 import { DayKey, todayKey, yearMonth } from '../date/dayKey';
 import { resolveCategoryColor } from '../categoryColor';
 import { eventsOnDay } from '../layout/weekLayout';
 import type SidebarCalendarPlugin from '../main';
+import { parseEntryInput } from '../data/parseSchedule';
 import type { CalendarEvent } from '../types';
+import { AddEntryModal } from './AddEntryModal';
 import { renderDayList } from './renderDayList';
-import { renderMonth } from './renderMonth';
+import { formatRange, renderMonth } from './renderMonth';
 
 export class CalendarView extends ItemView {
 	private plugin: SidebarCalendarPlugin;
@@ -86,6 +88,7 @@ export class CalendarView extends ItemView {
 					if (dailyNotes?.find(day)) void dailyNotes.open(day, Keymap.isModEvent(evt) !== false);
 				},
 				onOpenEvent: openEvent,
+				onAddEntry: (start, end) => this.promptEntry(start, end),
 			},
 		);
 
@@ -124,6 +127,20 @@ export class CalendarView extends ItemView {
 		const file = this.app.vault.getAbstractFileByPath(event.path);
 		if (!(file instanceof TFile)) return;
 		await this.app.workspace.getLeaf(Keymap.isModEvent(evt)).openFile(file, { eState: { line: event.line } });
+	}
+
+	/** Asks for an entry's text and writes it to the start day's daily note. */
+	private promptEntry(start: DayKey, end: DayKey): void {
+		const { dailyNotes, settings } = this.plugin;
+		if (!dailyNotes.isAvailable()) {
+			new Notice('Turn on the core daily notes plugin to add schedule entries.');
+			return;
+		}
+		new AddEntryModal(this.app, formatRange(start, end, appLocale()), (text) => {
+			const { title, category } = parseEntryInput(text, settings.categories.map((c) => c.name));
+			if (title === '') return;
+			void dailyNotes.addEntry({ title, start, end, category }, settings.scheduleHeading);
+		}).open();
 	}
 
 	private shiftMonth(delta: number): void {
