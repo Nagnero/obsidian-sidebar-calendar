@@ -10,7 +10,7 @@ An entry ending in `~MM-DD`, `~M/D` or `~YYYY-MM-DD` runs from its daily note's 
 
 ## How to get to it (user POV)
 
-- In a daily note's `## 일정` section, end an item with `~MM-DD` and look at the calendar.
+- Under a kind H1 such as `# 업무` in a daily note, end an item with `~MM-DD` and look at the calendar.
 - Change **Settings → Sidebar Calendar → Bar rows per week** to change the lane limit.
 
 ## Driving it with verify.cjs
