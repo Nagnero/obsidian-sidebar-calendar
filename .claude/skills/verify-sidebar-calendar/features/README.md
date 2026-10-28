@@ -48,7 +48,7 @@ Each feature file starts with an H1 title and one paragraph of user-visible beha
 - [Multi-day event bars](./multi-day-bars.md) (`d-*`) covers bars split across weeks, lane stacking, `+N` overflow, and hiding one-day entries.
 - [Kind colors and settings](./kind-colors.md) (`e-*`) covers kind colors, the template status line, turning kinds on and off, and kinds following template edits.
 - [Tooltips and day list](./tooltips-day-list.md) (`f-*`) covers bar tooltips, the selected day's list, done styling, and opening an entry at its line.
-- [Daily notes](./daily-notes.md) (`g-*`) covers note dots, opening an existing daily note, and creating a missing one.
+- [Daily notes](./daily-notes.md) (`g-*`) covers note dots, opening an existing daily note, and the absence of an open or create button.
 - [Adding entries](./add-entries.md) (`h-*`) covers adding an entry by dragging across days or double-clicking a day, choosing its kind.
 
 Not mapped yet: month navigation, week start setting, the kind color picker, day rollover. Auto refresh is exercised only through `f-done` (a file edited on disk) and `h-*` (files the plugin writes).

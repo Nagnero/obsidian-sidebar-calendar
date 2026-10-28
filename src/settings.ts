@@ -108,7 +108,7 @@ export class SidebarCalendarSettingTab extends PluginSettingTab {
 		new Setting(containerEl)
 			.setName('Daily notes')
 			.setDesc(
-				'Mark days that have a daily note and show a button to open or create it. Uses the folder, format and template of the core daily notes plugin, which must be turned on.',
+				'Mark days that have a daily note. Clicking such a day opens its note. Uses the folder, format and template of the core daily notes plugin, which must be turned on.',
 			)
 			.addToggle((toggle) =>
 				toggle.setValue(settings.dailyNotes).onChange(async (value) => {

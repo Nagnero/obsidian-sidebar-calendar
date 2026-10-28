@@ -83,8 +83,9 @@ export class CalendarView extends ItemView {
 					this.selectedDay = day;
 					this.render();
 					// Like the Calendar plugin, a click opens that day's note, but only one that
-					// already exists; creating a note is left to the button in the day list.
-					if (dailyNotes?.find(day)) void dailyNotes.open(day, Keymap.isModEvent(evt) !== false);
+					// already exists; a note is created by adding an entry to its day.
+					const note = dailyNotes?.find(day);
+					if (note) void this.app.workspace.getLeaf(Keymap.isModEvent(evt) !== false).openFile(note);
 				},
 				onOpenEvent: openEvent,
 				onAddEntry: (start, end) => void this.promptEntry(start, end),
@@ -98,15 +99,8 @@ export class CalendarView extends ItemView {
 				events: eventsOnDay(events, this.selectedDay),
 				locale,
 				colorFor,
-				dailyNoteExists: dailyNotes ? dailyNotes.find(this.selectedDay) !== null : null,
 			},
-			{
-				onOpenEvent: openEvent,
-				onOpenDailyNote: (evt) => {
-					if (!dailyNotes) return;
-					void dailyNotes.open(this.selectedDay, Keymap.isModEvent(evt) !== false).then(() => this.render());
-				},
-			},
+			{ onOpenEvent: openEvent },
 		);
 	}
 

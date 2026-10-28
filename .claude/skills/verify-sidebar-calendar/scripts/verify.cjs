@@ -342,7 +342,7 @@ async function snapshot(name) {
 			})),
 			dayList: {
 				title: text(root.querySelector('.sidebar-calendar__day-list-title')),
-				dailyNoteButton: root.querySelector('.sidebar-calendar__daily-note-btn')?.getAttribute('aria-label') ?? null,
+				headerButtons: [...root.querySelectorAll('.sidebar-calendar__day-list-header .clickable-icon')].map((b) => b.getAttribute('aria-label')),
 				items: [...root.querySelectorAll('.sidebar-calendar__event-item')].map((i) => ({
 					title: text(i.querySelector('.sidebar-calendar__event-title')),
 					done: i.classList.contains('is-done'),

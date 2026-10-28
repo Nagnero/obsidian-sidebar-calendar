@@ -51,7 +51,7 @@ Read-only. Prints the Obsidian version, vault path, plugin version, and whether 
 | `node $V press <key>` | Presses a key in the focused element (`Enter`, `Escape`). |
 | `node $V hover '<selector>'` | Hovers and prints `{"tooltip": "..."}` for the tooltip Obsidian shows. Tooltips vanish when the pointer leaves, so read them here, not in a later snapshot. |
 | `node $V fill '<selector>' <value>` | Clears an input and types like a user, so Obsidian's change handlers fire. |
-| `node $V snapshot <name>` | Saves the calendar state as JSON and prints it: title, weekdays, today, selected day, daily note dots, every bar (event id, week index, grid column, lane, done, computed color, continued flags), every `+N`, the day list (with `done` per item), the active file, the editor's `cursorLine`, and the open `modal` title. |
+| `node $V snapshot <name>` | Saves the calendar state as JSON and prints it: title, weekdays, today, selected day, daily note dots, every bar (event id, week index, grid column, lane, done, computed color, continued flags), every `+N`, the day list (with `done` per item and the header's `headerButtons` labels), the active file, the editor's `cursorLine`, and the open `modal` title. |
 | `node $V screenshot <name>` | Saves a PNG of the window. |
 | `node $V eval '<js body>'` | Runs a function body in the window with `app` in scope and prints the returned JSON. For reading state (files, settings), not for driving the UI. |
 | `node $V day <n>` | Prints `YYYY-MM-DD` for day `n` of the current month, to build selectors. |
@@ -66,7 +66,7 @@ Stable handles, all from `src/ui/`:
 - Add-entry modal: title `.modal-container .modal-title`, input `.modal-container input.sidebar-calendar__entry-input`, kind buttons `.modal-container .sidebar-calendar__kind-btn[data-kind="<H1 text>"]` with `aria-pressed`.
 - Overflow: `.sidebar-calendar__more` with text `+N`.
 - Header buttons: `[aria-label="Previous month"]`, `[aria-label="Current month"]`, `[aria-label="Next month"]`.
-- Day list: `.sidebar-calendar__day-list`, items `.sidebar-calendar__event-item`, and the daily note button `[aria-label="Open daily note"]` or `[aria-label="Create daily note"]`.
+- Day list: `.sidebar-calendar__day-list`, items `.sidebar-calendar__event-item`.
 - Settings gear (main window): `.clickable-icon:has(svg.lucide-settings)`. In the Settings window: `.vertical-tab-nav-item:has-text("Sidebar Calendar")`, the template status `.sidebar-calendar-template-status .setting-item-description`, kind rows `.sidebar-calendar-kind-setting[data-kind="<H1 text>"]` with the switch `.checkbox-container` (`is-enabled` when on), and on a row not in the template the delete button `.clickable-icon`. Calendar section switches by row name, for example `.setting-item:has(.setting-item-name:text-is("Show one-day entries")) .checkbox-container`.
 
 ## Evidence
