@@ -134,6 +134,10 @@
 	border-bottom-right-radius: 0;
 }
 
+.sidebar-calendar__bar.is-done {
+	opacity: 0.35;
+}
+
 .sidebar-calendar__more {
 	z-index: 1;
 	text-align: center;
@@ -226,4 +230,13 @@
 .sidebar-calendar__event-range {
 	font-size: var(--font-ui-smaller);
 	color: var(--text-muted);
+}
+
+.sidebar-calendar__event-item.is-done .sidebar-calendar__event-swatch {
+	opacity: 0.35;
+}
+
+.sidebar-calendar__event-item.is-done .sidebar-calendar__event-title {
+	color: var(--text-muted);
+	text-decoration: line-through;
 }

@@ -14,7 +14,7 @@ Write entries as list items under a `일정` heading (any level; change the text
   - 숙소 예약 완료
 ```
 
-- `[ ]` and `[x]` make an entry a task.
+- `[ ]` and `[x]` make an entry a task. Done entries are faded.
 - `~10-23`, `~10/23` or `~2026-10-23` at the end sets the last day. A month and day earlier than the note's date means next year.
 - `(업무)` at the end sets the category when it matches one in settings. Other parentheses stay in the title.
 - Indented items are notes about the entry and do not show on the calendar.

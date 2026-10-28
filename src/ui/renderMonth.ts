@@ -110,6 +110,7 @@ function renderWeek(parent: HTMLElement, week: DayKey[], model: MonthViewModel, 
 		const barEl = weekEl.createDiv({ cls: 'sidebar-calendar__bar', attr: { 'data-event': bar.event.id } });
 		if (bar.continuesBefore) barEl.addClass('is-continued-before');
 		if (bar.continuesAfter) barEl.addClass('is-continued-after');
+		if (bar.event.done) barEl.addClass('is-done');
 		const color = model.colorFor(bar.event);
 		if (color) barEl.style.setProperty('--sidebar-calendar-bar-color', color);
 		barEl.style.gridColumn = `${bar.startCol + 1} / ${bar.endCol + 2}`;
