@@ -22,6 +22,7 @@ export interface DayListModel {
 
 export interface DayListHandlers {
 	onOpenEvent: (event: CalendarEvent, evt: MouseEvent) => void;
+	onEventMenu: (event: CalendarEvent, evt: MouseEvent) => void;
 	onSort: (sort: ListSort) => void;
 }
 
@@ -61,5 +62,6 @@ export function renderDayList(parent: HTMLElement, model: DayListModel, handlers
 			text.createDiv({ cls: 'sidebar-calendar__event-range', text: formatRange(event.start, event.end, model.locale) });
 		}
 		item.addEventListener('click', (evt) => handlers.onOpenEvent(event, evt));
+		item.addEventListener('contextmenu', (evt) => handlers.onEventMenu(event, evt));
 	}
 }

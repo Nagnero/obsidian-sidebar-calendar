@@ -29,6 +29,7 @@ export interface MonthViewHandlers {
 	onNext: () => void;
 	onSelectDay: (day: DayKey, evt: MouseEvent) => void;
 	onOpenEvent: (event: CalendarEvent, evt: MouseEvent) => void;
+	onEventMenu: (event: CalendarEvent, evt: MouseEvent) => void;
 	/** A range of days was dragged across, or one day double-clicked. */
 	onAddEntry: (start: DayKey, end: DayKey) => void;
 }
@@ -127,6 +128,7 @@ function renderWeek(parent: HTMLElement, week: DayKey[], model: MonthViewModel, 
 			placement: 'top',
 		});
 		barEl.addEventListener('click', (evt) => handlers.onOpenEvent(bar.event, evt));
+		barEl.addEventListener('contextmenu', (evt) => handlers.onEventMenu(bar.event, evt));
 	}
 
 	layout.hiddenCounts.forEach((count, col) => {

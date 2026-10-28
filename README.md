@@ -47,6 +47,8 @@ Turn off **Show one-day entries** to draw only entries that span several days on
 
 To add an entry from the calendar, drag across days or double-click a day, pick a kind, type a title, and press Enter. The entry is written as an open task, `- [ ] <title>` (with `~MM-DD` for a range), under that kind's H1 in the first day's daily note. A missing note is created from your template first, so the entry lands inside its structure. The kind you picked last is preselected next time. Clicking a bar or a list entry opens its daily note at that line.
 
+To make an entry last several days, or one day again, right-click its bar, its entry in the list, or its line in the daily note, choose **Change duration…**, type the number of days and press Enter. The `~MM-DD` at the end of the line is written, changed or removed for you. In a note that is open, the change goes through the editor, so you can undo it there.
+
 The sort button at the right of the list header orders the selected day's entries by **Start date** (the default: earlier start first, longer entries first, then title), **Note order** (as written in the daily notes), **Unchecked first** (open tasks, then plain items, then done tasks), or **Kind** (the template's heading order). The choice is saved and affects only the list, not the bars.
 
 ## Development

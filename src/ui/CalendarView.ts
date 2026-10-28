@@ -1,4 +1,4 @@
-import { ItemView, Keymap, moment, Notice, TFile, WorkspaceLeaf } from 'obsidian';
+import { ItemView, Keymap, Menu, moment, Notice, TFile, WorkspaceLeaf } from 'obsidian';
 import { VIEW_TYPE_SIDEBAR_CALENDAR } from '../constants';
 import { DayKey, todayKey, yearMonth } from '../date/dayKey';
 import { eventsOnDay } from '../layout/weekLayout';
@@ -59,6 +59,12 @@ export class CalendarView extends ItemView {
 			? this.plugin.dailyNotes
 			: null;
 		const openEvent = (event: CalendarEvent, evt: MouseEvent) => void this.openEvent(event, evt);
+		const eventMenu = (event: CalendarEvent, evt: MouseEvent) => {
+			evt.preventDefault();
+			const menu = new Menu();
+			this.plugin.addDurationItem(menu, event);
+			menu.showAtMouseEvent(evt);
+		};
 		const openTaskDays = new Set(events.filter((e) => e.task === 'open').map((e) => e.start));
 		const noteMark = (day: DayKey): NoteMark => {
 			if (!dailyNotes?.find(day)) return 'none';
@@ -96,6 +102,7 @@ export class CalendarView extends ItemView {
 					if (note) void this.app.workspace.getLeaf(Keymap.isModEvent(evt) !== false).openFile(note);
 				},
 				onOpenEvent: openEvent,
+				onEventMenu: eventMenu,
 				onAddEntry: (start, end) => void this.promptEntry(start, end),
 			},
 		);
@@ -111,6 +118,7 @@ export class CalendarView extends ItemView {
 			},
 			{
 				onOpenEvent: openEvent,
+				onEventMenu: eventMenu,
 				onSort: (sort) => {
 					settings.listSort = sort;
 					void this.plugin.saveData(settings);
@@ -178,7 +186,7 @@ function noKindsMessage(template: TemplateHeadings): string {
 }
 
 /** Obsidian sets moment's locale to the app language. */
-function appLocale(): string {
+export function appLocale(): string {
 	const locale = moment.locale();
 	try {
 		return Intl.DateTimeFormat.supportedLocalesOf(locale).length > 0 ? locale : 'en';

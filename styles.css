@@ -273,3 +273,18 @@
 	border-radius: 50%;
 	background-color: var(--sidebar-calendar-bar-color, var(--interactive-accent));
 }
+
+.sidebar-calendar__duration {
+	display: flex;
+	align-items: center;
+	gap: var(--size-4-3);
+}
+
+.sidebar-calendar__duration-input {
+	width: 6em;
+}
+
+.sidebar-calendar__duration-preview {
+	margin-top: var(--size-4-3);
+	color: var(--text-muted);
+}
