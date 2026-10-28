@@ -179,6 +179,16 @@ function parseItem(
 		}
 		break;
 	}
+	// `부산 출장 ~10-23 (회의)` where `(회의)` names no category: the range still counts and the
+	// parentheses stay in the title.
+	if (end === undefined) {
+		const paren = PAREN_RE.exec(rest);
+		const range = paren ? RANGE_RE.exec(rest.slice(0, paren.index)) : null;
+		if (paren && range) {
+			end = resolveEnd(range, day);
+			rest = rest.slice(0, range.index) + paren[0];
+		}
+	}
 
 	const title = rest.trim();
 	if (title === '') return null;

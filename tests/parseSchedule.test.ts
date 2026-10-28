@@ -70,6 +70,17 @@ test('range and category in either order', () => {
 	}
 });
 
+test('range before non-category parentheses still counts, and the parentheses stay in the title', () => {
+	assert.deepEqual(one('- 부산 출장 ~10-23 (회의)'), { line: 1, title: '부산 출장 (회의)', end: '2026-10-23', done: false });
+	assert.deepEqual(one('- 부산 출장 (회의) ~10-23 (업무)'), {
+		line: 1,
+		title: '부산 출장 (회의)',
+		end: '2026-10-23',
+		category: '업무',
+		done: false,
+	});
+});
+
 test('nested items are ignored', () => {
 	const entries = parse('## 일정\n- [x] 부산 출장 ~10-23 (업무)\n  - 숙소 예약 완료\n\t- 기차표\n- 치과\n');
 	assert.deepEqual(entries.map((e) => [e.line, e.title]), [[1, '부산 출장'], [4, '치과']]);
