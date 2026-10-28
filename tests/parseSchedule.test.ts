@@ -17,7 +17,7 @@ function one(item: string, day = DAY): ParsedEntry {
 }
 
 test('plain item is a one-day entry of its H1 kind on the note date', () => {
-	assert.deepEqual(one('- 14:00 치과'), { line: 1, title: '14:00 치과', end: DAY, kind: '업무', done: false });
+	assert.deepEqual(one('- 14:00 치과'), { line: 1, title: '14:00 치과', end: DAY, kind: '업무', task: null });
 });
 
 test('every list marker works', () => {
@@ -50,11 +50,12 @@ test('an H1 may have closing #s', () => {
 	assert.deepEqual(parse('# 업무 ##\n- a').map((e) => e.title), ['a']);
 });
 
-test('task box sets done', () => {
-	assert.equal(one('- [ ] 보고서').done, false);
+test('task box sets the task state; a plain item is not a task', () => {
+	assert.equal(one('- 보고서').task, null);
+	assert.equal(one('- [ ] 보고서').task, 'open');
 	assert.equal(one('- [ ] 보고서').title, '보고서');
-	assert.equal(one('- [x] 보고서').done, true);
-	assert.equal(one('- [/] 보고서').done, true);
+	assert.equal(one('- [x] 보고서').task, 'done');
+	assert.equal(one('- [/] 보고서').task, 'done');
 	assert.equal(one('- [X] 보고서').title, '보고서');
 });
 
@@ -73,7 +74,7 @@ test('MM-DD before the start date means next year', () => {
 });
 
 test('invalid or backwards range keeps the entry as one day', () => {
-	assert.deepEqual(one('- 회의 ~02-30'), { line: 1, title: '회의', end: DAY, kind: '업무', done: false });
+	assert.deepEqual(one('- 회의 ~02-30'), { line: 1, title: '회의', end: DAY, kind: '업무', task: null });
 	assert.equal(one('- 회의 ~2026-10-19').end, DAY);
 	assert.equal(one('- 회의 ~2026-13-01').end, DAY);
 	assert.equal(one('- 회의 ~2026-10-19').title, '회의');
@@ -81,8 +82,8 @@ test('invalid or backwards range keeps the entry as one day', () => {
 
 test('parentheses are title text, and a range just before trailing parentheses still counts', () => {
 	assert.equal(one('- 점심 (김밥천국)').title, '점심 (김밥천국)');
-	assert.deepEqual(one('- [x] 부산 출장 (업무) ~10-23'), { line: 1, title: '부산 출장 (업무)', end: '2026-10-23', kind: '업무', done: true });
-	assert.deepEqual(one('- 부산 출장 ~10-23 (회의)'), { line: 1, title: '부산 출장 (회의)', end: '2026-10-23', kind: '업무', done: false });
+	assert.deepEqual(one('- [x] 부산 출장 (업무) ~10-23'), { line: 1, title: '부산 출장 (업무)', end: '2026-10-23', kind: '업무', task: 'done' });
+	assert.deepEqual(one('- 부산 출장 ~10-23 (회의)'), { line: 1, title: '부산 출장 (회의)', end: '2026-10-23', kind: '업무', task: null });
 });
 
 test('nested items are ignored', () => {
@@ -183,7 +184,7 @@ test('appended entries parse back as open tasks of the chosen kind', () => {
 		const parsed = parse(text);
 		for (const { kind, title, end } of entries) {
 			assert.ok(
-				parsed.some((p) => p.title === title && p.end === end && p.kind === kind && !p.done),
+				parsed.some((p) => p.title === title && p.end === end && p.kind === kind && p.task === 'open'),
 				`${title} round-trips from base ${JSON.stringify(base)}:\n${text}`,
 			);
 		}

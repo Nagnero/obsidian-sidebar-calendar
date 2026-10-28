@@ -4,6 +4,7 @@ import type { DailyNotes } from './DailyNotes';
 import { parseSchedule } from './parseSchedule';
 
 const LOG_PREFIX = '[Sidebar Calendar]';
+const TASK_MARK = { open: '[ ]', done: '[x]', plain: '-' } as const;
 
 /** Reads schedule entries from the kind sections of every daily note. */
 export class EventStore {
@@ -61,7 +62,7 @@ export class EventStore {
 		console.debug(`${LOG_PREFIX} ${this.summary()}`);
 		for (const e of this.events) {
 			const range = e.start === e.end ? e.start : `${e.start} ~ ${e.end}`;
-			console.debug(`${LOG_PREFIX} ${range} | ${e.done ? 'x' : ' '} | ${e.title} | ${e.kind} | ${e.id}`);
+			console.debug(`${LOG_PREFIX} ${range} | ${TASK_MARK[e.task ?? 'plain']} | ${e.title} | ${e.kind} | ${e.id}`);
 		}
 	}
 }
