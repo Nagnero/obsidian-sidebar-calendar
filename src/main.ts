@@ -14,10 +14,7 @@ export default class SidebarCalendarPlugin extends Plugin {
 	async onload() {
 		await this.loadSettings();
 		this.dailyNotes = new DailyNotes(this.app);
-		this.eventStore = new EventStore(this.app, this.dailyNotes, () => ({
-			heading: this.settings.scheduleHeading,
-			categories: this.settings.categories.map((c) => c.name),
-		}));
+		this.eventStore = new EventStore(this.app, this.dailyNotes, () => this.settings.categories.map((c) => c.name));
 
 		this.registerView(VIEW_TYPE_SIDEBAR_CALENDAR, (leaf) => new CalendarView(leaf, this));
 

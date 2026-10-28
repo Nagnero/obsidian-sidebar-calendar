@@ -1,4 +1,3 @@
-import { categoryKey } from '../categoryColor';
 import { DayKey, parseDayKey, yearMonth } from '../date/dayKey';
 
 /** One schedule line of a daily note. The store adds the note's path and date. */
@@ -8,8 +7,8 @@ export interface ParsedEntry {
 	title: string;
 	/** Inclusive. Equal to the note's date for a one-day entry. */
 	end: DayKey;
-	/** The category name as written in settings. */
-	category?: string;
+	/** Text of the H1 the entry sits under. */
+	kind: string;
 	done: boolean;
 }
 
@@ -17,10 +16,16 @@ export interface NewEntry {
 	title: string;
 	start: DayKey;
 	end: DayKey;
-	category?: string;
 }
 
 type LineKind = { kind: 'heading'; level: number; text: string } | { kind: 'code' } | { kind: 'text' };
+
+/** Line range `[from, to)` of one H1 section, excluding the H1 line itself. */
+interface Section {
+	h1: string;
+	from: number;
+	to: number;
+}
 
 const HEADING_RE = /^(#{1,6})[ \t]+(.*?)(?:[ \t]+#+)?[ \t]*$/;
 const FENCE_RE = /^ {0,3}(`{3,}|~{3,})/;
@@ -28,53 +33,58 @@ const ITEM_RE = /^[-*+][ \t]+(.*)$/;
 const CONTINUATION_RE = /^[ \t]+\S/;
 const TASK_RE = /^\[([^\]])\](?:[ \t]+(.*))?$/;
 const RANGE_RE = /\s*~(?:(\d{4})-(\d{1,2})-(\d{1,2})|(\d{1,2})[-/](\d{1,2}))$/;
-const PAREN_RE = /\s*\(([^()]*)\)$/;
-
-export function isScheduleHeading(text: string, heading: string): boolean {
-	return text.trim().toLowerCase() === heading.trim().toLowerCase();
-}
+const PAREN_RE = /\s*\([^()]*\)$/;
+const TEMPLATE_VARIABLE_RE = /{{[^}]*}}/;
 
 /**
- * The entries under every `heading` section of a daily note dated `day`. Each top-level list
- * item is one entry; indented items, code blocks and frontmatter are ignored. A section ends at
- * the next heading of the same or a higher level.
+ * The entries of a daily note dated `day`. Each top-level list item under an H1 whose text is
+ * one of `kinds` is an entry of that kind, including items under deeper headings; the section
+ * ends at the next H1. Indented items, code blocks and frontmatter are ignored.
  */
-export function parseSchedule(
-	text: string,
-	day: DayKey,
-	heading: string,
-	categories: readonly string[],
-): ParsedEntry[] {
+export function parseSchedule(text: string, day: DayKey, kinds: readonly string[]): ParsedEntry[] {
 	const lines = text.split(/\r?\n/);
-	const kinds = classify(lines);
+	const classes = classify(lines);
 	const entries: ParsedEntry[] = [];
-	for (const { from, to } of sections(kinds, heading)) {
+	for (const { h1, from, to } of h1Sections(classes)) {
+		if (!kinds.includes(h1)) continue;
 		for (let i = from; i < to; i++) {
-			const item = kinds[i]?.kind === 'text' ? ITEM_RE.exec(lines[i] ?? '') : null;
-			const entry = item ? parseItem(item[1] ?? '', day, categories) : null;
-			if (entry) entries.push({ line: i, ...entry });
+			const item = classes[i]?.kind === 'text' ? ITEM_RE.exec(lines[i] ?? '') : null;
+			const entry = item ? parseItem(item[1] ?? '', day) : null;
+			if (entry) entries.push({ line: i, ...entry, kind: h1 });
 		}
 	}
 	return entries;
 }
 
 /**
- * `text` with `entry` added as the last top-level item of the first `heading` section, or with a
- * new `## heading` section at the end when there is none.
+ * The H1 texts of a template in order, without duplicates. H1s in code blocks or frontmatter,
+ * and H1s with a template variable such as `# {{date}}`, are not kinds.
  */
-export function appendScheduleLine(text: string, heading: string, entry: NewEntry): string {
+export function templateH1s(text: string): string[] {
+	const names = h1Sections(classify(text.split(/\r?\n/)))
+		.map((section) => section.h1)
+		.filter((name) => name !== '' && !TEMPLATE_VARIABLE_RE.test(name));
+	return [...new Set(names)];
+}
+
+/**
+ * `text` with `entry` written as an open task in the first `# kind` section: after the section's
+ * last top-level item and that item's indented lines, or, with no item, after the section's last
+ * non-blank line. A note without that H1 gets a new `# kind` section at the end.
+ */
+export function appendScheduleLine(text: string, kind: string, entry: NewEntry): string {
 	const eol = text.includes('\r\n') ? '\r\n' : '\n';
 	const item = formatEntryLine(entry);
 	const lines = text.split(/\r?\n/);
-	const kinds = classify(lines);
-	const section = sections(kinds, heading)[0];
+	const classes = classify(lines);
+	const section = h1Sections(classes).find((s) => s.h1 === kind);
 
 	if (!section) {
 		const body = text.replace(/(\r?\n)+$/, '');
-		return `${body === '' ? '' : body + eol + eol}## ${heading}${eol}${item}${eol}`;
+		return `${body === '' ? '' : body + eol + eol}# ${kind}${eol}${item}${eol}`;
 	}
 
-	const isText = (i: number) => kinds[i]?.kind === 'text';
+	const isText = (i: number) => classes[i]?.kind === 'text';
 	let lastItem = -1;
 	let lastContent = section.from - 1;
 	for (let i = section.from; i < section.to; i++) {
@@ -90,19 +100,11 @@ export function appendScheduleLine(text: string, heading: string, entry: NewEntr
 	return lines.join(eol);
 }
 
-/** Splits a title typed by the user into the title and a trailing `(category)`, if it names one. */
-export function parseEntryInput(input: string, categories: readonly string[]): { title: string; category?: string } {
-	const title = input.trim();
-	const trailing = trailingCategory(title, categories);
-	return trailing ? { title: trailing.rest, category: trailing.category } : { title };
-}
-
 function formatEntryLine(entry: NewEntry): string {
-	let line = `- ${entry.title}`;
+	let line = `- [ ] ${entry.title}`;
 	if (entry.end !== entry.start) {
 		line += ` ~${yearMonth(entry.end).year === yearMonth(entry.start).year ? entry.end.slice(5) : entry.end}`;
 	}
-	if (entry.category) line += ` (${entry.category})`;
 	return line;
 }
 
@@ -128,32 +130,26 @@ function classify(lines: readonly string[]): LineKind[] {
 			return;
 		}
 		const heading = HEADING_RE.exec(line);
-		kinds.push(heading ? { kind: 'heading', level: heading[1]?.length ?? 1, text: heading[2] ?? '' } : { kind: 'text' });
+		kinds.push(
+			heading ? { kind: 'heading', level: heading[1]?.length ?? 1, text: (heading[2] ?? '').trim() } : { kind: 'text' },
+		);
 	});
 	return kinds;
 }
 
-/** Line ranges `[from, to)` of each section under `heading`, excluding the heading line itself. */
-function sections(kinds: readonly LineKind[], heading: string): Array<{ from: number; to: number }> {
-	const result: Array<{ from: number; to: number }> = [];
-	kinds.forEach((kind, i) => {
-		if (kind.kind !== 'heading' || !isScheduleHeading(kind.text, heading)) return;
-		let to = i + 1;
-		while (to < kinds.length) {
-			const next = kinds[to];
-			if (next?.kind === 'heading' && next.level <= kind.level) break;
-			to++;
-		}
-		result.push({ from: i + 1, to });
+/** Every H1 section, in file order. */
+function h1Sections(classes: readonly LineKind[]): Section[] {
+	const sections: Section[] = [];
+	classes.forEach((line, i) => {
+		if (line.kind !== 'heading' || line.level !== 1) return;
+		const previous = sections[sections.length - 1];
+		if (previous) previous.to = i;
+		sections.push({ h1: line.text, from: i + 1, to: classes.length });
 	});
-	return result;
+	return sections;
 }
 
-function parseItem(
-	content: string,
-	day: DayKey,
-	categories: readonly string[],
-): Omit<ParsedEntry, 'line'> | null {
+function parseItem(content: string, day: DayKey): Omit<ParsedEntry, 'line' | 'kind'> | null {
 	let rest = content.trim();
 	let done = false;
 	const task = TASK_RE.exec(rest);
@@ -162,48 +158,23 @@ function parseItem(
 		rest = (task[2] ?? '').trim();
 	}
 
-	let end: DayKey | undefined;
-	let category: string | undefined;
-	for (;;) {
-		const range = end === undefined ? RANGE_RE.exec(rest) : null;
-		if (range) {
-			end = resolveEnd(range, day);
-			rest = rest.slice(0, range.index);
-			continue;
-		}
-		const trailing = category === undefined ? trailingCategory(rest, categories) : null;
-		if (trailing) {
-			category = trailing.category;
-			rest = trailing.rest;
-			continue;
-		}
-		break;
-	}
-	// `부산 출장 ~10-23 (회의)` where `(회의)` names no category: the range still counts and the
-	// parentheses stay in the title.
-	if (end === undefined) {
+	let end: DayKey = day;
+	const range = RANGE_RE.exec(rest);
+	if (range) {
+		end = resolveEnd(range, day);
+		rest = rest.slice(0, range.index);
+	} else {
+		// `부산 출장 ~10-23 (회의)`: the range still counts and the parentheses stay in the title.
 		const paren = PAREN_RE.exec(rest);
-		const range = paren ? RANGE_RE.exec(rest.slice(0, paren.index)) : null;
-		if (paren && range) {
-			end = resolveEnd(range, day);
-			rest = rest.slice(0, range.index) + paren[0];
+		const beforeParen = paren ? RANGE_RE.exec(rest.slice(0, paren.index)) : null;
+		if (paren && beforeParen) {
+			end = resolveEnd(beforeParen, day);
+			rest = rest.slice(0, beforeParen.index) + paren[0];
 		}
 	}
 
 	const title = rest.trim();
-	if (title === '') return null;
-	const entry: Omit<ParsedEntry, 'line'> = { title, end: end ?? day, done };
-	if (category !== undefined) entry.category = category;
-	return entry;
-}
-
-/** A trailing `(name)` that matches a configured category, and the text before it. */
-function trailingCategory(text: string, categories: readonly string[]): { rest: string; category: string } | null {
-	const paren = PAREN_RE.exec(text);
-	if (!paren) return null;
-	const wanted = categoryKey(paren[1] ?? '');
-	const category = wanted === '' ? undefined : categories.find((name) => categoryKey(name) === wanted);
-	return category === undefined ? null : { rest: text.slice(0, paren.index).trim(), category };
+	return title === '' ? null : { title, end, done };
 }
 
 /** The end date a `~…` token names, or `start` when it is invalid or before `start`. */

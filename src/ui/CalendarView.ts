@@ -4,7 +4,6 @@ import { DayKey, todayKey, yearMonth } from '../date/dayKey';
 import { resolveCategoryColor } from '../categoryColor';
 import { eventsOnDay } from '../layout/weekLayout';
 import type SidebarCalendarPlugin from '../main';
-import { parseEntryInput } from '../data/parseSchedule';
 import type { CalendarEvent } from '../types';
 import { AddEntryModal } from './AddEntryModal';
 import { renderDayList } from './renderDayList';
@@ -50,7 +49,7 @@ export class CalendarView extends ItemView {
 		root.addClass('sidebar-calendar');
 
 		const { categories, defaultColor } = this.plugin.settings;
-		const colorFor = (event: CalendarEvent) => resolveCategoryColor(event.category, categories, defaultColor);
+		const colorFor = (event: CalendarEvent) => resolveCategoryColor(event.kind, categories, defaultColor);
 		const locale = appLocale();
 		const events = this.plugin.eventStore.getEvents();
 		const dailyNotes = this.plugin.settings.dailyNotes && this.plugin.dailyNotes.isAvailable()
@@ -136,10 +135,10 @@ export class CalendarView extends ItemView {
 			new Notice('Turn on the core daily notes plugin to add schedule entries.');
 			return;
 		}
-		new AddEntryModal(this.app, formatRange(start, end, appLocale()), (text) => {
-			const { title, category } = parseEntryInput(text, settings.categories.map((c) => c.name));
-			if (title === '') return;
-			void dailyNotes.addEntry({ title, start, end, category }, settings.scheduleHeading);
+		const kind = settings.categories[0]?.name;
+		if (!kind) return;
+		new AddEntryModal(this.app, formatRange(start, end, appLocale()), (title) => {
+			void dailyNotes.addEntry({ title, start, end }, kind);
 		}).open();
 	}
 

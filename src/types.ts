@@ -1,6 +1,6 @@
 import type { DayKey } from './date/dayKey';
 
-/** One schedule entry: a top-level list item under the schedule heading of a daily note. */
+/** One schedule entry: a top-level list item under a kind H1 of a daily note. */
 export interface CalendarEvent {
 	/** `${path}:${line}`, unique and stable while the file is unchanged. */
 	id: string;
@@ -13,7 +13,7 @@ export interface CalendarEvent {
 	start: DayKey;
 	/** Inclusive. Equal to `start` for a one-day entry. */
 	end: DayKey;
-	/** The category name as written in settings. */
-	category?: string;
+	/** Text of the H1 the entry sits under. */
+	kind: string;
 	done: boolean;
 }
