@@ -76,7 +76,7 @@ const ko: SettingsStrings = {
 	showOneDayDesc: '끄면 달력에는 여러 날에 걸친 일정만 표시돼요. 달력 아래 목록에는 선택한 날의 일정이 모두 그대로 표시돼요.',
 	dailyNotes: '일일 노트',
 	dailyNotesDesc:
-		'일일 노트가 있는 날은 점으로, 그 노트에 완료하지 않은 할 일이 있으면 고리로 표시해요. 그런 날을 클릭하면 노트가 열려요. 코어 플러그인 일일 노트의 폴더, 형식, 템플릿을 사용하므로 그 플러그인을 켜 두어야 해요.',
+		'일일 노트가 있는 날은 점으로, 그 노트에 완료하지 않은 할 일이 있으면 빈 원으로 표시해요. 그런 날을 클릭하면 노트가 열려요. 코어 플러그인 일일 노트의 폴더, 형식, 템플릿을 사용하므로 그 플러그인을 켜 두어야 해요.',
 };
 
 export const SETTINGS_STRINGS: Record<SettingsLanguage, SettingsStrings> = { en, ko };
