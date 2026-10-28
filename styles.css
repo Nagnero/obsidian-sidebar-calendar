@@ -155,15 +155,6 @@
 	pointer-events: none;
 }
 
-/* Settings: category rows are just name + color + delete, no label column. */
-.sidebar-calendar-category-setting .setting-item-info {
-	display: none;
-}
-
-.sidebar-calendar-category-setting .setting-item-control {
-	justify-content: flex-start;
-}
-
 .sidebar-calendar__note-dot {
 	width: 4px;
 	height: 4px;

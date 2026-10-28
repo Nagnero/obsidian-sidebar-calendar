@@ -1,7 +1,6 @@
 import { ItemView, Keymap, moment, Notice, TFile, WorkspaceLeaf } from 'obsidian';
 import { VIEW_TYPE_SIDEBAR_CALENDAR } from '../constants';
 import { DayKey, todayKey, yearMonth } from '../date/dayKey';
-import { resolveCategoryColor } from '../categoryColor';
 import { eventsOnDay } from '../layout/weekLayout';
 import type SidebarCalendarPlugin from '../main';
 import type { CalendarEvent } from '../types';
@@ -48,8 +47,8 @@ export class CalendarView extends ItemView {
 		root.empty();
 		root.addClass('sidebar-calendar');
 
-		const { categories, defaultColor } = this.plugin.settings;
-		const colorFor = (event: CalendarEvent) => resolveCategoryColor(event.kind, categories, defaultColor);
+		const colors = new Map(this.plugin.activeKinds().map((k) => [k.name, k.color]));
+		const colorFor = (event: CalendarEvent) => colors.get(event.kind) || null;
 		const locale = appLocale();
 		const events = this.plugin.eventStore.getEvents();
 		const dailyNotes = this.plugin.settings.dailyNotes && this.plugin.dailyNotes.isAvailable()
@@ -130,12 +129,12 @@ export class CalendarView extends ItemView {
 
 	/** Asks for an entry's text and writes it to the start day's daily note. */
 	private promptEntry(start: DayKey, end: DayKey): void {
-		const { dailyNotes, settings } = this.plugin;
+		const { dailyNotes } = this.plugin;
 		if (!dailyNotes.isAvailable()) {
 			new Notice('Turn on the core daily notes plugin to add schedule entries.');
 			return;
 		}
-		const kind = settings.categories[0]?.name;
+		const kind = this.plugin.activeKinds()[0]?.name;
 		if (!kind) return;
 		new AddEntryModal(this.app, formatRange(start, end, appLocale()), (title) => {
 			void dailyNotes.addEntry({ title, start, end }, kind);
