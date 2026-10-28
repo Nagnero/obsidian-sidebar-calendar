@@ -3,6 +3,7 @@ import { VIEW_TYPE_SIDEBAR_CALENDAR } from '../constants';
 import { DayKey, todayKey, yearMonth } from '../date/dayKey';
 import { eventsOnDay } from '../layout/weekLayout';
 import type { TemplateHeadings } from '../data/DailyNotes';
+import { sortEntries } from '../data/sortEntries';
 import type SidebarCalendarPlugin from '../main';
 import type { CalendarEvent } from '../types';
 import { AddEntryModal } from './AddEntryModal';
@@ -48,11 +49,13 @@ export class CalendarView extends ItemView {
 		root.empty();
 		root.addClass('sidebar-calendar');
 
-		const colors = new Map(this.plugin.activeKinds().map((k) => [k.name, k.color]));
+		const kinds = this.plugin.activeKinds();
+		const colors = new Map(kinds.map((k) => [k.name, k.color]));
 		const colorFor = (event: CalendarEvent) => colors.get(event.kind) || null;
 		const locale = appLocale();
+		const { settings } = this.plugin;
 		const events = this.plugin.eventStore.getEvents();
-		const dailyNotes = this.plugin.settings.dailyNotes && this.plugin.dailyNotes.isAvailable()
+		const dailyNotes = settings.dailyNotes && this.plugin.dailyNotes.isAvailable()
 			? this.plugin.dailyNotes
 			: null;
 		const openEvent = (event: CalendarEvent, evt: MouseEvent) => void this.openEvent(event, evt);
@@ -68,10 +71,10 @@ export class CalendarView extends ItemView {
 				year: this.year,
 				month: this.month,
 				today: todayKey(),
-				weekStart: this.plugin.settings.weekStart,
+				weekStart: settings.weekStart,
 				locale,
-				events: this.plugin.settings.showOneDay ? events : events.filter((e) => e.start !== e.end),
-				maxLanes: this.plugin.settings.maxLanes,
+				events: settings.showOneDay ? events : events.filter((e) => e.start !== e.end),
+				maxLanes: settings.maxLanes,
 				colorFor,
 				selectedDay: this.selectedDay,
 				noteMark,
@@ -101,11 +104,19 @@ export class CalendarView extends ItemView {
 			root,
 			{
 				day: this.selectedDay,
-				events: eventsOnDay(events, this.selectedDay),
+				events: sortEntries(eventsOnDay(events, this.selectedDay), settings.listSort, kinds.map((k) => k.name)),
+				sort: settings.listSort,
 				locale,
 				colorFor,
 			},
-			{ onOpenEvent: openEvent },
+			{
+				onOpenEvent: openEvent,
+				onSort: (sort) => {
+					settings.listSort = sort;
+					void this.plugin.saveData(settings);
+					this.plugin.refreshViews();
+				},
+			},
 		);
 	}
 

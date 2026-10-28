@@ -2,6 +2,7 @@ import type { App } from 'obsidian';
 import type { CalendarEvent } from '../types';
 import type { DailyNotes } from './DailyNotes';
 import { parseSchedule } from './parseSchedule';
+import { compareByStart } from './sortEntries';
 
 const LOG_PREFIX = '[Sidebar Calendar]';
 const TASK_MARK = { open: '[ ]', done: '[x]', plain: '-' } as const;
@@ -45,7 +46,7 @@ export class EventStore {
 		);
 		if (generation !== this.generation) return;
 
-		this.events = perNote.flat().sort(compareEvents);
+		this.events = perNote.flat().sort(compareByStart);
 		this.noteCount = notes.length;
 	}
 
@@ -65,11 +66,4 @@ export class EventStore {
 			console.debug(`${LOG_PREFIX} ${range} | ${TASK_MARK[e.task ?? 'plain']} | ${e.title} | ${e.kind} | ${e.id}`);
 		}
 	}
-}
-
-/** Sorts by start date, then longer events first, then title. */
-function compareEvents(a: CalendarEvent, b: CalendarEvent): number {
-	if (a.start !== b.start) return a.start < b.start ? -1 : 1;
-	if (a.end !== b.end) return a.end > b.end ? -1 : 1;
-	return a.title.localeCompare(b.title);
 }

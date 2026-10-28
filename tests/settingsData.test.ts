@@ -19,6 +19,7 @@ test('valid values are kept', () => {
 			{ name: 'Journaling', enabled: false, color: '' },
 		],
 		lastKind: '업무',
+		listSort: 'unchecked',
 	};
 	assert.deepEqual(sanitizeSettings(raw), raw);
 });
@@ -112,4 +113,9 @@ test('active kinds are the enabled ones the template has, in template order', ()
 	];
 	assert.deepEqual(activeKinds(kinds, ['업무', 'Journaling', '개인']).map((k) => k.name), ['업무', '개인']);
 	assert.deepEqual(activeKinds(kinds, []), []);
+});
+
+test('list sort accepts only a known sort key', () => {
+	for (const sort of ['start', 'note', 'unchecked', 'kind']) assert.equal(sanitizeSettings({ listSort: sort }).listSort, sort);
+	for (const sort of ['title', 'Kind', 1, null]) assert.equal(sanitizeSettings({ listSort: sort }).listSort, 'start');
 });

@@ -1,6 +1,6 @@
 ---
 name: verify-sidebar-calendar
-description: Drive the real Obsidian desktop app with this repo's Sidebar Calendar build and prove calendar behavior (schedule bars from the H1 kind sections of daily notes, +N, kind colors and settings, done entries, tooltips, day list, daily notes, adding entries by drag or double-click with a kind choice) with snapshots and screenshots. Use after any change to src/ or styles.css, or when asked to verify, reproduce, or screenshot the calendar.
+description: Drive the real Obsidian desktop app with this repo's Sidebar Calendar build and prove calendar behavior (schedule bars from the H1 kind sections of daily notes, +N, kind colors and settings, done entries, tooltips, day list and its sort menu, daily note dots and open-task rings, adding entries by drag or double-click with a kind choice) with snapshots and screenshots. Use after any change to src/ or styles.css, or when asked to verify, reproduce, or screenshot the calendar.
 ---
 
 # Verify Sidebar Calendar
@@ -51,7 +51,7 @@ Read-only. Prints the Obsidian version, vault path, plugin version, and whether 
 | `node $V press <key>` | Presses a key in the focused element (`Enter`, `Escape`). |
 | `node $V hover '<selector>'` | Hovers and prints `{"tooltip": "..."}` for the tooltip Obsidian shows. Tooltips vanish when the pointer leaves, so read them here, not in a later snapshot. |
 | `node $V fill '<selector>' <value>` | Clears an input and types like a user, so Obsidian's change handlers fire. |
-| `node $V snapshot <name>` | Saves the calendar state as JSON and prints it: title, weekdays, today, selected day, daily note dots, every bar (event id, week index, grid column, lane, done, computed color, continued flags), every `+N`, the day list (with `done` per item and the header's `headerButtons` labels), the active file, the editor's `cursorLine`, and the open `modal` title. |
+| `node $V snapshot <name>` | Saves the calendar state as JSON and prints it: title, weekdays, today, selected day, every bar (event id, week index, grid column, lane, done, computed color, continued flags), every `+N`, `noteDots` and `taskRings` (dates), `markRowHeights` and `weekHeights` (distinct heights in px), the day list (items in display order with `done`, and the header's `headerButtons` labels), the open `menu` (titles with `checked`), the active file, the editor's `cursorLine`, and the open `modal` title. |
 | `node $V screenshot <name>` | Saves a PNG of the window. |
 | `node $V eval '<js body>'` | Runs a function body in the window with `app` in scope and prints the returned JSON. For reading state (files, settings), not for driving the UI. |
 | `node $V day <n>` | Prints `YYYY-MM-DD` for day `n` of the current month, to build selectors. |
@@ -66,7 +66,8 @@ Stable handles, all from `src/ui/`:
 - Add-entry modal: title `.modal-container .modal-title`, input `.modal-container input.sidebar-calendar__entry-input`, kind buttons `.modal-container .sidebar-calendar__kind-btn[data-kind="<H1 text>"]` with `aria-pressed`.
 - Overflow: `.sidebar-calendar__more` with text `+N`.
 - Header buttons: `[aria-label="Previous month"]`, `[aria-label="Current month"]`, `[aria-label="Next month"]`.
-- Day list: `.sidebar-calendar__day-list`, items `.sidebar-calendar__event-item`.
+- Day list: `.sidebar-calendar__day-list`, items `.sidebar-calendar__event-item`, the sort button `[aria-label="Sort entries"]`, and its menu items `.menu .menu-item:has-text("Note order")` (checked ones have `mod-checked`).
+- Day marks: `.sidebar-calendar__note-dot` (daily note) and `.sidebar-calendar__task-ring` (unchecked task) inside `.sidebar-calendar__note-marks`.
 - Settings gear (main window): `.clickable-icon:has(svg.lucide-settings)`. In the Settings window: `.vertical-tab-nav-item:has-text("Sidebar Calendar")`, the template status `.sidebar-calendar-template-status .setting-item-description`, kind rows `.sidebar-calendar-kind-setting[data-kind="<H1 text>"]` with the switch `.checkbox-container` (`is-enabled` when on), and on a row not in the template the delete button `.clickable-icon`. Calendar section switches by row name, for example `.setting-item:has(.setting-item-name:text-is("Show one-day entries")) .checkbox-container`.
 
 ## Evidence

@@ -122,6 +122,7 @@ function seedVault() {
 	writeFile(`${day(15)}.md`, 'Existing daily note\n');
 	writeFile(`${day(20)}.md`, '# 업무\n- Crowded 1\n- Crowded 2\n- Crowded 3\n- Crowded 4\n  - nested note, not an entry\n');
 	writeFile(`${day(22)}.md`, '# 업무\n- [ ] Report\n- [x] Groceries\n\n# Journaling\n- Journal line, not an entry\n');
+	writeFile(`${day(27)}.md`, `# 개인\n- [x] Call mom\n- Zoo\n# 업무\n- [ ] Budget ~${mm}-28\n- Memo\n`);
 	writeFile(`${day(25)}.md`, '# 업무\n- [x] Paid rent\n- Lunch\n\n# Journaling\n- [ ] Journal task, not read\n');
 }
 
@@ -360,6 +361,10 @@ async function snapshot(name) {
 			activeFile: app.workspace.getActiveFile()?.path ?? null,
 			cursorLine: app.workspace.activeEditor?.editor?.getCursor().line ?? null,
 			modal: text(document.querySelector('.modal-container .modal-title')),
+			menu: [...document.querySelectorAll('.menu .menu-item')].map((i) => ({
+				title: text(i.querySelector('.menu-item-title')),
+				checked: i.classList.contains('mod-checked'),
+			})),
 		};
 	});
 	await browser.close();

@@ -1,4 +1,5 @@
 import type { Weekday } from './date/dayKey';
+import { isListSort, ListSort } from './data/sortEntries';
 
 /** An H1 of the daily note template, used as a kind of schedule entry. */
 export interface Kind {
@@ -21,6 +22,8 @@ export interface SidebarCalendarSettings {
 	kinds: Kind[];
 	/** Name of the kind chosen last when adding an entry. */
 	lastKind: string;
+	/** Order of the selected day's list. */
+	listSort: ListSort;
 }
 
 export const DEFAULT_SETTINGS: SidebarCalendarSettings = {
@@ -30,6 +33,7 @@ export const DEFAULT_SETTINGS: SidebarCalendarSettings = {
 	showOneDay: true,
 	kinds: [],
 	lastKind: '',
+	listSort: 'start',
 };
 
 export const MIN_LANES = 1;
@@ -69,6 +73,7 @@ export function sanitizeSettings(raw: unknown): SidebarCalendarSettings {
 		showOneDay: typeof data.showOneDay === 'boolean' ? data.showOneDay : d.showOneDay,
 		kinds,
 		lastKind: typeof data.lastKind === 'string' ? data.lastKind : d.lastKind,
+		listSort: isListSort(data.listSort) ? data.listSort : d.listSort,
 	};
 }
 
