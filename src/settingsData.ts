@@ -1,5 +1,6 @@
 import type { Weekday } from './date/dayKey';
 import { isListSort, ListSort } from './data/sortEntries';
+import { isSettingsLanguage, SettingsLanguage } from './i18n';
 
 /** An H1 of the daily note template, used as a kind of schedule entry. */
 export interface Kind {
@@ -12,6 +13,8 @@ export interface Kind {
 }
 
 export interface SidebarCalendarSettings {
+	/** Language of the settings tab. The calendar itself is English only. */
+	settingsLanguage: SettingsLanguage;
 	weekStart: Weekday;
 	maxLanes: number;
 	/** Mark days that have a daily note, and ones with an unchecked task (uses the core Daily notes plugin). */
@@ -27,6 +30,7 @@ export interface SidebarCalendarSettings {
 }
 
 export const DEFAULT_SETTINGS: SidebarCalendarSettings = {
+	settingsLanguage: 'en',
 	weekStart: 0,
 	maxLanes: 3,
 	dailyNotes: true,
@@ -67,6 +71,7 @@ export function sanitizeSettings(raw: unknown): SidebarCalendarSettings {
 	}
 
 	return {
+		settingsLanguage: isSettingsLanguage(data.settingsLanguage) ? data.settingsLanguage : d.settingsLanguage,
 		weekStart: data.weekStart === 1 || data.weekStart === '1' ? 1 : 0,
 		maxLanes: lanes,
 		dailyNotes: typeof data.dailyNotes === 'boolean' ? data.dailyNotes : d.dailyNotes,

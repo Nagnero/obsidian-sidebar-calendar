@@ -10,6 +10,7 @@ test('missing or broken data gives the defaults', () => {
 
 test('valid values are kept', () => {
 	const raw = {
+		settingsLanguage: 'ko',
 		weekStart: 1,
 		maxLanes: 5,
 		dailyNotes: false,
@@ -46,6 +47,13 @@ test('week start accepts only Sunday or Monday', () => {
 	assert.equal(sanitizeSettings({ weekStart: 1 }).weekStart, 1);
 	assert.equal(sanitizeSettings({ weekStart: '1' }).weekStart, 1);
 	assert.equal(sanitizeSettings({ weekStart: 3 }).weekStart, 0);
+});
+
+test('settings language accepts only English or Korean', () => {
+	assert.equal(sanitizeSettings({}).settingsLanguage, 'en');
+	assert.equal(sanitizeSettings({ settingsLanguage: 'ko' }).settingsLanguage, 'ko');
+	assert.equal(sanitizeSettings({ settingsLanguage: 'ja' }).settingsLanguage, 'en');
+	assert.equal(sanitizeSettings({ settingsLanguage: 1 }).settingsLanguage, 'en');
 });
 
 test('show one-day entries accepts only a boolean', () => {
