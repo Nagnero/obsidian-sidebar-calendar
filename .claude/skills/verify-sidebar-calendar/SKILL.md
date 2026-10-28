@@ -1,11 +1,11 @@
 ---
 name: verify-sidebar-calendar
-description: Drive the real Obsidian desktop app with this repo's Sidebar Calendar build and prove calendar behavior (event bars, +N, category colors, tooltips, day list, daily notes) with snapshots and screenshots. Use after any change to src/ or styles.css, or when asked to verify, reproduce, or screenshot the calendar.
+description: Drive the real Obsidian desktop app with this repo's Sidebar Calendar build and prove calendar behavior (schedule bars from daily notes, +N, category colors, done entries, tooltips, day list, daily notes, adding entries by drag or double-click) with snapshots and screenshots. Use after any change to src/ or styles.css, or when asked to verify, reproduce, or screenshot the calendar.
 ---
 
 # Verify Sidebar Calendar
 
-Sidebar Calendar is an Obsidian plugin: a month calendar in the right sidebar that draws notes in an events folder as colored bars. The only user surface is the Obsidian desktop app, so verification launches a real Obsidian (Electron) under Xvfb, loads the freshly built plugin into a throwaway vault, and drives it over the Chrome DevTools Protocol with Playwright.
+Sidebar Calendar is an Obsidian plugin, a month calendar in the right sidebar that draws the schedule entries written in daily notes as colored bars. The only user surface is the Obsidian desktop app, so verification launches a real Obsidian (Electron) under Xvfb, loads the freshly built plugin into a throwaway vault, and drives it over the Chrome DevTools Protocol with Playwright.
 
 Everything goes through one helper, run from the repo root:
 
@@ -46,9 +46,12 @@ Read-only. Prints the Obsidian version, vault path, plugin version, and whether 
 | Command | Does |
 | --- | --- |
 | `node $V click '<selector>'` | Clicks the first match, then waits 400 ms for the re-render. |
+| `node $V dblclick '<selector>'` | Double-clicks the first match, then waits 400 ms. |
+| `node $V drag '<from>' '<to>'` | Real mouse down on `from`, moves to `to`, mouse up. Prints `inRangeBeforeRelease`, the days highlighted just before release. |
+| `node $V press <key>` | Presses a key in the focused element (`Enter`, `Escape`). |
 | `node $V hover '<selector>'` | Hovers and prints `{"tooltip": "..."}` for the tooltip Obsidian shows. Tooltips vanish when the pointer leaves, so read them here, not in a later snapshot. |
 | `node $V fill '<selector>' <value>` | Clears an input and types like a user, so Obsidian's change handlers fire. |
-| `node $V snapshot <name>` | Saves the calendar state as JSON and prints it: title, weekdays, today, selected day, daily note dots, every bar (event path, week index, grid column, lane, computed color, continued flags), every `+N`, the day list, and the active file. |
+| `node $V snapshot <name>` | Saves the calendar state as JSON and prints it: title, weekdays, today, selected day, daily note dots, every bar (event id, week index, grid column, lane, done, computed color, continued flags), every `+N`, the day list (with `done` per item), the active file, the editor's `cursorLine`, and the open `modal` title. |
 | `node $V screenshot <name>` | Saves a PNG of the window. |
 | `node $V eval '<js body>'` | Runs a function body in the window with `app` in scope and prints the returned JSON. For reading state (files, settings), not for driving the UI. |
 | `node $V day <n>` | Prints `YYYY-MM-DD` for day `n` of the current month, to build selectors. |
@@ -58,7 +61,9 @@ Add `--settings` to `click`, `hover`, `fill`, `eval`, or `screenshot` to act on 
 Stable handles, all from `src/ui/`:
 
 - Day cell: `.sidebar-calendar__day[data-date="YYYY-MM-DD"]` (classes `is-today`, `is-selected`, `is-other-month`).
-- Bar: `.sidebar-calendar__bar[data-event="Events/<file>.md"]`. A multi-week event has one bar per week.
+- Bar: `.sidebar-calendar__bar[data-event="<daily note path>:<line>"]`, for example `data-event="2026-10-05.md:1"` (0-based line of the list item). A multi-week entry has one bar per week. Done entries have `is-done`.
+- Range highlight while dragging: `.sidebar-calendar__day.is-in-range`.
+- Add-entry modal: title `.modal-container .modal-title`, input `.modal-container input.sidebar-calendar__entry-input`.
 - Overflow: `.sidebar-calendar__more` with text `+N`.
 - Header buttons: `[aria-label="Previous month"]`, `[aria-label="Current month"]`, `[aria-label="Next month"]`.
 - Day list: `.sidebar-calendar__day-list`, items `.sidebar-calendar__event-item`, and the daily note button `[aria-label="Open daily note"]` or `[aria-label="Create daily note"]`.
@@ -81,7 +86,7 @@ A proof:
 node $V stop
 ```
 
-Kills only the process group this run started (from its PID file, never by name) and deletes this run's vault and config. Artifacts stay in `.verify-artifacts/<run>/`. Run it after every attempt, failed ones included. The Obsidian download stays cached in `~/.cache/verify-sidebar-calendar/`.
+Kills only the process group this run started (from its PID file, never by name), waits for it to exit, and deletes this run's vault and config. Artifacts stay in `.verify-artifacts/<run>/`. Run it after every attempt, failed ones included. The Obsidian download stays cached in `~/.cache/verify-sidebar-calendar/`.
 
 ## Maintenance
 

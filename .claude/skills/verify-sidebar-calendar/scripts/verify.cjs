@@ -81,11 +81,10 @@ function day(d) {
 	return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(d)}`;
 }
 
-function writeNote(rel, frontmatter, body = '') {
+function writeFile(rel, content) {
 	const file = path.join(VAULT, rel);
 	fs.mkdirSync(path.dirname(file), { recursive: true });
-	const yaml = Object.entries(frontmatter).map(([k, v]) => `${k}: ${v}`).join('\n');
-	fs.writeFileSync(file, `---\n${yaml}\n---\n${body}`);
+	fs.writeFileSync(file, content);
 }
 
 function seedVault() {
@@ -97,14 +96,16 @@ function seedVault() {
 	fs.writeFileSync(path.join(VAULT, '.obsidian', 'core-plugins.json'), JSON.stringify({ 'daily-notes': true, 'file-explorer': true }));
 	fs.writeFileSync(
 		path.join(pluginDir, 'data.json'),
-		JSON.stringify({ eventsFolder: 'Events', weekStart: 0, maxLanes: 3, categories: [{ name: 'work', color: '#e5484d' }], defaultColor: '', dailyNotes: true }, null, '\t'),
+		JSON.stringify({ scheduleHeading: '일정', weekStart: 0, maxLanes: 3, categories: [{ name: 'work', color: '#e5484d' }], defaultColor: '', dailyNotes: true }, null, '\t'),
 	);
 
-	writeNote('Events/Dentist.md', { start: day(3) });
-	writeNote('Events/Trip.md', { title: 'Summer trip', start: day(5), end: day(12), category: 'work' });
-	writeNote('Events/Uncategorized.md', { start: day(8), end: day(9), category: 'hobby' });
-	for (const n of [1, 2, 3, 4]) writeNote(`Events/Crowded ${n}.md`, { start: day(20) });
-	writeNote(`${day(15)}.md`, {}, 'Existing daily note\n');
+	const mm = day(1).slice(5, 7);
+	writeFile(`${day(3)}.md`, '# Day plan\n\n## 일정\n- Dentist\n\n## Notes\n- not an entry\n');
+	writeFile(`${day(5)}.md`, `## 일정\n- Summer trip ~${mm}-12 (Work)\n`);
+	writeFile(`${day(8)}.md`, `## 일정\n- Workshop (hobby) ~${mm}-09\n`);
+	writeFile(`${day(15)}.md`, 'Existing daily note\n');
+	writeFile(`${day(20)}.md`, '### 일정\n- Crowded 1\n- Crowded 2\n- Crowded 3\n- Crowded 4\n  - nested note, not an entry\n');
+	writeFile(`${day(22)}.md`, '## 일정\n- [ ] Report\n- [x] Groceries\n');
 }
 
 // ---------- process control ----------
@@ -248,14 +249,38 @@ async function act(kind, selector, value) {
 	} else if (kind === 'click') {
 		await target.click();
 		await page.waitForTimeout(400);
-	} else {
+	} else if (kind === 'dblclick') {
+		await target.dblclick();
+		await page.waitForTimeout(400);
+	} else if (kind === 'drag') {
+		// Real mouse down, moves and up, so the calendar sees the same events a user's drag makes.
+		const to = page.locator(value).first();
+		const [a, b] = [await target.boundingBox(), await to.boundingBox()];
+		await page.mouse.move(a.x + a.width / 2, a.y + a.height / 2);
+		await page.mouse.down();
+		await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2, { steps: 12 });
+		const inRange = await page.$$eval('.sidebar-calendar__day.is-in-range', (cells) => cells.map((c) => c.dataset.date));
+		await page.mouse.up();
+		await page.waitForTimeout(400);
+		console.log(JSON.stringify({ inRangeBeforeRelease: inRange }));
+	} else if (kind === 'hover') {
 		// Obsidian shows tooltips after a delay and removes them when the pointer leaves, so read
 		// the tooltip here, in the same connection, instead of in a later snapshot.
 		await target.hover();
 		const tooltip = page.locator('.tooltip').first();
 		const text = await tooltip.waitFor({ timeout: 3_000 }).then(() => tooltip.innerText(), () => null);
 		console.log(JSON.stringify({ tooltip: text }));
+	} else {
+		die(`unknown action ${kind}`);
 	}
+	await browser.close();
+}
+
+async function press(key) {
+	const { browser, page } = await connect();
+	console.log(`verify: press ${key}`);
+	await page.keyboard.press(key);
+	await page.waitForTimeout(600);
 	await browser.close();
 }
 
@@ -289,6 +314,7 @@ async function snapshot(name) {
 				week: [...root.querySelectorAll('.sidebar-calendar__week')].indexOf(b.parentElement),
 				column: b.style.gridColumn,
 				lane: Number(b.style.gridRow) - 2,
+				done: b.classList.contains('is-done'),
 				color: getComputedStyle(b).backgroundColor,
 				continuedBefore: b.classList.contains('is-continued-before'),
 				continuedAfter: b.classList.contains('is-continued-after'),
@@ -303,11 +329,14 @@ async function snapshot(name) {
 				dailyNoteButton: root.querySelector('.sidebar-calendar__daily-note-btn')?.getAttribute('aria-label') ?? null,
 				items: [...root.querySelectorAll('.sidebar-calendar__event-item')].map((i) => ({
 					title: text(i.querySelector('.sidebar-calendar__event-title')),
+					done: i.classList.contains('is-done'),
 					range: text(i.querySelector('.sidebar-calendar__event-range')),
 				})),
 				empty: text(root.querySelector('.sidebar-calendar__day-list-empty')),
 			},
 			activeFile: app.workspace.getActiveFile()?.path ?? null,
+			cursorLine: app.workspace.activeEditor?.editor?.getCursor().line ?? null,
+			modal: text(document.querySelector('.modal-container .modal-title')),
 		};
 	});
 	await browser.close();
@@ -319,16 +348,37 @@ async function snapshot(name) {
 	console.log(file);
 }
 
-function stop() {
-	const pid = running();
-	if (pid) {
+function groupAlive(pid) {
+	try {
+		process.kill(-pid, 0);
+		return true;
+	} catch {
+		return false;
+	}
+}
+
+function signal(pid, sig) {
+	try {
+		process.kill(-pid, sig); // the process group launch started, never by name
+	} catch {
 		try {
-			process.kill(-pid, 'SIGTERM'); // the process group launch started, never by name
+			process.kill(pid, sig);
 		} catch {
-			process.kill(pid, 'SIGTERM');
+			// already gone
 		}
 	}
-	fs.rmSync(STATE, { recursive: true, force: true });
+}
+
+async function stop() {
+	const pid = running();
+	if (pid) {
+		signal(pid, 'SIGTERM');
+		// Obsidian writes its config while shutting down; deleting it before the group exits races that.
+		for (let i = 0; i < 50 && groupAlive(pid); i++) await new Promise((r) => setTimeout(r, 100));
+		if (groupAlive(pid)) signal(pid, 'SIGKILL');
+		for (let i = 0; i < 20 && groupAlive(pid); i++) await new Promise((r) => setTimeout(r, 100));
+	}
+	fs.rmSync(STATE, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
 	console.log(`verify: stopped run=${RUN_ID}. Artifacts kept in ${ARTIFACTS}`);
 }
 
@@ -337,6 +387,9 @@ const HELP = `usage: node verify.cjs <command>
   doctor                 read-only health check; fails if this run does not own the instance
   eval '<js body>'       run JS in the Obsidian window (app in scope), print the returned JSON
   click '<selector>'     click the first match (CSS or Playwright selector)
+  dblclick '<selector>'  double-click the first match
+  drag '<from>' '<to>'   press on the first match of from, drag to the first match of to, release
+  press <key>            press a key in the focused element (e.g. Enter, Escape)
   hover '<selector>'     hover the first match and print the tooltip it shows
   fill '<selector>' <v>  clear the first match and type v like a user
   snapshot <name>        save calendar state as JSON to the artifacts dir
@@ -353,6 +406,9 @@ env: VERIFY_RUN_ID (default "default"), VERIFY_PORT (default 9333), OBSIDIAN_BIN
 		case 'doctor': return doctor();
 		case 'eval': return evalJs(arg ?? die('eval needs code'));
 		case 'click': return act('click', arg ?? die('click needs a selector'));
+		case 'dblclick': return act('dblclick', arg ?? die('dblclick needs a selector'));
+		case 'drag': return act('drag', arg ?? die('drag needs a from selector'), value ?? die('drag needs a to selector'));
+		case 'press': return press(arg ?? die('press needs a key'));
 		case 'hover': return act('hover', arg ?? die('hover needs a selector'));
 		case 'fill': return act('fill', arg ?? die('fill needs a selector'), value ?? die('fill needs a value'));
 		case 'snapshot': return snapshot(arg ?? die('snapshot needs a name'));
