@@ -1,8 +1,7 @@
-import { debounce, Notice, Plugin, TAbstractFile, TFile, WorkspaceLeaf } from 'obsidian';
+import { debounce, Notice, Plugin, TAbstractFile, TFile, TFolder, WorkspaceLeaf } from 'obsidian';
 import { VIEW_TYPE_SIDEBAR_CALENDAR } from './constants';
 import { sanitizeSettings, SidebarCalendarSettings, SidebarCalendarSettingTab } from './settings';
 import { todayKey } from './date/dayKey';
-import { isInFolder } from './data/parseEvent';
 import { DailyNotes } from './data/DailyNotes';
 import { EventStore } from './data/EventStore';
 import { CalendarView } from './ui/CalendarView';
@@ -14,8 +13,11 @@ export default class SidebarCalendarPlugin extends Plugin {
 
 	async onload() {
 		await this.loadSettings();
-		this.eventStore = new EventStore(this.app, () => this.settings.eventsFolder);
 		this.dailyNotes = new DailyNotes(this.app);
+		this.eventStore = new EventStore(this.app, this.dailyNotes, () => ({
+			heading: this.settings.scheduleHeading,
+			categories: this.settings.categories.map((c) => c.name),
+		}));
 
 		this.registerView(VIEW_TYPE_SIDEBAR_CALENDAR, (leaf) => new CalendarView(leaf, this));
 
@@ -34,9 +36,8 @@ export default class SidebarCalendarPlugin extends Plugin {
 		this.addCommand({
 			id: 'reload-events',
 			name: 'Reload events',
-			callback: () => {
-				this.eventStore.reload();
-				this.refreshViews();
+			callback: async () => {
+				await this.reloadEvents();
 				this.eventStore.logToConsole();
 				new Notice(`Sidebar Calendar: ${this.eventStore.summary()}`);
 			},
@@ -47,8 +48,7 @@ export default class SidebarCalendarPlugin extends Plugin {
 
 		// Open the view on first load; afterwards the workspace layout restores it.
 		this.app.workspace.onLayoutReady(() => {
-			this.eventStore.reload();
-			this.refreshViews();
+			void this.reloadEvents();
 			if (this.app.workspace.getLeavesOfType(VIEW_TYPE_SIDEBAR_CALENDAR).length === 0) {
 				void this.activateView(false);
 			}
@@ -57,20 +57,15 @@ export default class SidebarCalendarPlugin extends Plugin {
 
 	/**
 	 * Keeps the calendar in sync with the vault. Bursts of changes (a sync, a bulk rename) are
-	 * collapsed into one reload. Event notes are re-read when their frontmatter changes; any
-	 * markdown file appearing, disappearing or moving can add or remove a daily note dot, so
-	 * those always refresh. Daily note contents are never read.
+	 * collapsed into one reload. A daily note is re-read when its content changes; any markdown
+	 * file appearing, disappearing or moving can add or remove a daily note, so those always refresh.
 	 */
 	private registerAutoRefresh(): void {
-		const refresh = debounce(() => {
-			this.eventStore.reload();
-			this.refreshViews();
-		}, 300, true);
-		const inEventsFolder = (path: string) => isInFolder(path, this.settings.eventsFolder);
+		const refresh = debounce(() => void this.reloadEvents(), 300, true);
 		const isMarkdown = (file: TAbstractFile) => file instanceof TFile && file.extension === 'md';
 
 		this.registerEvent(this.app.metadataCache.on('changed', (file) => {
-			if (inEventsFolder(file.path)) refresh();
+			if (this.dailyNotes.dayOf(file) !== null) refresh();
 		}));
 		this.registerEvent(this.app.vault.on('create', (file) => {
 			if (isMarkdown(file)) refresh();
@@ -78,9 +73,9 @@ export default class SidebarCalendarPlugin extends Plugin {
 		this.registerEvent(this.app.vault.on('delete', (file) => {
 			if (isMarkdown(file)) refresh();
 		}));
-		this.registerEvent(this.app.vault.on('rename', (file, oldPath) => {
+		this.registerEvent(this.app.vault.on('rename', (file) => {
 			// A renamed folder moves its notes without a per-file event.
-			if (isMarkdown(file) || inEventsFolder(file.path) || inEventsFolder(oldPath)) refresh();
+			if (isMarkdown(file) || file instanceof TFolder) refresh();
 		}));
 
 		// Move "today" forward when the date changes while Obsidian stays open.
@@ -113,7 +108,11 @@ export default class SidebarCalendarPlugin extends Plugin {
 
 	async saveSettings() {
 		await this.saveData(this.settings);
-		this.eventStore.reload();
+		await this.reloadEvents();
+	}
+
+	async reloadEvents(): Promise<void> {
+		await this.eventStore.reload();
 		this.refreshViews();
 	}
 

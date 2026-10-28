@@ -121,7 +121,7 @@ export class CalendarView extends ItemView {
 	}
 
 	private async openEvent(event: CalendarEvent, evt: MouseEvent): Promise<void> {
-		const file = this.app.vault.getAbstractFileByPath(event.id);
+		const file = this.app.vault.getAbstractFileByPath(event.path);
 		if (!(file instanceof TFile)) return;
 		await this.app.workspace.getLeaf(Keymap.isModEvent(evt)).openFile(file);
 	}

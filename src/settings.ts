@@ -1,5 +1,5 @@
-import { App, normalizePath, PluginSettingTab, Setting } from 'obsidian';
-import { DEFAULT_SETTINGS, MAX_LANES, MIN_LANES } from './settingsData';
+import { App, PluginSettingTab, Setting } from 'obsidian';
+import { DEFAULT_SETTINGS, MAX_LANES, MIN_LANES, sanitizeHeading } from './settingsData';
 import type SidebarCalendarPlugin from './main';
 
 export { DEFAULT_SETTINGS, sanitizeSettings } from './settingsData';
@@ -22,15 +22,16 @@ export class SidebarCalendarSettingTab extends PluginSettingTab {
 		containerEl.empty();
 
 		new Setting(containerEl)
-			.setName('Events folder')
-			.setDesc('Each note in this folder is one event.')
+			.setName('Schedule heading')
+			.setDesc(
+				'Schedule entries are the list items under this heading in your daily notes. Reading them needs the core daily notes plugin.',
+			)
 			.addText((text) =>
 				text
-					.setPlaceholder(DEFAULT_SETTINGS.eventsFolder)
-					.setValue(this.plugin.settings.eventsFolder)
+					.setPlaceholder(DEFAULT_SETTINGS.scheduleHeading)
+					.setValue(this.plugin.settings.scheduleHeading)
 					.onChange(async (value) => {
-						this.plugin.settings.eventsFolder =
-							normalizePath(value.trim() || DEFAULT_SETTINGS.eventsFolder);
+						this.plugin.settings.scheduleHeading = sanitizeHeading(value);
 						await this.plugin.saveSettings();
 					}),
 			);
@@ -127,7 +128,7 @@ export class SidebarCalendarSettingTab extends PluginSettingTab {
 		});
 
 		new Setting(containerEl)
-			.setDesc('Events use the color of the category named in their "category" property.')
+			.setDesc('An entry ending in a category name in parentheses, like "(work)", uses that category\'s color.')
 			.addButton((button) =>
 				button.setButtonText('Add category').onClick(async () => {
 					const { categories } = this.plugin.settings;

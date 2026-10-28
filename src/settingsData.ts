@@ -2,7 +2,8 @@ import type { Category } from './categoryColor';
 import type { Weekday } from './date/dayKey';
 
 export interface SidebarCalendarSettings {
-	eventsFolder: string;
+	/** Text of the daily note heading whose list items are schedule entries. */
+	scheduleHeading: string;
 	weekStart: Weekday;
 	maxLanes: number;
 	categories: Category[];
@@ -13,7 +14,7 @@ export interface SidebarCalendarSettings {
 }
 
 export const DEFAULT_SETTINGS: SidebarCalendarSettings = {
-	eventsFolder: 'Events',
+	scheduleHeading: '일정',
 	weekStart: 0,
 	maxLanes: 3,
 	categories: [],
@@ -33,7 +34,6 @@ export function sanitizeSettings(raw: unknown): SidebarCalendarSettings {
 	const data = isRecord(raw) ? raw : {};
 	const d = DEFAULT_SETTINGS;
 
-	const folder = typeof data.eventsFolder === 'string' ? data.eventsFolder.trim() : '';
 	const lanes = typeof data.maxLanes === 'number' && Number.isFinite(data.maxLanes)
 		? Math.min(MAX_LANES, Math.max(MIN_LANES, Math.round(data.maxLanes)))
 		: d.maxLanes;
@@ -45,13 +45,19 @@ export function sanitizeSettings(raw: unknown): SidebarCalendarSettings {
 		: [];
 
 	return {
-		eventsFolder: folder || d.eventsFolder,
+		scheduleHeading: sanitizeHeading(data.scheduleHeading),
 		weekStart: data.weekStart === 1 || data.weekStart === '1' ? 1 : 0,
 		maxLanes: lanes,
 		categories,
 		defaultColor: typeof data.defaultColor === 'string' ? data.defaultColor : d.defaultColor,
 		dailyNotes: typeof data.dailyNotes === 'boolean' ? data.dailyNotes : d.dailyNotes,
 	};
+}
+
+/** Heading text without leading `#`s and spaces; empty or not a string means the default. */
+export function sanitizeHeading(value: unknown): string {
+	const text = typeof value === 'string' ? value.trim().replace(/^[#\s]+/, '') : '';
+	return text || DEFAULT_SETTINGS.scheduleHeading;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

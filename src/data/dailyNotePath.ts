@@ -5,6 +5,17 @@ export function dailyNotePath(folder: string, fileName: string): string {
 }
 
 /**
+ * The name a daily note at `path` was created from (the path inside `folder`, without `.md`), or
+ * null when the file is not a markdown file in that folder. Inverse of `dailyNotePath`.
+ */
+export function dailyNoteName(folder: string, path: string): string | null {
+	if (!path.endsWith('.md')) return null;
+	const dir = folder.trim().replace(/^\/+|\/+$/g, '');
+	if (dir && !path.startsWith(`${dir}/`)) return null;
+	return path.slice(dir ? dir.length + 1 : 0, -'.md'.length);
+}
+
+/**
  * Fills the variables the core Daily notes plugin supports in templates:
  * `{{title}}`, `{{date}}`, `{{time}}`, `{{date:FORMAT}}` and `{{time:FORMAT}}`.
  * `formatDate` formats the note's date, `formatTime` the current time, each with an optional

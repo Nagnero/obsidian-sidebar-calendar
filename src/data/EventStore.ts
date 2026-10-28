@@ -1,72 +1,76 @@
-import { App, TFile } from 'obsidian';
+import type { App } from 'obsidian';
 import type { CalendarEvent } from '../types';
-import { compareEvents, isInFolder, parseEvent } from './parseEvent';
+import type { DailyNotes } from './DailyNotes';
+import { isScheduleHeading, parseSchedule } from './parseSchedule';
 
 const LOG_PREFIX = '[Sidebar Calendar]';
 
-/** Reads event notes from the events folder. Only ever reads notes inside that folder. */
+export interface ScheduleSource {
+	heading: string;
+	categories: readonly string[];
+}
+
+/** Reads schedule entries from the schedule section of every daily note. */
 export class EventStore {
 	private events: CalendarEvent[] = [];
-	private skipped = 0;
-	/** Last warning printed per path, so a refresh does not repeat the same warning. */
-	private warned = new Map<string, string>();
+	private noteCount = 0;
+	/** Bumped by every reload, so a slower earlier reload never overwrites a later one. */
+	private generation = 0;
 
 	constructor(
 		private app: App,
-		private getFolder: () => string,
+		private dailyNotes: DailyNotes,
+		private getSource: () => ScheduleSource,
 	) {}
 
 	getEvents(): readonly CalendarEvent[] {
 		return this.events;
 	}
 
-	/** Rebuilds the event list from the metadata cache (no file reads). */
-	reload(): void {
-		const folder = this.getFolder();
-		const events: CalendarEvent[] = [];
-		const warned = new Map<string, string>();
-		this.skipped = 0;
+	/** Rebuilds the event list. A reload that a later one overtook leaves the list alone. */
+	async reload(): Promise<void> {
+		const generation = ++this.generation;
+		const { heading, categories } = this.getSource();
+		const { vault, metadataCache } = this.app;
 
-		for (const file of this.app.vault.getMarkdownFiles()) {
-			if (!isInFolder(file.path, folder)) continue;
-			const result = this.parseFile(file, warned);
-			if (result) events.push(result);
-		}
-		this.warned = warned;
+		const notes = vault.getMarkdownFiles().flatMap((file) => {
+			const day = this.dailyNotes.dayOf(file);
+			if (day === null) return [];
+			const headings = metadataCache.getFileCache(file)?.headings ?? [];
+			return headings.some((h) => isScheduleHeading(h.heading, heading)) ? [{ file, day }] : [];
+		});
+		const perNote = await Promise.all(
+			notes.map(async ({ file, day }) =>
+				parseSchedule(await vault.cachedRead(file), day, heading, categories).map(
+					(entry): CalendarEvent => ({ ...entry, id: `${file.path}:${entry.line}`, path: file.path, start: day }),
+				),
+			),
+		);
+		if (generation !== this.generation) return;
 
-		events.sort(compareEvents);
-		this.events = events;
-	}
-
-	private parseFile(file: TFile, warned: Map<string, string>): CalendarEvent | null {
-		const frontmatter: unknown = this.app.metadataCache.getFileCache(file)?.frontmatter;
-		const result = parseEvent(frontmatter, file.path, file.basename);
-		if (!result.ok) {
-			this.skipped++;
-			if (this.warned.get(file.path) !== result.reason) {
-				console.warn(`${LOG_PREFIX} Skipped "${file.path}": ${result.reason}`);
-			}
-			warned.set(file.path, result.reason);
-			return null;
-		}
-		return result.event;
+		this.events = perNote.flat().sort(compareEvents);
+		this.noteCount = notes.length;
 	}
 
 	/** One-line summary, e.g. for a notice. */
 	summary(): string {
-		const skipped = this.skipped > 0 ? `, ${this.skipped} skipped (see console)` : '';
-		return `${this.events.length} event(s) in "${this.getFolder()}"${skipped}`;
+		if (!this.dailyNotes.isAvailable()) return 'turn on the core Daily notes plugin to read schedules';
+		return `${this.events.length} event(s) in ${this.noteCount} daily note(s) under "${this.getSource().heading}"`;
 	}
 
-	/** Prints every event and every skipped note at debug level (shown when the console's "Verbose" level is on). */
+	/** Prints every event at debug level (shown when the console's "Verbose" level is on). */
 	logToConsole(): void {
 		console.debug(`${LOG_PREFIX} ${this.summary()}`);
-		for (const [path, reason] of this.warned) {
-			console.debug(`${LOG_PREFIX} skipped | ${reason} | ${path}`);
-		}
 		for (const e of this.events) {
 			const range = e.start === e.end ? e.start : `${e.start} ~ ${e.end}`;
-			console.debug(`${LOG_PREFIX} ${range} | ${e.title} | ${e.category ?? '-'} | ${e.id}`);
+			console.debug(`${LOG_PREFIX} ${range} | ${e.done ? 'x' : ' '} | ${e.title} | ${e.category ?? '-'} | ${e.id}`);
 		}
 	}
+}
+
+/** Sorts by start date, then longer events first, then title. */
+function compareEvents(a: CalendarEvent, b: CalendarEvent): number {
+	if (a.start !== b.start) return a.start < b.start ? -1 : 1;
+	if (a.end !== b.end) return a.end > b.end ? -1 : 1;
+	return a.title.localeCompare(b.title);
 }

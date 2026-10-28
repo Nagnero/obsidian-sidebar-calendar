@@ -1,6 +1,6 @@
 import { App, moment, normalizePath, TFile, TFolder } from 'obsidian';
-import type { DayKey } from '../date/dayKey';
-import { dailyNotePath, fillDailyTemplate } from './dailyNotePath';
+import { DayKey, parseDayKey } from '../date/dayKey';
+import { dailyNoteName, dailyNotePath, fillDailyTemplate } from './dailyNotePath';
 
 interface DailyNoteOptions {
 	folder: string;
@@ -15,10 +15,7 @@ interface InternalPlugins {
 	getPluginById?(id: string): { enabled?: boolean; instance?: { options?: Partial<DailyNoteOptions> } } | null;
 }
 
-/**
- * Opens and creates daily notes using the core Daily notes plugin's folder, format and template.
- * Never reads a daily note's content; it only checks whether the file exists.
- */
+/** Finds, opens and creates daily notes using the core Daily notes plugin's folder, format and template. */
 export class DailyNotes {
 	constructor(private app: App) {}
 
@@ -42,6 +39,16 @@ export class DailyNotes {
 	private pathFor(day: DayKey, options: DailyNoteOptions): string {
 		const fileName = moment(day, 'YYYY-MM-DD').format(options.format);
 		return normalizePath(dailyNotePath(options.folder, fileName));
+	}
+
+	/** The date of a daily note, or null when `file` is not one (or the core plugin is off). */
+	dayOf(file: TFile): DayKey | null {
+		const options = this.options();
+		if (!options) return null;
+		const name = dailyNoteName(options.folder, file.path);
+		if (name === null) return null;
+		const date = moment(name, options.format, true);
+		return date.isValid() ? parseDayKey(date.format('YYYY-MM-DD')) : null;
 	}
 
 	/** The existing daily note for `day`, if any. */
