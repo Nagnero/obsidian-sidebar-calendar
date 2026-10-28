@@ -59,11 +59,20 @@ export default class SidebarCalendarPlugin extends Plugin {
 	 * Keeps the calendar in sync with the vault. Bursts of changes (a sync, a bulk rename) are
 	 * collapsed into one reload. A daily note is re-read when its content changes, and the kinds
 	 * when the template's does; any markdown file appearing, disappearing or moving can add or
-	 * remove a daily note or the template, so those always refresh.
+	 * remove a daily note or the template, so those always refresh. A daily note edited in the
+	 * editor is re-read from the editor at once, since its file changes only when Obsidian saves it
+	 * about two seconds later.
 	 */
 	private registerAutoRefresh(): void {
 		const refresh = debounce(() => void this.refresh(), 300, true);
 		const isMarkdown = (file: TAbstractFile) => file instanceof TFile && file.extension === 'md';
+
+		// Not reset by each keystroke, so the calendar keeps up with continuous typing.
+		const renderEdit = debounce(() => this.refreshViews(), 50);
+		this.registerEvent(this.app.workspace.on('editor-change', (editor, { file }) => {
+			const day = file ? this.dailyNotes.dayOf(file) : null;
+			if (file && day !== null && this.eventStore.updateNote(file.path, day, editor.getValue())) renderEdit();
+		}));
 
 		this.registerEvent(this.app.metadataCache.on('changed', (file) => {
 			if (this.dailyNotes.dayOf(file) !== null || file.path === this.dailyNotes.templatePath()) refresh();
