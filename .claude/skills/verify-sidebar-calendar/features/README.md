@@ -14,14 +14,15 @@ This directory is the maintained source for verifying the user-facing behavior o
 
 | File | Content | Entry IDs | Purpose |
 | --- | --- | --- | --- |
-| `D(3).md` | `# Day plan`, `## 일정` with `- Dentist`, then `## Notes` with `- not an entry` | `D(3).md:3` | One-day entry, no category; a list under a later heading is not read |
-| `D(5).md` | `## 일정`, `- Summer trip ~MM-12 (Work)` | `D(5).md:1` | 8-day entry that always crosses a week boundary; category matched without case |
-| `D(8).md` | `## 일정`, `- Workshop (hobby) ~MM-09` | `D(8).md:1` | `(hobby)` is not a category, so it stays in the title; overlaps Trip |
-| `D(15).md` | `Existing daily note` | none | Daily note with no schedule |
-| `D(20).md` | `### 일정`, `- Crowded 1` … `- Crowded 4`, an indented `- nested note, not an entry` | `D(20).md:1` … `:4` | Four entries on one day, one more than the 3 lanes; H3 heading; nested item ignored |
-| `D(22).md` | `## 일정`, `- [ ] Report`, `- [x] Groceries` | `D(22).md:1`, `:2` | Open task and done task |
+| `Templates/Daily.md` | `# 업무`, blank, `# 개인`, blank, `# Journaling`, `How was today?` | none | The core Daily notes template; its H1s are the kinds |
+| `D(3).md` | `# 개인`, `## Morning` with `- Dentist`, then `# Notes` with `- not an entry` | `D(3).md:3` | One-day entry under a deeper heading inside a kind; a non-kind H1 ends the section |
+| `D(5).md` | `# 업무`, `- Summer trip ~MM-12` | `D(5).md:1` | 8-day entry that always crosses a week boundary; red kind |
+| `D(8).md` | `# 개인`, `- Workshop (hobby) ~MM-09` | `D(8).md:1` | Parentheses stay in the title; overlaps Trip |
+| `D(15).md` | `Existing daily note` | none | Daily note with no kind H1 |
+| `D(20).md` | `# 업무`, `- Crowded 1` … `- Crowded 4`, an indented `- nested note, not an entry` | `D(20).md:1` … `:4` | Four entries on one day, one more than the 3 lanes; nested item ignored |
+| `D(22).md` | `# 업무`, `- [ ] Report`, `- [x] Groceries`, then `# Journaling` with `- Journal line, not an entry` | `D(22).md:1`, `:2` | Open and done task; a disabled kind is not read |
 
-Plugin settings (`data.json`): schedule heading `일정`, week starts Sunday, 3 bar rows per week, category `work` = `#e5484d`, default color empty (theme accent), daily notes on. Core plugin Daily notes is on with its defaults (vault root, `YYYY-MM-DD`, no template).
+Plugin settings (`data.json`): week starts Sunday, 3 bar rows per week, daily notes on, kinds `업무` (on, `#e5484d`), `개인` (on, empty color = theme accent), `Journaling` (off), `lastKind` empty. Core plugin Daily notes is on with `.obsidian/daily-notes.json` = `{"folder":"","format":"YYYY-MM-DD","template":"Templates/Daily"}` (the keys Obsidian 1.14 reads into `app.internalPlugins.getPluginById('daily-notes').instance.options`).
 
 ## Driving conventions
 
@@ -44,10 +45,10 @@ Each feature file starts with an H1 title and one paragraph of user-visible beha
 ## Features
 
 - [One-day events](./one-day-events.md) (`c-*`) covers short bars for single-day entries and which list items count as entries.
-- [Multi-day event bars](./multi-day-bars.md) (`d-*`) covers bars split across weeks, lane stacking, and `+N` overflow.
-- [Category colors](./category-colors.md) (`e-*`) covers category and default colors, and changing them in Settings.
+- [Multi-day event bars](./multi-day-bars.md) (`d-*`) covers bars split across weeks, lane stacking, `+N` overflow, and hiding one-day entries.
+- [Kind colors and settings](./kind-colors.md) (`e-*`) covers kind colors, the template status line, turning kinds on and off, and kinds following template edits.
 - [Tooltips and day list](./tooltips-day-list.md) (`f-*`) covers bar tooltips, the selected day's list, done styling, and opening an entry at its line.
 - [Daily notes](./daily-notes.md) (`g-*`) covers note dots, opening an existing daily note, and creating a missing one.
-- [Adding entries](./add-entries.md) (`h-*`) covers adding an entry by dragging across days or double-clicking a day.
+- [Adding entries](./add-entries.md) (`h-*`) covers adding an entry by dragging across days or double-clicking a day, choosing its kind.
 
-Not mapped yet: month navigation, week start setting, the schedule heading setting, day rollover. Auto refresh is exercised only through `f-done` (a file edited on disk) and `h-*` (files the plugin writes).
+Not mapped yet: month navigation, week start setting, the kind color picker, day rollover. Auto refresh is exercised only through `f-done` (a file edited on disk) and `h-*` (files the plugin writes).

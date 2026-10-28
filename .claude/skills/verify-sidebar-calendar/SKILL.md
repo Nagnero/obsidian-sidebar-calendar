@@ -1,6 +1,6 @@
 ---
 name: verify-sidebar-calendar
-description: Drive the real Obsidian desktop app with this repo's Sidebar Calendar build and prove calendar behavior (schedule bars from daily notes, +N, category colors, done entries, tooltips, day list, daily notes, adding entries by drag or double-click) with snapshots and screenshots. Use after any change to src/ or styles.css, or when asked to verify, reproduce, or screenshot the calendar.
+description: Drive the real Obsidian desktop app with this repo's Sidebar Calendar build and prove calendar behavior (schedule bars from the H1 kind sections of daily notes, +N, kind colors and settings, done entries, tooltips, day list, daily notes, adding entries by drag or double-click with a kind choice) with snapshots and screenshots. Use after any change to src/ or styles.css, or when asked to verify, reproduce, or screenshot the calendar.
 ---
 
 # Verify Sidebar Calendar
@@ -63,11 +63,11 @@ Stable handles, all from `src/ui/`:
 - Day cell: `.sidebar-calendar__day[data-date="YYYY-MM-DD"]` (classes `is-today`, `is-selected`, `is-other-month`).
 - Bar: `.sidebar-calendar__bar[data-event="<daily note path>:<line>"]`, for example `data-event="2026-10-05.md:1"` (0-based line of the list item). A multi-week entry has one bar per week. Done entries have `is-done`.
 - Range highlight while dragging: `.sidebar-calendar__day.is-in-range`.
-- Add-entry modal: title `.modal-container .modal-title`, input `.modal-container input.sidebar-calendar__entry-input`.
+- Add-entry modal: title `.modal-container .modal-title`, input `.modal-container input.sidebar-calendar__entry-input`, kind buttons `.modal-container .sidebar-calendar__kind-btn[data-kind="<H1 text>"]` with `aria-pressed`.
 - Overflow: `.sidebar-calendar__more` with text `+N`.
 - Header buttons: `[aria-label="Previous month"]`, `[aria-label="Current month"]`, `[aria-label="Next month"]`.
 - Day list: `.sidebar-calendar__day-list`, items `.sidebar-calendar__event-item`, and the daily note button `[aria-label="Open daily note"]` or `[aria-label="Create daily note"]`.
-- Settings gear (main window): `.clickable-icon:has(svg.lucide-settings)`. In the Settings window: `.vertical-tab-nav-item:has-text("Sidebar Calendar")`, `button:has-text("Add category")`, category rows `.sidebar-calendar-category-setting`.
+- Settings gear (main window): `.clickable-icon:has(svg.lucide-settings)`. In the Settings window: `.vertical-tab-nav-item:has-text("Sidebar Calendar")`, the template status `.sidebar-calendar-template-status .setting-item-description`, kind rows `.sidebar-calendar-kind-setting[data-kind="<H1 text>"]` with the switch `.checkbox-container` (`is-enabled` when on), and on a row not in the template the delete button `.clickable-icon`. Calendar section switches by row name, for example `.setting-item:has(.setting-item-name:text-is("Show one-day entries")) .checkbox-container`.
 
 ## Evidence
 

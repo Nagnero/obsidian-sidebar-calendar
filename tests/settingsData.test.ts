@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { DEFAULT_SETTINGS, sanitizeSettings } from '../src/settingsData';
+import { activeKinds, DEFAULT_SETTINGS, Kind, KIND_COLORS, reconcileKinds, sanitizeSettings } from '../src/settingsData';
 
 test('missing or broken data gives the defaults', () => {
 	for (const raw of [null, undefined, 'x', 42, []]) {
@@ -10,14 +10,27 @@ test('missing or broken data gives the defaults', () => {
 
 test('valid values are kept', () => {
 	const raw = {
-		scheduleHeading: 'Schedule',
 		weekStart: 1,
 		maxLanes: 5,
-		categories: [{ name: '업무', color: '#0090ff' }],
-		defaultColor: '#e5484d',
 		dailyNotes: false,
+		showOneDay: false,
+		kinds: [
+			{ name: '업무', enabled: true, color: '#0090ff' },
+			{ name: 'Journaling', enabled: false, color: '' },
+		],
+		lastKind: '업무',
 	};
 	assert.deepEqual(sanitizeSettings(raw), raw);
+});
+
+test('fields from older versions are dropped', () => {
+	const result = sanitizeSettings({
+		scheduleHeading: '일정',
+		categories: [{ name: 'work', color: '#e5484d' }],
+		defaultColor: '#000000',
+		weekStart: 1,
+	});
+	assert.deepEqual(result, { ...DEFAULT_SETTINGS, weekStart: 1 });
 });
 
 test('bar rows are rounded and clamped to 1-6', () => {
@@ -34,25 +47,69 @@ test('week start accepts only Sunday or Monday', () => {
 	assert.equal(sanitizeSettings({ weekStart: 3 }).weekStart, 0);
 });
 
-test('schedule heading is trimmed, loses leading #s, and falls back to 일정', () => {
-	assert.equal(sanitizeSettings({ scheduleHeading: '  ## 할 일  ' }).scheduleHeading, '할 일');
-	assert.equal(sanitizeSettings({ scheduleHeading: '#일정' }).scheduleHeading, '일정');
-	assert.equal(sanitizeSettings({ scheduleHeading: ' ### ' }).scheduleHeading, '일정');
-	assert.equal(sanitizeSettings({ scheduleHeading: '' }).scheduleHeading, '일정');
-	assert.equal(sanitizeSettings({ scheduleHeading: 7 }).scheduleHeading, '일정');
+test('show one-day entries accepts only a boolean', () => {
+	assert.equal(sanitizeSettings({ showOneDay: false }).showOneDay, false);
+	assert.equal(sanitizeSettings({ showOneDay: 'false' }).showOneDay, true);
+	assert.equal(sanitizeSettings({ showOneDay: 0 }).showOneDay, true);
+	assert.equal(sanitizeSettings({}).showOneDay, true);
 });
 
-test('malformed categories are dropped or repaired', () => {
-	const result = sanitizeSettings({ categories: [null, 'x', { name: '개인' }, { name: 1, color: '#fff' }] });
-	assert.deepEqual(result.categories, [
-		{ name: '개인', color: '' },
-		{ name: '', color: '#fff' },
+test('malformed kinds are dropped or repaired, names trimmed and unique', () => {
+	const result = sanitizeSettings({
+		kinds: [null, 'x', { name: ' 개인 ' }, { name: 1, color: '#fff' }, { name: '' }, { name: '개인', enabled: false }, { name: '업무', enabled: 'no', color: 3 }],
+	});
+	assert.deepEqual(result.kinds, [
+		{ name: '개인', enabled: true, color: '' },
+		{ name: '업무', enabled: true, color: '' },
 	]);
-	assert.deepEqual(sanitizeSettings({ categories: 'nope' }).categories, []);
+	assert.deepEqual(sanitizeSettings({ kinds: 'nope' }).kinds, []);
+	assert.equal(sanitizeSettings({ lastKind: 3 }).lastKind, '');
 });
 
 test('result never shares arrays with the defaults', () => {
 	const result = sanitizeSettings({});
-	result.categories.push({ name: 'a', color: '#000' });
-	assert.equal(DEFAULT_SETTINGS.categories.length, 0);
+	result.kinds.push({ name: 'a', enabled: true, color: '' });
+	assert.equal(DEFAULT_SETTINGS.kinds.length, 0);
+});
+
+test('reconcile adds new template H1s, enabled, with the first unused preset color', () => {
+	assert.deepEqual(reconcileKinds([], ['업무', '개인', 'Journaling']), [
+		{ name: '업무', enabled: true, color: KIND_COLORS[0] },
+		{ name: '개인', enabled: true, color: KIND_COLORS[1] },
+		{ name: 'Journaling', enabled: true, color: KIND_COLORS[2] },
+	]);
+	const stored: Kind[] = [{ name: '업무', enabled: true, color: KIND_COLORS[0] ?? '' }];
+	assert.deepEqual(reconcileKinds(stored, ['업무', '개인']).map((k) => k.color), [KIND_COLORS[0], KIND_COLORS[1]]);
+});
+
+test('reconcile keeps stored settings, follows template order, and keeps stale kinds last', () => {
+	const stored: Kind[] = [
+		{ name: '옛날', enabled: true, color: '#111111' },
+		{ name: '개인', enabled: false, color: '#222222' },
+		{ name: '업무', enabled: true, color: '' },
+	];
+	const result = reconcileKinds(stored, ['업무', '개인', '업무']);
+	assert.deepEqual(result, [
+		{ name: '업무', enabled: true, color: '' },
+		{ name: '개인', enabled: false, color: '#222222' },
+		{ name: '옛날', enabled: true, color: '#111111' },
+	]);
+	assert.equal(result[0], stored[2], 'existing kinds stay the same objects, so open settings edits are not lost');
+	assert.deepEqual(reconcileKinds(stored, []), stored);
+});
+
+test('reconcile is idempotent', () => {
+	const once = reconcileKinds([{ name: '옛날', enabled: true, color: '' }], ['업무', '개인']);
+	assert.deepEqual(reconcileKinds(once, ['업무', '개인']), once);
+});
+
+test('active kinds are the enabled ones the template has, in template order', () => {
+	const kinds: Kind[] = [
+		{ name: '옛날', enabled: true, color: '' },
+		{ name: 'Journaling', enabled: false, color: '' },
+		{ name: '개인', enabled: true, color: '' },
+		{ name: '업무', enabled: true, color: '' },
+	];
+	assert.deepEqual(activeKinds(kinds, ['업무', 'Journaling', '개인']).map((k) => k.name), ['업무', '개인']);
+	assert.deepEqual(activeKinds(kinds, []), []);
 });

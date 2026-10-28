@@ -1,10 +1,9 @@
 import { ItemView, Keymap, moment, Notice, TFile, WorkspaceLeaf } from 'obsidian';
 import { VIEW_TYPE_SIDEBAR_CALENDAR } from '../constants';
 import { DayKey, todayKey, yearMonth } from '../date/dayKey';
-import { resolveCategoryColor } from '../categoryColor';
 import { eventsOnDay } from '../layout/weekLayout';
+import type { TemplateHeadings } from '../data/DailyNotes';
 import type SidebarCalendarPlugin from '../main';
-import { parseEntryInput } from '../data/parseSchedule';
 import type { CalendarEvent } from '../types';
 import { AddEntryModal } from './AddEntryModal';
 import { renderDayList } from './renderDayList';
@@ -49,8 +48,8 @@ export class CalendarView extends ItemView {
 		root.empty();
 		root.addClass('sidebar-calendar');
 
-		const { categories, defaultColor } = this.plugin.settings;
-		const colorFor = (event: CalendarEvent) => resolveCategoryColor(event.category, categories, defaultColor);
+		const colors = new Map(this.plugin.activeKinds().map((k) => [k.name, k.color]));
+		const colorFor = (event: CalendarEvent) => colors.get(event.kind) || null;
 		const locale = appLocale();
 		const events = this.plugin.eventStore.getEvents();
 		const dailyNotes = this.plugin.settings.dailyNotes && this.plugin.dailyNotes.isAvailable()
@@ -66,7 +65,7 @@ export class CalendarView extends ItemView {
 				today: todayKey(),
 				weekStart: this.plugin.settings.weekStart,
 				locale,
-				events,
+				events: this.plugin.settings.showOneDay ? events : events.filter((e) => e.start !== e.end),
 				maxLanes: this.plugin.settings.maxLanes,
 				colorFor,
 				selectedDay: this.selectedDay,
@@ -88,7 +87,7 @@ export class CalendarView extends ItemView {
 					if (dailyNotes?.find(day)) void dailyNotes.open(day, Keymap.isModEvent(evt) !== false);
 				},
 				onOpenEvent: openEvent,
-				onAddEntry: (start, end) => this.promptEntry(start, end),
+				onAddEntry: (start, end) => void this.promptEntry(start, end),
 			},
 		);
 
@@ -129,17 +128,20 @@ export class CalendarView extends ItemView {
 		await this.app.workspace.getLeaf(Keymap.isModEvent(evt)).openFile(file, { eState: { line: event.line } });
 	}
 
-	/** Asks for an entry's text and writes it to the start day's daily note. */
-	private promptEntry(start: DayKey, end: DayKey): void {
-		const { dailyNotes, settings } = this.plugin;
-		if (!dailyNotes.isAvailable()) {
-			new Notice('Turn on the core daily notes plugin to add schedule entries.');
+	/** Asks for an entry's title and kind, and writes it under that H1 of the start day's daily note. */
+	private async promptEntry(start: DayKey, end: DayKey): Promise<void> {
+		const { plugin } = this;
+		if (await plugin.syncKinds()) void plugin.reloadEvents();
+		const kinds = plugin.activeKinds();
+		if (kinds.length === 0) {
+			new Notice(noKindsMessage(plugin.template));
 			return;
 		}
-		new AddEntryModal(this.app, formatRange(start, end, appLocale()), (text) => {
-			const { title, category } = parseEntryInput(text, settings.categories.map((c) => c.name));
-			if (title === '') return;
-			void dailyNotes.addEntry({ title, start, end, category }, settings.scheduleHeading);
+		const { settings } = plugin;
+		new AddEntryModal(this.app, formatRange(start, end, appLocale()), kinds, settings.lastKind, (title, kind) => {
+			settings.lastKind = kind;
+			void plugin.saveData(settings);
+			void plugin.dailyNotes.addEntry({ title, start, end }, kind);
 		}).open();
 	}
 
@@ -148,6 +150,20 @@ export class CalendarView extends ItemView {
 		this.year = Math.floor(index / 12);
 		this.month = (index % 12) + 1;
 		this.render();
+	}
+}
+
+/** Why there is no kind to add an entry to, and what to do about it. */
+function noKindsMessage(template: TemplateHeadings): string {
+	switch (template.status) {
+		case 'off':
+			return 'Turn on the core daily notes plugin to add schedule entries.';
+		case 'no-template':
+			return 'Set a template in the core daily notes settings. Its top-level headings (# …) are the kinds you add entries to.';
+		case 'missing':
+			return `Daily notes template not found: ${template.path}`;
+		case 'ok':
+			return 'Add a top-level heading (# …) to the daily note template, or turn one on in the Sidebar Calendar settings.';
 	}
 }
 

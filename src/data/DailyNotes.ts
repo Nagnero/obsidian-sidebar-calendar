@@ -1,7 +1,12 @@
 import { App, moment, normalizePath, TFile, TFolder } from 'obsidian';
 import { DayKey, parseDayKey } from '../date/dayKey';
 import { dailyNoteName, dailyNotePath, fillDailyTemplate } from './dailyNotePath';
-import { appendScheduleLine, NewEntry } from './parseSchedule';
+import { appendScheduleLine, NewEntry, templateH1s } from './parseSchedule';
+
+/** What the core Daily notes template offers as kinds. */
+export type TemplateHeadings =
+	| { status: 'off' | 'no-template'; h1s: readonly string[] }
+	| { status: 'missing' | 'ok'; path: string; h1s: readonly string[] };
 
 interface DailyNoteOptions {
 	folder: string;
@@ -37,6 +42,33 @@ export class DailyNotes {
 		return this.options() !== null;
 	}
 
+	/** The H1s of the daily note template, read from the file itself so edits count at once. */
+	async templateHeadings(): Promise<TemplateHeadings> {
+		const options = this.options();
+		if (!options) return { status: 'off', h1s: [] };
+		const template = options.template.trim();
+		if (!template) return { status: 'no-template', h1s: [] };
+		const file = this.templateFile(template);
+		if (!file) return { status: 'missing', path: template, h1s: [] };
+		return { status: 'ok', path: file.path, h1s: templateH1s(await this.app.vault.read(file)) };
+	}
+
+	/** The template file, found the way the core plugin finds it: a link path, `.md` optional. */
+	private templateFile(template: string): TFile | null {
+		const trimmed = template.trim();
+		if (!trimmed) return null;
+		const linked = this.app.metadataCache.getFirstLinkpathDest(trimmed, '');
+		if (linked) return linked;
+		const file = this.app.vault.getAbstractFileByPath(normalizePath(trimmed.endsWith('.md') ? trimmed : `${trimmed}.md`));
+		return file instanceof TFile ? file : null;
+	}
+
+	/** The configured template's path, or null when the core plugin is off or has none. */
+	templatePath(): string | null {
+		const options = this.options();
+		return options ? (this.templateFile(options.template)?.path ?? null) : null;
+	}
+
 	private pathFor(day: DayKey, options: DailyNoteOptions): string {
 		const fileName = moment(day, 'YYYY-MM-DD').format(options.format);
 		return normalizePath(dailyNotePath(options.folder, fileName));
@@ -68,12 +100,12 @@ export class DailyNotes {
 		await this.app.workspace.getLeaf(newLeaf).openFile(file);
 	}
 
-	/** Adds `entry` to the `heading` section of its start day's note, creating the note if needed. */
-	async addEntry(entry: NewEntry, heading: string): Promise<void> {
+	/** Adds `entry` under the `# kind` section of its start day's note, creating the note if needed. */
+	async addEntry(entry: NewEntry, kind: string): Promise<void> {
 		const options = this.options();
 		if (!options) return;
 		const file = this.find(entry.start) ?? (await this.create(entry.start, options));
-		await this.app.vault.process(file, (text) => appendScheduleLine(text, heading, entry));
+		await this.app.vault.process(file, (text) => appendScheduleLine(text, kind, entry));
 	}
 
 	private async create(day: DayKey, options: DailyNoteOptions): Promise<TFile> {
@@ -85,7 +117,8 @@ export class DailyNotes {
 
 		const date = moment(day, 'YYYY-MM-DD');
 		const title = date.format(options.format);
-		const template = await this.readTemplate(options.template);
+		const templateFile = this.templateFile(options.template);
+		const template = templateFile ? await this.app.vault.read(templateFile) : '';
 		const content = fillDailyTemplate(
 			template,
 			title,
@@ -93,13 +126,5 @@ export class DailyNotes {
 			(format) => moment().format(format ?? 'HH:mm'),
 		);
 		return this.app.vault.create(path, content);
-	}
-
-	private async readTemplate(templatePath: string): Promise<string> {
-		const trimmed = templatePath.trim();
-		if (!trimmed) return '';
-		const path = normalizePath(trimmed.endsWith('.md') ? trimmed : `${trimmed}.md`);
-		const file = this.app.vault.getAbstractFileByPath(path);
-		return file instanceof TFile ? this.app.vault.cachedRead(file) : '';
 	}
 }

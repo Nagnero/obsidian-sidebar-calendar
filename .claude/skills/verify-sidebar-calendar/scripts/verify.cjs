@@ -94,18 +94,34 @@ function seedVault() {
 	for (const f of ['main.js', 'manifest.json', 'styles.css']) fs.copyFileSync(path.join(REPO, f), path.join(pluginDir, f));
 	fs.writeFileSync(path.join(VAULT, '.obsidian', 'community-plugins.json'), JSON.stringify([PLUGIN_ID]));
 	fs.writeFileSync(path.join(VAULT, '.obsidian', 'core-plugins.json'), JSON.stringify({ 'daily-notes': true, 'file-explorer': true }));
+	fs.writeFileSync(path.join(VAULT, '.obsidian', 'daily-notes.json'), JSON.stringify({ folder: '', format: 'YYYY-MM-DD', template: 'Templates/Daily' }));
 	fs.writeFileSync(
 		path.join(pluginDir, 'data.json'),
-		JSON.stringify({ scheduleHeading: '일정', weekStart: 0, maxLanes: 3, categories: [{ name: 'work', color: '#e5484d' }], defaultColor: '', dailyNotes: true }, null, '\t'),
+		JSON.stringify(
+			{
+				weekStart: 0,
+				maxLanes: 3,
+				dailyNotes: true,
+				kinds: [
+					{ name: '업무', enabled: true, color: '#e5484d' },
+					{ name: '개인', enabled: true, color: '' },
+					{ name: 'Journaling', enabled: false, color: '' },
+				],
+				lastKind: '',
+			},
+			null,
+			'\t',
+		),
 	);
 
 	const mm = day(1).slice(5, 7);
-	writeFile(`${day(3)}.md`, '# Day plan\n\n## 일정\n- Dentist\n\n## Notes\n- not an entry\n');
-	writeFile(`${day(5)}.md`, `## 일정\n- Summer trip ~${mm}-12 (Work)\n`);
-	writeFile(`${day(8)}.md`, `## 일정\n- Workshop (hobby) ~${mm}-09\n`);
+	writeFile('Templates/Daily.md', '# 업무\n\n# 개인\n\n# Journaling\nHow was today?\n');
+	writeFile(`${day(3)}.md`, '# 개인\n\n## Morning\n- Dentist\n\n# Notes\n- not an entry\n');
+	writeFile(`${day(5)}.md`, `# 업무\n- Summer trip ~${mm}-12\n`);
+	writeFile(`${day(8)}.md`, `# 개인\n- Workshop (hobby) ~${mm}-09\n`);
 	writeFile(`${day(15)}.md`, 'Existing daily note\n');
-	writeFile(`${day(20)}.md`, '### 일정\n- Crowded 1\n- Crowded 2\n- Crowded 3\n- Crowded 4\n  - nested note, not an entry\n');
-	writeFile(`${day(22)}.md`, '## 일정\n- [ ] Report\n- [x] Groceries\n');
+	writeFile(`${day(20)}.md`, '# 업무\n- Crowded 1\n- Crowded 2\n- Crowded 3\n- Crowded 4\n  - nested note, not an entry\n');
+	writeFile(`${day(22)}.md`, '# 업무\n- [ ] Report\n- [x] Groceries\n\n# Journaling\n- Journal line, not an entry\n');
 }
 
 // ---------- process control ----------

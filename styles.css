@@ -155,15 +155,6 @@
 	pointer-events: none;
 }
 
-/* Settings: category rows are just name + color + delete, no label column. */
-.sidebar-calendar-category-setting .setting-item-info {
-	display: none;
-}
-
-.sidebar-calendar-category-setting .setting-item-control {
-	justify-content: flex-start;
-}
-
 .sidebar-calendar__note-dot {
 	width: 4px;
 	height: 4px;
@@ -251,4 +242,22 @@
 
 .sidebar-calendar__entry-input {
 	width: 100%;
+}
+
+.sidebar-calendar__kind-buttons {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--size-4-2);
+	margin-top: var(--size-4-3);
+}
+
+.sidebar-calendar__kind-btn {
+	gap: var(--size-4-2);
+}
+
+.sidebar-calendar__kind-swatch {
+	width: 8px;
+	height: 8px;
+	border-radius: 50%;
+	background-color: var(--sidebar-calendar-bar-color, var(--interactive-accent));
 }

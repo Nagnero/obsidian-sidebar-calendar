@@ -20,13 +20,13 @@ Hovering a bar shows a tooltip with the entry's title and its date range. Clicki
 
 Preconditions:
 
-- Baseline fixtures; today is selected and has no entries. `D(22).md` has `- [ ] Report` (line 1) and `- [x] Groceries` (line 2).
+- Baseline fixtures; today is selected and has no entries. `D(22).md` has `- [ ] Report` (line 1) and `- [x] Groceries` (line 2) under `# 업무`, and `- Journal line, not an entry` under the disabled `# Journaling`.
 
 - **Tooltip, multi-day.** Run `node $V hover ".sidebar-calendar__bar[data-event=\"$(node $V day 5).md:1\"]"`. It prints a tooltip `Summer trip\n<Wkd, Mon D(5)> – <Wkd, Mon D(12)>`, for example `Summer trip\nMon, Oct 5 – Mon, Oct 12`.
 - **Tooltip, one day.** Run `node $V hover ".sidebar-calendar__bar[data-event=\"$(node $V day 3).md:3\"]"`. The tooltip is `Dentist\n<Wkd, Mon D(3)>` with no range.
 - **Empty day.** Run `node $V snapshot f-day-list/baseline`. `dayList.items` is empty and `dayList.empty` is `No events`.
 - **Select a day.** Run `node $V click ".sidebar-calendar__day[data-date=\"$(node $V day 8)\"]"` and `node $V snapshot f-day-list/day-8`. `selected` is D(8), `dayList.title` names that date, and `items` holds `Summer trip` and `Workshop (hobby)`, each with a `range`.
-- **Done, baseline.** Run `node $V click ".sidebar-calendar__day[data-date=\"$(node $V day 22)\"]"` and `node $V snapshot f-done/before`. Bar `D(22).md:2` has `done: true` and `D(22).md:1` has `done: false`; the list has `Groceries` with `done: true` and `Report` with `done: false`.
+- **Done, baseline.** Run `node $V click ".sidebar-calendar__day[data-date=\"$(node $V day 22)\"]"` and `node $V snapshot f-done/before`. Bar `D(22).md:2` has `done: true` and `D(22).md:1` has `done: false`; the list has `Groceries` with `done: true` and `Report` with `done: false`, and nothing else (the Journaling line is not an entry).
 - **Done, edited on disk.** Run `sed -i 's/^- \[ \] Report$/- [x] Report/' "<vault>/$(node $V day 22).md"` with the vault path `launch` printed, wait 2 s, and run `node $V snapshot f-done/after-disk-edit`. Both `D(22).md` bars and both list items now have `done: true`. Run `node $V screenshot f-done/after-disk-edit`.
 - **Open from the list.** Run `node $V click ".sidebar-calendar__day[data-date=\"$(node $V day 20)\"]"`, `node $V click '.sidebar-calendar__event-item:has-text("Crowded 4")'` and `node $V snapshot f-open/list-item`. `activeFile` is `D(20).md` and `cursorLine` is `4`.
 - **Open from a bar.** Run `node $V click ".sidebar-calendar__bar[data-event=\"$(node $V day 5).md:1\"] >> nth=1"` and `node $V snapshot f-open/bar`. `activeFile` is `D(5).md`, `cursorLine` is `1`, and `selected` is unchanged.
