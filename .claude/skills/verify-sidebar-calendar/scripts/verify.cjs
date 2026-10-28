@@ -264,6 +264,9 @@ async function act(kind, selector, value) {
 		await target.fill('');
 		await target.pressSequentially(value);
 		await page.waitForTimeout(600);
+	} else if (kind === 'select') {
+		await target.selectOption(value);
+		await page.waitForTimeout(600);
 	} else if (kind === 'click') {
 		await target.click();
 		await page.waitForTimeout(400);
@@ -469,12 +472,13 @@ const HELP = `usage: node verify.cjs <command>
   press <key>            press a key in the focused element (e.g. Enter, Escape)
   hover '<selector>'     hover the first match and print the tooltip it shows
   fill '<selector>' <v>  clear the first match and type v like a user
+  select '<selector>' <v>  choose option value v in the first matching <select>, like a user
   snapshot <name>        save calendar state as JSON to the artifacts dir
   screenshot <name>      save a PNG of the window to the artifacts dir
   task-latency <n> <t>   open day n's note, click the checkbox on the line with t, print ms until the list and ring change
   day <n>                print YYYY-MM-DD for day n of the current month
   stop                   stop this run's Obsidian and delete its vault (artifacts are kept)
-add --settings to eval/click/hover/fill/screenshot to act on the Settings window
+add --settings to eval/click/hover/fill/select/screenshot to act on the Settings window
 env: VERIFY_RUN_ID (default "default"), VERIFY_PORT (default 9333), OBSIDIAN_BIN (skip download)`;
 
 (async () => {
@@ -489,6 +493,7 @@ env: VERIFY_RUN_ID (default "default"), VERIFY_PORT (default 9333), OBSIDIAN_BIN
 		case 'press': return press(arg ?? die('press needs a key'));
 		case 'hover': return act('hover', arg ?? die('hover needs a selector'));
 		case 'fill': return act('fill', arg ?? die('fill needs a selector'), value ?? die('fill needs a value'));
+		case 'select': return act('select', arg ?? die('select needs a selector'), value ?? die('select needs a value'));
 		case 'snapshot': return snapshot(arg ?? die('snapshot needs a name'));
 		case 'screenshot': return screenshot(arg ?? die('screenshot needs a name'));
 		case 'task-latency': return taskLatency(Number(arg ?? die('task-latency needs a day')), value ?? die('task-latency needs a title'));
