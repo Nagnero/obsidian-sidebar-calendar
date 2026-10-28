@@ -54,6 +54,7 @@ Read-only. Prints the Obsidian version, vault path, plugin version, and whether 
 | `node $V snapshot <name>` | Saves the calendar state as JSON and prints it: title, weekdays, today, selected day, every bar (event id, week index, grid column, lane, done, computed color, continued flags), every `+N`, `noteDots` and `taskRings` (dates), `markRowHeights` and `weekHeights` (distinct heights in px), the day list (items in display order with `done`, and the header's `headerButtons` labels), the open `menu` (titles with `checked`), the active file, the editor's `cursorLine`, and the open `modal` title. |
 | `node $V screenshot <name>` | Saves a PNG of the window. |
 | `node $V eval '<js body>'` | Runs a function body in the window with `app` in scope and prints the returned JSON. For reading state (files, settings), not for driving the UI. |
+| `node $V task-latency <n> '<title>'` | Selects day `n` (opening its daily note), clicks the live-preview checkbox on the line containing `title`, and prints `before`/`after` (list item `done`, day `ring`) with `listMs` and `ringMs`, the ms from the click until each changed. Each run toggles the box. |
 | `node $V day <n>` | Prints `YYYY-MM-DD` for day `n` of the current month, to build selectors. |
 
 Add `--settings` to `click`, `hover`, `fill`, `eval`, or `screenshot` to act on the Settings window. Obsidian 1.14 opens Settings in a separate window, so main-window selectors never see it.

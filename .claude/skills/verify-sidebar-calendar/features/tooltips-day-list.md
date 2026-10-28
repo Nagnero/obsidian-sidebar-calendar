@@ -7,7 +7,7 @@ Hovering a bar shows a tooltip with the entry's title and its date range. Clicki
 - `f-tooltip` shows `<title>` and the date range (one date for a one-day entry) on hover.
 - `f-select` highlights the clicked date and lists every entry on it, including ones hidden behind `+N`.
 - `f-empty` shows `No events` for a day without entries.
-- `f-done` fades done bars and strikes through done list items, and follows a task box checked in the file on disk.
+- `f-done` fades done bars and strikes through done list items, and follows a task box checked in the file on disk or in the editor.
 - `f-open` opens the daily note at the entry's line when a bar or list item is clicked.
 
 ## How to get to it (user POV)
@@ -28,6 +28,7 @@ Preconditions:
 - **Select a day.** Run `node $V click ".sidebar-calendar__day[data-date=\"$(node $V day 8)\"]"` and `node $V snapshot f-day-list/day-8`. `selected` is D(8), `dayList.title` names that date, and `items` holds `Summer trip` and `Workshop (hobby)`, each with a `range`.
 - **Done, baseline.** Run `node $V click ".sidebar-calendar__day[data-date=\"$(node $V day 22)\"]"` and `node $V snapshot f-done/before`. Bar `D(22).md:2` has `done: true` and `D(22).md:1` has `done: false`; the list has `Groceries` with `done: true` and `Report` with `done: false`, and nothing else (the Journaling line is not an entry).
 - **Done, edited on disk.** Run `sed -i 's/^- \[ \] Report$/- [x] Report/' "<vault>/$(node $V day 22).md"` with the vault path `launch` printed, wait 2 s, and run `node $V snapshot f-done/after-disk-edit`. Both `D(22).md` bars and both list items now have `done: true`. Run `node $V screenshot f-done/after-disk-edit`.
+- **Done, checked in the editor (latency).** From a fresh launch, run `node $V task-latency 22 Report`. It selects D(22), which opens `D(22).md` in live preview, clicks the checkbox on the `Report` line, and prints one JSON line: `before` and `after` (`done` of the list item, `ring` on the D(22) cell), and `listMs` and `ringMs`, the ms from the click until each changed. `after.done` is `true`, `after.ring` is `false`, and both numbers are well under 500. Run it again to uncheck: `done` flips back to `false` and `ring` to `true` just as fast. Run it four times or more and report every number, not one.
 - **Open from the list.** Run `node $V click ".sidebar-calendar__day[data-date=\"$(node $V day 20)\"]"`, `node $V click '.sidebar-calendar__event-item:has-text("Crowded 4")'` and `node $V snapshot f-open/list-item`. `activeFile` is `D(20).md` and `cursorLine` is `4`.
 - **Open from a bar.** Run `node $V click ".sidebar-calendar__bar[data-event=\"$(node $V day 5).md:1\"] >> nth=1"` and `node $V snapshot f-open/bar`. `activeFile` is `D(5).md`, `cursorLine` is `1`, and `selected` is unchanged.
 - **Proof.** Run `node $V screenshot f-open/bar`, then `node $V stop`.
@@ -37,4 +38,5 @@ Preconditions:
 - Tooltips disappear when the pointer leaves, and `snapshot` runs in a new connection. Read tooltip text only from `hover`'s output.
 - Dates in tooltips and the list follow Obsidian's app language. The fixtures run in English. Do not compare against a Korean format unless the run switched the language.
 - A click on a date also opens that day's daily note when one exists (see [daily-notes.md](./daily-notes.md)). `activeFile` alone therefore does not prove a list-item click; `cursorLine` does.
+- `task-latency` measures in the page with a MutationObserver from the click's `pointerdown`, so `connect` overhead is not counted. A number near 2300 means the list waited for Obsidian's editor autosave (about 2 s) plus the plugin's refresh debounce instead of following the editor.
 - `f-done` mutates the vault. Run `stop` before the next recipe so it starts from the baseline.

@@ -54,4 +54,4 @@ Each feature file starts with an H1 title and one paragraph of user-visible beha
 - [Adding entries](./add-entries.md) (`h-*`) covers adding an entry by dragging across days or double-clicking a day, choosing its kind.
 - [Sorting the day list](./sort-day-list.md) (`i-*`) covers the sort menu, the four list orders, and the saved choice.
 
-Not mapped yet: month navigation, week start setting, the kind color picker, day rollover. Auto refresh is exercised only through `f-done` (a file edited on disk) and `h-*` (files the plugin writes).
+Not mapped yet: month navigation, week start setting, the kind color picker, day rollover. Auto refresh is exercised only through `f-done` (a file edited on disk, and a checkbox clicked in the editor with `task-latency`) and `h-*` (files the plugin writes).
