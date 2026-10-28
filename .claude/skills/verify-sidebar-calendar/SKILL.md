@@ -1,6 +1,6 @@
 ---
 name: verify-sidebar-calendar
-description: Drive the real Obsidian desktop app with this repo's Sidebar Calendar build and prove calendar behavior (schedule bars from the H1 kind sections of daily notes, +N, kind colors and settings, done entries, tooltips, day list and its sort menu, daily note dots and open-task rings, adding entries by drag or double-click with a kind choice, the English or Korean settings tab) with snapshots and screenshots. Use after any change to src/ or styles.css, or when asked to verify, reproduce, or screenshot the calendar.
+description: Drive the real Obsidian desktop app with this repo's Sidebar Calendar build and prove calendar behavior (schedule bars from the H1 kind sections of daily notes, +N, kind colors and settings, done entries, tooltips, day list and its sort menu, daily note dots and open-task rings, adding entries by drag or double-click with a kind choice, changing an entry's duration from a context menu, the English or Korean settings tab) with snapshots and screenshots. Use after any change to src/ or styles.css, or when asked to verify, reproduce, or screenshot the calendar.
 ---
 
 # Verify Sidebar Calendar
@@ -47,6 +47,7 @@ Read-only. Prints the Obsidian version, vault path, plugin version, and whether 
 | --- | --- |
 | `node $V click '<selector>'` | Clicks the first match, then waits 400 ms for the re-render. |
 | `node $V dblclick '<selector>'` | Double-clicks the first match, then waits 400 ms. |
+| `node $V rightclick '<selector>'` | Real right button press on the first match, which opens its context menu, then waits 400 ms. Pick a menu item with `click '.menu .menu-item:has-text("<title>")'`. |
 | `node $V drag '<from>' '<to>'` | Real mouse down on `from`, moves to `to`, mouse up. Prints `inRangeBeforeRelease`, the days highlighted just before release. |
 | `node $V press <key>` | Presses a key in the focused element (`Enter`, `Escape`). |
 | `node $V hover '<selector>'` | Hovers and prints `{"tooltip": "..."}` for the tooltip Obsidian shows. Tooltips vanish when the pointer leaves, so read them here, not in a later snapshot. |
@@ -66,6 +67,7 @@ Stable handles, all from `src/ui/`:
 - Bar: `.sidebar-calendar__bar[data-event="<daily note path>:<line>"]`, for example `data-event="2026-10-05.md:1"` (0-based line of the list item). A multi-week entry has one bar per week. Done entries have `is-done`.
 - Range highlight while dragging: `.sidebar-calendar__day.is-in-range`.
 - Add-entry modal: title `.modal-container .modal-title`, input `.modal-container input.sidebar-calendar__entry-input`, kind buttons `.modal-container .sidebar-calendar__kind-btn[data-kind="<H1 text>"]` with `aria-pressed`.
+- Duration dialog: title `.modal-container .modal-title`, input `.modal-container input.sidebar-calendar__duration-input`, preview `.sidebar-calendar__duration-preview`. The context menu item is `.menu .menu-item:has-text("Change duration")`; in the editor, right-click a line with `.workspace-leaf.mod-active .cm-line:has-text("<text>")`.
 - Overflow: `.sidebar-calendar__more` with text `+N`.
 - Header buttons: `[aria-label="Previous month"]`, `[aria-label="Current month"]`, `[aria-label="Next month"]`.
 - Day list: `.sidebar-calendar__day-list`, items `.sidebar-calendar__event-item`, the sort button `[aria-label="Sort entries"]`, and its menu items `.menu .menu-item:has-text("Note order")` (checked ones have `mod-checked`).

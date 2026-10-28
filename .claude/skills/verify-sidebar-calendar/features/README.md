@@ -54,5 +54,6 @@ Each feature file starts with an H1 title and one paragraph of user-visible beha
 - [Adding entries](./add-entries.md) (`h-*`) covers adding an entry by dragging across days or double-clicking a day, choosing its kind.
 - [Sorting the day list](./sort-day-list.md) (`i-*`) covers the sort menu, the four list orders, and the saved choice.
 - [Settings language](./settings-language.md) (`j-*`) covers the English / Korean switch at the top of the settings tab and the saved choice.
+- [Changing an entry's duration](./change-duration.md) (`k-*`) covers **Change duration…** in the context menu of bars, day-list items and entry lines in the editor, its dialog, and the open-editor and closed-note write paths.
 
-Not mapped yet: month navigation, week start setting, the kind color picker, day rollover. Auto refresh is exercised only through `f-done` (a file edited on disk, and a checkbox clicked in the editor with `task-latency`) and `h-*` (files the plugin writes).
+Not mapped yet: month navigation, week start setting, the kind color picker, day rollover. Auto refresh is exercised only through `f-done` (a file edited on disk, and a checkbox clicked in the editor with `task-latency`) `h-*` and `k-*` (files the plugin writes, and an edit through the open editor).

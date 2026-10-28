@@ -270,6 +270,10 @@ async function act(kind, selector, value) {
 	} else if (kind === 'click') {
 		await target.click();
 		await page.waitForTimeout(400);
+	} else if (kind === 'rightclick') {
+		// A real right button press, so the page sees mousedown, mouseup and contextmenu.
+		await target.click({ button: 'right' });
+		await page.waitForTimeout(400);
 	} else if (kind === 'dblclick') {
 		await target.dblclick();
 		await page.waitForTimeout(400);
@@ -468,6 +472,7 @@ const HELP = `usage: node verify.cjs <command>
   eval '<js body>'       run JS in the Obsidian window (app in scope), print the returned JSON
   click '<selector>'     click the first match (CSS or Playwright selector)
   dblclick '<selector>'  double-click the first match
+  rightclick '<selector>'  right-click the first match (opens its context menu)
   drag '<from>' '<to>'   press on the first match of from, drag to the first match of to, release
   press <key>            press a key in the focused element (e.g. Enter, Escape)
   hover '<selector>'     hover the first match and print the tooltip it shows
@@ -489,6 +494,7 @@ env: VERIFY_RUN_ID (default "default"), VERIFY_PORT (default 9333), OBSIDIAN_BIN
 		case 'eval': return evalJs(arg ?? die('eval needs code'));
 		case 'click': return act('click', arg ?? die('click needs a selector'));
 		case 'dblclick': return act('dblclick', arg ?? die('dblclick needs a selector'));
+		case 'rightclick': return act('rightclick', arg ?? die('rightclick needs a selector'));
 		case 'drag': return act('drag', arg ?? die('drag needs a from selector'), value ?? die('drag needs a to selector'));
 		case 'press': return press(arg ?? die('press needs a key'));
 		case 'hover': return act('hover', arg ?? die('hover needs a selector'));
