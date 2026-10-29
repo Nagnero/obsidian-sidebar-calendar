@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { appendScheduleLine, ParsedEntry, parseSchedule, setEntryEnd, templateH1s } from '../src/data/parseSchedule';
+import { appendScheduleLine, ParsedEntry, parseSchedule, setEntryEnd, setEntryTask, templateH1s } from '../src/data/parseSchedule';
 
 const DAY = '2026-10-20';
 const KINDS = ['업무', '개인'];
@@ -328,4 +328,14 @@ test('setEntryEnd round-trips through parseSchedule', () => {
 			assert.deepEqual(entry && [entry.title, entry.task, entry.end], [title, task, end], `${title} → ${end}`);
 		}
 	}
+});
+
+test('setEntryTask checks and unchecks a task entry, keeping its range and marker', () => {
+	assert.equal(setEntryTask('# 업무\n- [ ] 출장 ~10-23\n', DAY, RULES, 1, true), '# 업무\n- [x] 출장 ~10-23\n');
+	assert.equal(setEntryTask('# 업무\r\n* [x] 보고서\r\n', DAY, RULES, 1, false), '# 업무\r\n* [ ] 보고서\r\n');
+});
+
+test('setEntryTask returns null for a plain item or a line that is not an entry', () => {
+	const text = '# 업무\n- 회의\n- [ ] 보고서\n';
+	for (const line of [0, 1, 3]) assert.equal(setEntryTask(text, DAY, RULES, line, true), null, `line ${line}`);
 });

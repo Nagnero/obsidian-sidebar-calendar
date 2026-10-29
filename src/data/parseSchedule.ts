@@ -43,6 +43,7 @@ const FENCE_RE = /^ {0,3}(`{3,}|~{3,})/;
 const ITEM_RE = /^[-*+][ \t]+(.*)$/;
 const CONTINUATION_RE = /^[ \t]+\S/;
 const TASK_RE = /^\[([^\]])\](?:[ \t]+(.*))?$/;
+const BOX_RE = /^([-*+][ \t]+)\[[^\]]\]/;
 const RANGE_RE = /\s*~(?:(\d{4})-(\d{1,2})-(\d{1,2})|(\d{1,2})[-/](\d{1,2}))$/;
 const PAREN_RE = /\s*\([^()]*\)$/;
 const TEMPLATE_VARIABLE_RE = /{{[^}]*}}/;
@@ -132,6 +133,17 @@ export function setEntryEnd(text: string, day: DayKey, rules: ScheduleRules, lin
 	const tail = paren && RANGE_RE.test(body.slice(0, paren.index)) ? paren[0] : '';
 	const head = body.slice(0, body.length - tail.length).replace(RANGE_RE, '');
 	parts[2 * line] = head + rangeToken(day, end) + tail + old.slice(body.length);
+	return parts.join('');
+}
+
+/**
+ * `text` with the task box of the entry on 0-based `line` set to `[x]` when `done`, else `[ ]`.
+ * Only that line changes. Null when the line is not a task entry.
+ */
+export function setEntryTask(text: string, day: DayKey, rules: ScheduleRules, line: number, done: boolean): string | null {
+	if (!parseSchedule(text, day, rules).some((entry) => entry.line === line && entry.task !== null)) return null;
+	const parts = text.split(/(\r?\n)/);
+	parts[2 * line] = (parts[2 * line] ?? '').replace(BOX_RE, `$1[${done ? 'x' : ' '}]`);
 	return parts.join('');
 }
 

@@ -125,6 +125,7 @@ export class CalendarView extends ItemView {
 			{
 				onOpenEvent: openEvent,
 				onEventMenu: eventMenu,
+				onToggleTask: (event, done) => void this.plugin.setEntryTask(event, done),
 				onSort: (sort) => {
 					settings.listSort = sort;
 					void this.plugin.saveData(settings);

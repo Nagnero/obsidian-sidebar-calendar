@@ -280,6 +280,11 @@
 	background-color: var(--sidebar-calendar-bar-color, var(--interactive-accent));
 }
 
+.sidebar-calendar__event-check {
+	flex: none;
+	margin: 2px 0 0;
+}
+
 .sidebar-calendar__event-text {
 	min-width: 0;
 }

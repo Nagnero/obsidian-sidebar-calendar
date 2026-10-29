@@ -24,6 +24,7 @@ export interface DayListModel {
 export interface DayListHandlers {
 	onOpenEvent: (event: CalendarEvent, evt: MouseEvent) => void;
 	onEventMenu: (event: CalendarEvent, evt: MouseEvent) => void;
+	onToggleTask: (event: CalendarEvent, done: boolean) => void;
 	onSort: (sort: ListSort) => void;
 	onShowDone: (showDone: boolean) => void;
 }
@@ -62,6 +63,14 @@ export function renderDayList(parent: HTMLElement, model: DayListModel, handlers
 		const color = model.colorFor(event);
 		if (color) swatch.style.setProperty('--sidebar-calendar-bar-color', color);
 
+		if (event.task !== null) {
+			const box = item.createEl('input', { cls: 'task-list-item-checkbox sidebar-calendar__event-check', type: 'checkbox' });
+			box.checked = event.task === 'done';
+			box.addEventListener('click', (evt) => {
+				evt.stopPropagation();
+				handlers.onToggleTask(event, box.checked);
+			});
+		}
 		const text = item.createDiv({ cls: 'sidebar-calendar__event-text' });
 		text.createDiv({ cls: 'sidebar-calendar__event-title', text: event.title });
 		if (event.start !== event.end) {
