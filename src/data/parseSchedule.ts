@@ -1,4 +1,5 @@
 import { DayKey, parseDayKey, yearMonth } from '../date/dayKey';
+import type { TaskState } from '../types';
 
 /** One schedule line of a daily note. The store adds the note's path and date. */
 export interface ParsedEntry {
@@ -9,7 +10,7 @@ export interface ParsedEntry {
 	end: DayKey;
 	/** Text of the H1 the entry sits under. */
 	kind: string;
-	done: boolean;
+	task: TaskState;
 }
 
 export interface NewEntry {
@@ -100,12 +101,32 @@ export function appendScheduleLine(text: string, kind: string, entry: NewEntry):
 	return lines.join(eol);
 }
 
+/**
+ * `text` with the entry on 0-based `line` of the daily note dated `day` ending on `end`: its range
+ * token is replaced, added or, when `end` is `day`, removed. A token just before trailing
+ * parentheses is rewritten in place. Only that line changes. Null when the line is not an entry.
+ */
+export function setEntryEnd(text: string, day: DayKey, kinds: readonly string[], line: number, end: DayKey): string | null {
+	if (!parseSchedule(text, day, kinds).some((entry) => entry.line === line)) return null;
+	// Odd indexes hold the line breaks, so every other line keeps its own.
+	const parts = text.split(/(\r?\n)/);
+	const old = parts[2 * line] ?? '';
+	const body = old.trimEnd();
+	const paren = RANGE_RE.test(body) ? null : PAREN_RE.exec(body);
+	const tail = paren && RANGE_RE.test(body.slice(0, paren.index)) ? paren[0] : '';
+	const head = body.slice(0, body.length - tail.length).replace(RANGE_RE, '');
+	parts[2 * line] = head + rangeToken(day, end) + tail + old.slice(body.length);
+	return parts.join('');
+}
+
 function formatEntryLine(entry: NewEntry): string {
-	let line = `- [ ] ${entry.title}`;
-	if (entry.end !== entry.start) {
-		line += ` ~${yearMonth(entry.end).year === yearMonth(entry.start).year ? entry.end.slice(5) : entry.end}`;
-	}
-	return line;
+	return `- [ ] ${entry.title}${rangeToken(entry.start, entry.end)}`;
+}
+
+/** ` ~MM-DD`, or ` ~YYYY-MM-DD` in another year, for an entry from `start` to `end`; empty for one day. */
+function rangeToken(start: DayKey, end: DayKey): string {
+	if (end === start) return '';
+	return ` ~${yearMonth(end).year === yearMonth(start).year ? end.slice(5) : end}`;
 }
 
 function classify(lines: readonly string[]): LineKind[] {
@@ -151,11 +172,11 @@ function h1Sections(classes: readonly LineKind[]): Section[] {
 
 function parseItem(content: string, day: DayKey): Omit<ParsedEntry, 'line' | 'kind'> | null {
 	let rest = content.trim();
-	let done = false;
-	const task = TASK_RE.exec(rest);
-	if (task) {
-		done = task[1] !== ' ';
-		rest = (task[2] ?? '').trim();
+	let task: TaskState = null;
+	const box = TASK_RE.exec(rest);
+	if (box) {
+		task = box[1] === ' ' ? 'open' : 'done';
+		rest = (box[2] ?? '').trim();
 	}
 
 	let end: DayKey = day;
@@ -174,7 +195,7 @@ function parseItem(content: string, day: DayKey): Omit<ParsedEntry, 'line' | 'ki
 	}
 
 	const title = rest.trim();
-	return title === '' ? null : { title, end, done };
+	return title === '' ? null : { title, end, task };
 }
 
 /** The end date a `~…` token names, or `start` when it is invalid or before `start`. */

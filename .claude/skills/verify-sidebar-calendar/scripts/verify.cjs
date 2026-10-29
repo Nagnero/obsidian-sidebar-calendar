@@ -103,7 +103,7 @@ function seedVault() {
 				maxLanes: 3,
 				dailyNotes: true,
 				kinds: [
-					{ name: '업무', enabled: true, color: '#e5484d' },
+					{ name: '업무', enabled: true, color: 'red' },
 					{ name: '개인', enabled: true, color: '' },
 					{ name: 'Journaling', enabled: false, color: '' },
 				],
@@ -117,11 +117,13 @@ function seedVault() {
 	const mm = day(1).slice(5, 7);
 	writeFile('Templates/Daily.md', '# 업무\n\n# 개인\n\n# Journaling\nHow was today?\n');
 	writeFile(`${day(3)}.md`, '# 개인\n\n## Morning\n- Dentist\n\n# Notes\n- not an entry\n');
-	writeFile(`${day(5)}.md`, `# 업무\n- Summer trip ~${mm}-12\n`);
+	writeFile(`${day(5)}.md`, `# 업무\n- [ ] Summer trip ~${mm}-12\n`);
 	writeFile(`${day(8)}.md`, `# 개인\n- Workshop (hobby) ~${mm}-09\n`);
 	writeFile(`${day(15)}.md`, 'Existing daily note\n');
 	writeFile(`${day(20)}.md`, '# 업무\n- Crowded 1\n- Crowded 2\n- Crowded 3\n- Crowded 4\n  - nested note, not an entry\n');
 	writeFile(`${day(22)}.md`, '# 업무\n- [ ] Report\n- [x] Groceries\n\n# Journaling\n- Journal line, not an entry\n');
+	writeFile(`${day(27)}.md`, `# 개인\n- [x] Call mom\n- Zoo\n# 업무\n- [ ] Budget ~${mm}-28\n- Memo\n`);
+	writeFile(`${day(25)}.md`, '# 업무\n- [x] Paid rent\n- Lunch\n\n# Journaling\n- [ ] Journal task, not read\n');
 }
 
 // ---------- process control ----------
@@ -262,8 +264,15 @@ async function act(kind, selector, value) {
 		await target.fill('');
 		await target.pressSequentially(value);
 		await page.waitForTimeout(600);
+	} else if (kind === 'select') {
+		await target.selectOption(value);
+		await page.waitForTimeout(600);
 	} else if (kind === 'click') {
 		await target.click();
+		await page.waitForTimeout(400);
+	} else if (kind === 'rightclick') {
+		// A real right button press, so the page sees mousedown, mouseup and contextmenu.
+		await target.click({ button: 'right' });
 		await page.waitForTimeout(400);
 	} else if (kind === 'dblclick') {
 		await target.dblclick();
@@ -292,6 +301,55 @@ async function act(kind, selector, value) {
 	await browser.close();
 }
 
+/**
+ * Selects day `n`, which opens its daily note, clicks the live-preview checkbox on the line with
+ * `title`, and prints how many ms passed from the click until the day list item's done state and
+ * the day's task ring changed.
+ */
+async function taskLatency(n, title) {
+	const date = day(n);
+	const { browser, page } = await connect();
+	await page.locator(`.sidebar-calendar__day[data-date="${date}"]`).first().click();
+	const box = page.locator(`.workspace-leaf.mod-active .markdown-source-view.is-live-preview .cm-line:has-text("${title}") input.task-list-item-checkbox`).first();
+	await box.waitFor({ timeout: 5_000 });
+	await page.waitForTimeout(500);
+	const before = await page.evaluate(({ date, title }) => {
+		const root = document.querySelector('.sidebar-calendar');
+		const read = () => {
+			const item = [...root.querySelectorAll('.sidebar-calendar__event-item')]
+				.find((i) => i.querySelector('.sidebar-calendar__event-title')?.textContent?.trim() === title);
+			const cell = root.querySelector(`.sidebar-calendar__day[data-date="${date}"]`);
+			const slot = [...cell.parentElement.querySelectorAll('.sidebar-calendar__day-number-slot')]
+				.find((s) => s.style.gridColumn === cell.style.gridColumn);
+			return { done: item ? item.classList.contains('is-done') : null, ring: !!slot?.querySelector('.sidebar-calendar__task-ring') };
+		};
+		const start = read();
+		const probe = { start, clickAt: null, listMs: null, ringMs: null, end: start };
+		window.__verifyLatency = probe;
+		document.addEventListener('pointerdown', () => { probe.clickAt ??= performance.now(); }, { capture: true, once: true });
+		const observer = new MutationObserver(() => {
+			if (probe.clickAt === null) return;
+			const now = read();
+			const ms = Math.round(performance.now() - probe.clickAt);
+			if (probe.listMs === null && now.done !== start.done) probe.listMs = ms;
+			if (probe.ringMs === null && now.ring !== start.ring) probe.ringMs = ms;
+			probe.end = now;
+			if (probe.listMs !== null && probe.ringMs !== null) observer.disconnect();
+		});
+		observer.observe(root, { subtree: true, childList: true, attributes: true, attributeFilter: ['class'] });
+		window.setTimeout(() => observer.disconnect(), 10_000);
+		return start;
+	}, { date, title });
+	if (before.done === null) die(`no day list item titled "${title}" on ${date}`);
+	await box.click();
+	await page.waitForFunction(() => window.__verifyLatency.listMs !== null, null, { timeout: 10_000 }).catch(() => {});
+	await page.waitForTimeout(300);
+	const probe = await page.evaluate(() => window.__verifyLatency);
+	await browser.close();
+	console.log(JSON.stringify({ date, title, before: probe.start, after: probe.end, listMs: probe.listMs, ringMs: probe.ringMs }));
+	if (probe.listMs === null) die('the day list item did not change within 10 s of the click');
+}
+
 async function press(key) {
 	const { browser, page } = await connect();
 	console.log(`verify: press ${key}`);
@@ -316,22 +374,28 @@ async function snapshot(name) {
 		const root = document.querySelector('.sidebar-calendar');
 		if (!root) return null;
 		const text = (el) => el?.textContent?.trim() ?? null;
+		/** The dates of the day cells whose number slot holds a match of `selector`. */
+		const marked = (selector) => [...root.querySelectorAll(selector)].map((mark) => {
+			const slot = mark.closest('.sidebar-calendar__day-number-slot');
+			return [...slot.parentElement.querySelectorAll('.sidebar-calendar__day')]
+				.find((c) => c.style.gridColumn === slot.style.gridColumn)?.dataset.date;
+		});
 		return {
 			title: text(root.querySelector('.sidebar-calendar__title')),
 			weekdays: [...root.querySelectorAll('.sidebar-calendar__weekday')].map(text),
 			today: root.querySelector('.sidebar-calendar__day.is-today')?.dataset.date ?? null,
 			selected: root.querySelector('.sidebar-calendar__day.is-selected')?.dataset.date ?? null,
-			noteDots: [...root.querySelectorAll('.sidebar-calendar__note-dot.has-note')].map(
-				(dot) => [...dot.closest('.sidebar-calendar__week').querySelectorAll('.sidebar-calendar__day')]
-					.find((c) => c.style.gridColumn === dot.parentElement.style.gridColumn)?.dataset.date,
-			),
+			noteDots: marked('.sidebar-calendar__note-dot'),
+			taskRings: marked('.sidebar-calendar__task-ring'),
+			markRowHeights: [...new Set([...root.querySelectorAll('.sidebar-calendar__note-marks')].map((m) => m.getBoundingClientRect().height))],
+			weekHeights: [...new Set([...root.querySelectorAll('.sidebar-calendar__week')].map((w) => w.getBoundingClientRect().height))],
 			bars: [...root.querySelectorAll('.sidebar-calendar__bar')].map((b) => ({
 				event: b.dataset.event,
 				week: [...root.querySelectorAll('.sidebar-calendar__week')].indexOf(b.parentElement),
 				column: b.style.gridColumn,
 				lane: Number(b.style.gridRow) - 2,
-				done: b.classList.contains('is-done'),
 				color: getComputedStyle(b).backgroundColor,
+				opacity: getComputedStyle(b).opacity,
 				continuedBefore: b.classList.contains('is-continued-before'),
 				continuedAfter: b.classList.contains('is-continued-after'),
 			})),
@@ -342,7 +406,7 @@ async function snapshot(name) {
 			})),
 			dayList: {
 				title: text(root.querySelector('.sidebar-calendar__day-list-title')),
-				dailyNoteButton: root.querySelector('.sidebar-calendar__daily-note-btn')?.getAttribute('aria-label') ?? null,
+				headerButtons: [...root.querySelectorAll('.sidebar-calendar__day-list-header .clickable-icon')].map((b) => b.getAttribute('aria-label')),
 				items: [...root.querySelectorAll('.sidebar-calendar__event-item')].map((i) => ({
 					title: text(i.querySelector('.sidebar-calendar__event-title')),
 					done: i.classList.contains('is-done'),
@@ -353,6 +417,11 @@ async function snapshot(name) {
 			activeFile: app.workspace.getActiveFile()?.path ?? null,
 			cursorLine: app.workspace.activeEditor?.editor?.getCursor().line ?? null,
 			modal: text(document.querySelector('.modal-container .modal-title')),
+			menu: [...document.querySelectorAll('.menu .menu-item, .menu .menu-separator')].map((i) =>
+				i.classList.contains('menu-separator')
+					? { separator: true }
+					: { title: text(i.querySelector('.menu-item-title')), checked: i.classList.contains('mod-checked') },
+			),
 		};
 	});
 	await browser.close();
@@ -404,15 +473,18 @@ const HELP = `usage: node verify.cjs <command>
   eval '<js body>'       run JS in the Obsidian window (app in scope), print the returned JSON
   click '<selector>'     click the first match (CSS or Playwright selector)
   dblclick '<selector>'  double-click the first match
+  rightclick '<selector>'  right-click the first match (opens its context menu)
   drag '<from>' '<to>'   press on the first match of from, drag to the first match of to, release
   press <key>            press a key in the focused element (e.g. Enter, Escape)
   hover '<selector>'     hover the first match and print the tooltip it shows
   fill '<selector>' <v>  clear the first match and type v like a user
+  select '<selector>' <v>  choose option value v in the first matching <select>, like a user
   snapshot <name>        save calendar state as JSON to the artifacts dir
   screenshot <name>      save a PNG of the window to the artifacts dir
+  task-latency <n> <t>   open day n's note, click the checkbox on the line with t, print ms until the list and ring change
   day <n>                print YYYY-MM-DD for day n of the current month
   stop                   stop this run's Obsidian and delete its vault (artifacts are kept)
-add --settings to eval/click/hover/fill/screenshot to act on the Settings window
+add --settings to eval/click/hover/fill/select/press/screenshot to act on the Settings window
 env: VERIFY_RUN_ID (default "default"), VERIFY_PORT (default 9333), OBSIDIAN_BIN (skip download)`;
 
 (async () => {
@@ -423,12 +495,15 @@ env: VERIFY_RUN_ID (default "default"), VERIFY_PORT (default 9333), OBSIDIAN_BIN
 		case 'eval': return evalJs(arg ?? die('eval needs code'));
 		case 'click': return act('click', arg ?? die('click needs a selector'));
 		case 'dblclick': return act('dblclick', arg ?? die('dblclick needs a selector'));
+		case 'rightclick': return act('rightclick', arg ?? die('rightclick needs a selector'));
 		case 'drag': return act('drag', arg ?? die('drag needs a from selector'), value ?? die('drag needs a to selector'));
 		case 'press': return press(arg ?? die('press needs a key'));
 		case 'hover': return act('hover', arg ?? die('hover needs a selector'));
 		case 'fill': return act('fill', arg ?? die('fill needs a selector'), value ?? die('fill needs a value'));
+		case 'select': return act('select', arg ?? die('select needs a selector'), value ?? die('select needs a value'));
 		case 'snapshot': return snapshot(arg ?? die('snapshot needs a name'));
 		case 'screenshot': return screenshot(arg ?? die('screenshot needs a name'));
+		case 'task-latency': return taskLatency(Number(arg ?? die('task-latency needs a day')), value ?? die('task-latency needs a title'));
 		case 'day': return console.log(day(Number(arg)));
 		case 'stop': return stop();
 		default: console.log(HELP);

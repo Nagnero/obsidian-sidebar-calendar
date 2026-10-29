@@ -1,13 +1,16 @@
-import { ItemView, Keymap, moment, Notice, TFile, WorkspaceLeaf } from 'obsidian';
+import { ItemView, Keymap, Menu, moment, Notice, TFile, WorkspaceLeaf } from 'obsidian';
 import { VIEW_TYPE_SIDEBAR_CALENDAR } from '../constants';
 import { DayKey, todayKey, yearMonth } from '../date/dayKey';
 import { eventsOnDay } from '../layout/weekLayout';
 import type { TemplateHeadings } from '../data/DailyNotes';
+import { kindColorCss } from '../kindColor';
+import { sortEntries } from '../data/sortEntries';
+import { visibleEvents } from '../data/visibleEvents';
 import type SidebarCalendarPlugin from '../main';
 import type { CalendarEvent } from '../types';
 import { AddEntryModal } from './AddEntryModal';
 import { renderDayList } from './renderDayList';
-import { formatRange, renderMonth } from './renderMonth';
+import { formatRange, NoteMark, renderMonth } from './renderMonth';
 
 export class CalendarView extends ItemView {
 	private plugin: SidebarCalendarPlugin;
@@ -48,14 +51,28 @@ export class CalendarView extends ItemView {
 		root.empty();
 		root.addClass('sidebar-calendar');
 
-		const colors = new Map(this.plugin.activeKinds().map((k) => [k.name, k.color]));
-		const colorFor = (event: CalendarEvent) => colors.get(event.kind) || null;
+		const kinds = this.plugin.activeKinds();
+		const colors = new Map(kinds.map((k) => [k.name, kindColorCss(k.color)]));
+		const colorFor = (event: CalendarEvent) => colors.get(event.kind) ?? null;
 		const locale = appLocale();
+		const { settings } = this.plugin;
 		const events = this.plugin.eventStore.getEvents();
-		const dailyNotes = this.plugin.settings.dailyNotes && this.plugin.dailyNotes.isAvailable()
+		const visible = visibleEvents(events, settings);
+		const dailyNotes = settings.dailyNotes && this.plugin.dailyNotes.isAvailable()
 			? this.plugin.dailyNotes
 			: null;
 		const openEvent = (event: CalendarEvent, evt: MouseEvent) => void this.openEvent(event, evt);
+		const eventMenu = (event: CalendarEvent, evt: MouseEvent) => {
+			evt.preventDefault();
+			const menu = new Menu();
+			this.plugin.addDurationItem(menu, event);
+			menu.showAtMouseEvent(evt);
+		};
+		const openTaskDays = new Set(events.filter((e) => e.task === 'open').map((e) => e.start));
+		const noteMark = (day: DayKey): NoteMark => {
+			if (!dailyNotes?.find(day)) return 'none';
+			return openTaskDays.has(day) ? 'open-tasks' : 'note';
+		};
 
 		renderMonth(
 			root,
@@ -63,13 +80,13 @@ export class CalendarView extends ItemView {
 				year: this.year,
 				month: this.month,
 				today: todayKey(),
-				weekStart: this.plugin.settings.weekStart,
+				weekStart: settings.weekStart,
 				locale,
-				events: this.plugin.settings.showOneDay ? events : events.filter((e) => e.start !== e.end),
-				maxLanes: this.plugin.settings.maxLanes,
+				events: visible.grid,
+				maxLanes: settings.maxLanes,
 				colorFor,
 				selectedDay: this.selectedDay,
-				hasDailyNote: dailyNotes ? (day) => dailyNotes.find(day) !== null : null,
+				noteMark,
 			},
 			{
 				onPrev: () => this.shiftMonth(-1),
@@ -83,10 +100,12 @@ export class CalendarView extends ItemView {
 					this.selectedDay = day;
 					this.render();
 					// Like the Calendar plugin, a click opens that day's note, but only one that
-					// already exists; creating a note is left to the button in the day list.
-					if (dailyNotes?.find(day)) void dailyNotes.open(day, Keymap.isModEvent(evt) !== false);
+					// already exists; a note is created by adding an entry to its day.
+					const note = dailyNotes?.find(day);
+					if (note) void this.app.workspace.getLeaf(Keymap.isModEvent(evt) !== false).openFile(note);
 				},
 				onOpenEvent: openEvent,
+				onEventMenu: eventMenu,
 				onAddEntry: (start, end) => void this.promptEntry(start, end),
 			},
 		);
@@ -95,16 +114,24 @@ export class CalendarView extends ItemView {
 			root,
 			{
 				day: this.selectedDay,
-				events: eventsOnDay(events, this.selectedDay),
+				events: sortEntries(eventsOnDay(visible.list, this.selectedDay), settings.listSort, kinds.map((k) => k.name)),
+				sort: settings.listSort,
+				showDone: settings.showDone,
 				locale,
 				colorFor,
-				dailyNoteExists: dailyNotes ? dailyNotes.find(this.selectedDay) !== null : null,
 			},
 			{
 				onOpenEvent: openEvent,
-				onOpenDailyNote: (evt) => {
-					if (!dailyNotes) return;
-					void dailyNotes.open(this.selectedDay, Keymap.isModEvent(evt) !== false).then(() => this.render());
+				onEventMenu: eventMenu,
+				onSort: (sort) => {
+					settings.listSort = sort;
+					void this.plugin.saveData(settings);
+					this.plugin.refreshViews();
+				},
+				onShowDone: (showDone) => {
+					settings.showDone = showDone;
+					void this.plugin.saveData(settings);
+					this.plugin.refreshViews();
 				},
 			},
 		);
@@ -168,7 +195,7 @@ function noKindsMessage(template: TemplateHeadings): string {
 }
 
 /** Obsidian sets moment's locale to the app language. */
-function appLocale(): string {
+export function appLocale(): string {
 	const locale = moment.locale();
 	try {
 		return Intl.DateTimeFormat.supportedLocalesOf(locale).length > 0 ? locale : 'en';

@@ -21,7 +21,7 @@ interface InternalPlugins {
 	getPluginById?(id: string): { enabled?: boolean; instance?: { options?: Partial<DailyNoteOptions> } } | null;
 }
 
-/** Finds, opens and creates daily notes using the core Daily notes plugin's folder, format and template. */
+/** Finds and creates daily notes using the core Daily notes plugin's folder, format and template. */
 export class DailyNotes {
 	constructor(private app: App) {}
 
@@ -90,14 +90,6 @@ export class DailyNotes {
 		if (!options) return null;
 		const file = this.app.vault.getAbstractFileByPath(this.pathFor(day, options));
 		return file instanceof TFile ? file : null;
-	}
-
-	/** Opens the daily note for `day`, creating it from the template first if needed. */
-	async open(day: DayKey, newLeaf: boolean): Promise<void> {
-		const options = this.options();
-		if (!options) return;
-		const file = this.find(day) ?? (await this.create(day, options));
-		await this.app.workspace.getLeaf(newLeaf).openFile(file);
 	}
 
 	/** Adds `entry` under the `# kind` section of its start day's note, creating the note if needed. */

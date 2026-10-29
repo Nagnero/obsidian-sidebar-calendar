@@ -1,4 +1,7 @@
 import type { Weekday } from './date/dayKey';
+import { isListSort, ListSort } from './data/sortEntries';
+import { isSettingsLanguage, SettingsLanguage } from './i18n';
+import { KindColor, NAMED_COLORS, NamedColor, parseKindColor } from './kindColor';
 
 /** An H1 of the daily note template, used as a kind of schedule entry. */
 export interface Kind {
@@ -6,37 +9,42 @@ export interface Kind {
 	name: string;
 	/** Whether entries under this H1 are read and offered when adding. */
 	enabled: boolean;
-	/** CSS color, e.g. `#e5484d`. Empty means the theme's accent color. */
-	color: string;
+	color: KindColor;
 }
 
 export interface SidebarCalendarSettings {
+	/** Language of the settings tab. The calendar itself is English only. */
+	settingsLanguage: SettingsLanguage;
 	weekStart: Weekday;
 	maxLanes: number;
-	/** Show daily note dots and the open/create button (uses the core Daily notes plugin). */
+	/** Mark days that have a daily note, and ones with an unchecked task (uses the core Daily notes plugin). */
 	dailyNotes: boolean;
 	/** Draw entries whose `start` equals `end` on the grid. The day list shows them either way. */
 	showOneDay: boolean;
+	/** Show done tasks on the grid and in the day list. Chosen from the day list's sort menu. */
+	showDone: boolean;
 	/** Every H1 seen in the template, in template order; ones no longer there come last. */
 	kinds: Kind[];
 	/** Name of the kind chosen last when adding an entry. */
 	lastKind: string;
+	/** Order of the selected day's list. */
+	listSort: ListSort;
 }
 
 export const DEFAULT_SETTINGS: SidebarCalendarSettings = {
+	settingsLanguage: 'en',
 	weekStart: 0,
 	maxLanes: 3,
 	dailyNotes: true,
 	showOneDay: true,
+	showDone: true,
 	kinds: [],
 	lastKind: '',
+	listSort: 'start',
 };
 
 export const MIN_LANES = 1;
 export const MAX_LANES = 6;
-
-/** Colors given to new kinds, first unused one first. */
-export const KIND_COLORS = ['#e5484d', '#30a46c', '#0090ff', '#f76b15', '#8e4ec6', '#ffc53d', '#12a594'];
 
 /**
  * Turns whatever was saved in data.json (possibly hand-edited or from an older version) into
@@ -58,23 +66,26 @@ export function sanitizeSettings(raw: unknown): SidebarCalendarSettings {
 		kinds.push({
 			name,
 			enabled: typeof k.enabled === 'boolean' ? k.enabled : true,
-			color: typeof k.color === 'string' ? k.color : '',
+			color: parseKindColor(k.color),
 		});
 	}
 
 	return {
+		settingsLanguage: isSettingsLanguage(data.settingsLanguage) ? data.settingsLanguage : d.settingsLanguage,
 		weekStart: data.weekStart === 1 || data.weekStart === '1' ? 1 : 0,
 		maxLanes: lanes,
 		dailyNotes: typeof data.dailyNotes === 'boolean' ? data.dailyNotes : d.dailyNotes,
 		showOneDay: typeof data.showOneDay === 'boolean' ? data.showOneDay : d.showOneDay,
+		showDone: typeof data.showDone === 'boolean' ? data.showDone : d.showDone,
 		kinds,
 		lastKind: typeof data.lastKind === 'string' ? data.lastKind : d.lastKind,
+		listSort: isListSort(data.listSort) ? data.listSort : d.listSort,
 	};
 }
 
 /**
  * The stored kinds matched to the template's H1s: one per H1 in template order (a new H1 gets
- * enabled with the first unused preset color), then the stored kinds the template no longer has,
+ * enabled with the first unused named color), then the stored kinds the template no longer has,
  * kept so their settings survive a template edit. Existing kinds keep their object identity.
  */
 export function reconcileKinds(stored: readonly Kind[], templateH1s: readonly string[]): Kind[] {
@@ -96,9 +107,9 @@ export function activeKinds(kinds: readonly Kind[], templateH1s: readonly string
 	return templateH1s.flatMap((name) => kinds.filter((k) => k.name === name && k.enabled).slice(0, 1));
 }
 
-function nextColor(taken: readonly Kind[]): string {
-	const used = new Set(taken.map((k) => k.color.toLowerCase()));
-	return KIND_COLORS.find((c) => !used.has(c)) ?? KIND_COLORS[taken.length % KIND_COLORS.length] ?? '';
+function nextColor(taken: readonly Kind[]): NamedColor {
+	const used = new Set<KindColor>(taken.map((k) => k.color));
+	return NAMED_COLORS.find((c) => !used.has(c)) ?? NAMED_COLORS[taken.length % NAMED_COLORS.length] ?? 'red';
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

@@ -5,6 +5,9 @@ import { layoutWeek } from '../layout/weekLayout';
 import type { CalendarEvent } from '../types';
 import { enableRangeSelect } from './rangeSelect';
 
+/** What the marks under a day number show: a dot for a daily note, plus a ring when it has an unchecked task. */
+export type NoteMark = 'none' | 'note' | 'open-tasks';
+
 export interface MonthViewModel {
 	year: number;
 	/** 1-based. */
@@ -17,8 +20,7 @@ export interface MonthViewModel {
 	/** Bar color for an event; null means the theme's accent color. */
 	colorFor: (event: CalendarEvent) => string | null;
 	selectedDay: DayKey | null;
-	/** Whether a daily note exists for a day; null when daily notes are off. */
-	hasDailyNote: ((day: DayKey) => boolean) | null;
+	noteMark: (day: DayKey) => NoteMark;
 }
 
 export interface MonthViewHandlers {
@@ -27,6 +29,7 @@ export interface MonthViewHandlers {
 	onNext: () => void;
 	onSelectDay: (day: DayKey, evt: MouseEvent) => void;
 	onOpenEvent: (event: CalendarEvent, evt: MouseEvent) => void;
+	onEventMenu: (event: CalendarEvent, evt: MouseEvent) => void;
 	/** A range of days was dragged across, or one day double-clicked. */
 	onAddEntry: (start: DayKey, end: DayKey) => void;
 }
@@ -105,16 +108,17 @@ function renderWeek(parent: HTMLElement, week: DayKey[], model: MonthViewModel, 
 		if (month !== model.month) number.addClass('is-other-month');
 		if (day === model.today) number.addClass('is-today');
 		number.createSpan({ cls: 'sidebar-calendar__day-number', text: String(Number(day.slice(8))) });
-		// Always present so every week keeps the same height; only visible on days with a daily note.
-		const dot = number.createSpan({ cls: 'sidebar-calendar__note-dot' });
-		if (model.hasDailyNote?.(day)) dot.addClass('has-note');
+		// The row has a fixed height so every week keeps the same height with or without marks.
+		const marks = number.createSpan({ cls: 'sidebar-calendar__note-marks' });
+		const mark = model.noteMark(day);
+		if (mark !== 'none') marks.createSpan({ cls: 'sidebar-calendar__note-dot' });
+		if (mark === 'open-tasks') marks.createSpan({ cls: 'sidebar-calendar__task-ring' });
 	});
 
 	for (const bar of layout.bars) {
 		const barEl = weekEl.createDiv({ cls: 'sidebar-calendar__bar', attr: { 'data-event': bar.event.id } });
 		if (bar.continuesBefore) barEl.addClass('is-continued-before');
 		if (bar.continuesAfter) barEl.addClass('is-continued-after');
-		if (bar.event.done) barEl.addClass('is-done');
 		const color = model.colorFor(bar.event);
 		if (color) barEl.style.setProperty('--sidebar-calendar-bar-color', color);
 		barEl.style.gridColumn = `${bar.startCol + 1} / ${bar.endCol + 2}`;
@@ -123,6 +127,7 @@ function renderWeek(parent: HTMLElement, week: DayKey[], model: MonthViewModel, 
 			placement: 'top',
 		});
 		barEl.addEventListener('click', (evt) => handlers.onOpenEvent(bar.event, evt));
+		barEl.addEventListener('contextmenu', (evt) => handlers.onEventMenu(bar.event, evt));
 	}
 
 	layout.hiddenCounts.forEach((count, col) => {

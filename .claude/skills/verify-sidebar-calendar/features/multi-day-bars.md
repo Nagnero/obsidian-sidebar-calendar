@@ -23,14 +23,14 @@ Preconditions:
 
 - **Split.** Run `node $V snapshot d-multiday/baseline`. `D(5).md:1` has two bars in consecutive `week`s. The first has `continuedAfter: true` and ends at column 8 (Saturday). The second starts at column 1 with `continuedBefore: true`. Together they cover D(5) through D(12).
 - **Lanes.** In the same snapshot, `D(8).md:1` is in a week that also has a Trip bar, and its `lane` is `1` where it overlaps Trip in lane `0`.
-- **Overflow.** In the same snapshot, exactly three `D(20).md:*` bars sit in D(20)'s column with lanes `0`, `1`, `2`, and `more` has one entry `{ "text": "+1" }` in that column and week. No bar has ID `D(20).md:5` (the nested item).
+- **Overflow.** In the same snapshot, exactly three `D(20).md:*` bars sit in D(20)'s column with lanes `0`, `1`, `2`, and `more` has one entry `{ "text": "+1" }` in that column and week (D(27) has a `+1` of its own). No bar has ID `D(20).md:5` (the nested item).
 - **Hidden entry still listed.** Run `node $V click ".sidebar-calendar__day[data-date=\"$(node $V day 20)\"]"` and `node $V snapshot d-multiday/day-20`. `dayList.items` has all four titles `Crowded 1` to `Crowded 4` and nothing else.
 - **Proof.** Run `node $V screenshot d-multiday/day-20`. The red Trip bar runs off the right edge of one week and resumes at the left edge of the next, and `+1` shows under the 20th.
 
 Hide one-day entries (launch again from the baseline; it changes settings):
 
 - **Turn it off.** Run `node $V snapshot d-hide-one-day/baseline`, then `node $V click '.clickable-icon:has(svg.lucide-settings)'`, `node $V --settings click '.vertical-tab-nav-item:has-text("Sidebar Calendar")'` and `node $V --settings click '.setting-item:has(.setting-item-name:text-is("Show one-day entries")) .checkbox-container'`. Run `node $V --settings screenshot d-hide-one-day/settings-off`. `node $V eval 'return app.plugins.plugins["sidebar-calendar"].settings.showOneDay'` prints `false`, and the vault's `.obsidian/plugins/sidebar-calendar/data.json` has `"showOneDay": false`.
-- **Only multi-day bars.** Run `node $V snapshot d-hide-one-day/off`. `bars` holds only `D(5).md:1` (both weeks) and `D(8).md:1`, with the same week, column and lane as in the baseline. No `D(3)`, `D(20)` or `D(22)` bar remains, and `more` is `[]`.
+- **Only multi-day bars.** Run `node $V snapshot d-hide-one-day/off`. `bars` holds only `D(5).md:1` (both weeks), `D(8).md:1` and `D(27).md:4` (one or two weeks), with the same week, column and lane as in the baseline. No `D(3)`, `D(20)`, `D(22)` or `D(25)` bar remains, and `more` is `[]`.
 - **Day list unchanged.** Run `node $V click ".sidebar-calendar__day[data-date=\"$(node $V day 20)\"]"` and `node $V snapshot d-hide-one-day/off-day-20`. `dayList.items` is `Crowded 1` to `Crowded 4`. Run `node $V screenshot d-hide-one-day/off-day-20`: the 20th has no bars and no `+1`, the list below has four entries, and the red Trip and accent Workshop bars are drawn.
 - **Turn it back on.** Run the same `--settings click` on the switch, then `node $V snapshot d-hide-one-day/on` and `node $V screenshot d-hide-one-day/on`. `showOneDay` is `true` again, and `bars` and `more` equal the baseline. Then run `node $V stop`.
 

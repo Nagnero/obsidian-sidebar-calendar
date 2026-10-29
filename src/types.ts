@@ -1,5 +1,8 @@
 import type { DayKey } from './date/dayKey';
 
+/** The entry's task box: `[ ]` is open, any other mark is done, null is a plain list item. */
+export type TaskState = 'open' | 'done' | null;
+
 /** One schedule entry: a top-level list item under a kind H1 of a daily note. */
 export interface CalendarEvent {
 	/** `${path}:${line}`, unique and stable while the file is unchanged. */
@@ -15,5 +18,5 @@ export interface CalendarEvent {
 	end: DayKey;
 	/** Text of the H1 the entry sits under. */
 	kind: string;
-	done: boolean;
+	task: TaskState;
 }

@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { activeKinds, DEFAULT_SETTINGS, Kind, KIND_COLORS, reconcileKinds, sanitizeSettings } from '../src/settingsData';
+import { NAMED_COLORS } from '../src/kindColor';
+import { activeKinds, DEFAULT_SETTINGS, Kind, reconcileKinds, sanitizeSettings } from '../src/settingsData';
 
 test('missing or broken data gives the defaults', () => {
 	for (const raw of [null, undefined, 'x', 42, []]) {
@@ -10,15 +11,19 @@ test('missing or broken data gives the defaults', () => {
 
 test('valid values are kept', () => {
 	const raw = {
+		settingsLanguage: 'ko',
 		weekStart: 1,
 		maxLanes: 5,
 		dailyNotes: false,
 		showOneDay: false,
+		showDone: false,
 		kinds: [
 			{ name: '업무', enabled: true, color: '#0090ff' },
 			{ name: 'Journaling', enabled: false, color: '' },
+			{ name: '개인', enabled: true, color: 'green' },
 		],
 		lastKind: '업무',
+		listSort: 'unchecked',
 	};
 	assert.deepEqual(sanitizeSettings(raw), raw);
 });
@@ -41,10 +46,24 @@ test('bar rows are rounded and clamped to 1-6', () => {
 	assert.equal(sanitizeSettings({ maxLanes: NaN }).maxLanes, DEFAULT_SETTINGS.maxLanes);
 });
 
+test('show completed accepts only a boolean', () => {
+	assert.equal(sanitizeSettings({}).showDone, true);
+	assert.equal(sanitizeSettings({ showDone: false }).showDone, false);
+	assert.equal(sanitizeSettings({ showDone: 'false' }).showDone, true);
+	assert.equal(sanitizeSettings({ showDone: 0 }).showDone, true);
+});
+
 test('week start accepts only Sunday or Monday', () => {
 	assert.equal(sanitizeSettings({ weekStart: 1 }).weekStart, 1);
 	assert.equal(sanitizeSettings({ weekStart: '1' }).weekStart, 1);
 	assert.equal(sanitizeSettings({ weekStart: 3 }).weekStart, 0);
+});
+
+test('settings language accepts only English or Korean', () => {
+	assert.equal(sanitizeSettings({}).settingsLanguage, 'en');
+	assert.equal(sanitizeSettings({ settingsLanguage: 'ko' }).settingsLanguage, 'ko');
+	assert.equal(sanitizeSettings({ settingsLanguage: 'ja' }).settingsLanguage, 'en');
+	assert.equal(sanitizeSettings({ settingsLanguage: 1 }).settingsLanguage, 'en');
 });
 
 test('show one-day entries accepts only a boolean', () => {
@@ -72,14 +91,30 @@ test('result never shares arrays with the defaults', () => {
 	assert.equal(DEFAULT_SETTINGS.kinds.length, 0);
 });
 
-test('reconcile adds new template H1s, enabled, with the first unused preset color', () => {
+test('kind colors keep the accent, named colors and custom hex, and drop anything else', () => {
+	const colors = ['', 'green', 'pink', '#0090FF', '#30a46c', 'Green', 'teal', '#fff', 'var(--color-red)', 3, null];
+	const result = sanitizeSettings({ kinds: colors.map((color, i) => ({ name: `k${i}`, color })) });
+	assert.deepEqual(result.kinds.map((k) => k.color), ['', 'green', 'pink', '#0090ff', '#30a46c', '', '', '', '', '', '']);
+});
+
+test('reconcile adds new template H1s, enabled, with the first unused named color', () => {
 	assert.deepEqual(reconcileKinds([], ['업무', '개인', 'Journaling']), [
-		{ name: '업무', enabled: true, color: KIND_COLORS[0] },
-		{ name: '개인', enabled: true, color: KIND_COLORS[1] },
-		{ name: 'Journaling', enabled: true, color: KIND_COLORS[2] },
+		{ name: '업무', enabled: true, color: 'red' },
+		{ name: '개인', enabled: true, color: 'orange' },
+		{ name: 'Journaling', enabled: true, color: 'yellow' },
 	]);
-	const stored: Kind[] = [{ name: '업무', enabled: true, color: KIND_COLORS[0] ?? '' }];
-	assert.deepEqual(reconcileKinds(stored, ['업무', '개인']).map((k) => k.color), [KIND_COLORS[0], KIND_COLORS[1]]);
+	const stored: Kind[] = [
+		{ name: '업무', enabled: true, color: 'red' },
+		{ name: '옛날', enabled: true, color: 'orange' },
+		{ name: '개인', enabled: true, color: '#e5484d' },
+	];
+	assert.deepEqual(reconcileKinds(stored, ['업무', '개인', '공부']).map((k) => k.color), ['red', '#e5484d', 'yellow', 'orange']);
+});
+
+test('reconcile cycles the named colors once every one is taken', () => {
+	const stored: Kind[] = NAMED_COLORS.map((color) => ({ name: color, enabled: true, color }));
+	const result = reconcileKinds(stored, [...NAMED_COLORS, 'ninth']);
+	assert.equal(result.at(-1)?.color, NAMED_COLORS[0]);
 });
 
 test('reconcile keeps stored settings, follows template order, and keeps stale kinds last', () => {
@@ -112,4 +147,9 @@ test('active kinds are the enabled ones the template has, in template order', ()
 	];
 	assert.deepEqual(activeKinds(kinds, ['업무', 'Journaling', '개인']).map((k) => k.name), ['업무', '개인']);
 	assert.deepEqual(activeKinds(kinds, []), []);
+});
+
+test('list sort accepts only a known sort key', () => {
+	for (const sort of ['start', 'note', 'unchecked', 'kind']) assert.equal(sanitizeSettings({ listSort: sort }).listSort, sort);
+	for (const sort of ['title', 'Kind', 1, null]) assert.equal(sanitizeSettings({ listSort: sort }).listSort, 'start');
 });
