@@ -157,6 +157,16 @@ export class SidebarCalendarSettingTab extends PluginSettingTab {
 			);
 
 		new Setting(containerEl)
+			.setName(t.showOverdue)
+			.setDesc(t.showOverdueDesc)
+			.addToggle((toggle) =>
+				toggle.setValue(settings.showOverdue).onChange(async (value) => {
+					settings.showOverdue = value;
+					await plugin.saveSettings();
+				}),
+			);
+
+		new Setting(containerEl)
 			.setName(t.dailyNotes)
 			.setDesc(t.dailyNotesDesc)
 			.addToggle((toggle) =>

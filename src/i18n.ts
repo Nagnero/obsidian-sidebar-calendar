@@ -65,6 +65,8 @@ const en = {
 	plainItems: 'Show items without a checkbox',
 	plainItemsDesc:
 		'When on, list items without a checkbox outside the hidden sub-heading are entries too. When off, only items with a checkbox (- [ ] or - [x]) are entries.',
+	showOverdue: 'Show overdue to-dos',
+	showOverdueDesc: 'When on, selecting today lists the unchecked to-dos of earlier days under Overdue in the list under the calendar.',
 	dailyNotes: 'Daily notes',
 	dailyNotesDesc:
 		'Mark days that have a daily note with a dot, and with a ring when the note has an unchecked task. Clicking such a day opens its note. Uses the folder, format and template of the core daily notes plugin, which must be turned on.',
@@ -120,6 +122,8 @@ const ko: SettingsStrings = {
 	plainItems: '체크박스 없는 항목도 표시',
 	plainItemsDesc:
 		'켜면 숨길 소제목 밖에 있는 체크박스 없는 목록 항목도 일정으로 표시합니다. 끄면 체크박스가 있는 항목(- [ ], - [x])만 일정으로 표시합니다.',
+	showOverdue: '지난 할 일 표시',
+	showOverdueDesc: '켜면 오늘을 선택했을 때 지난 날짜의 완료하지 않은 할 일을 Calendar 아래 목록의 지난 할 일 묶음에 표시합니다.',
 	dailyNotes: '일일 노트',
 	dailyNotesDesc:
 		'일일 노트가 있는 날은 점으로, 그 노트에 완료하지 않은 할 일이 있으면 빈 원으로 표시합니다. 그런 날을 클릭하면 노트가 열립니다. 코어 플러그인 일일 노트의 폴더, 형식, 템플릿을 사용하므로 그 플러그인을 켜 두어야 합니다.',

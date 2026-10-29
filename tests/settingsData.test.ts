@@ -27,6 +27,7 @@ test('valid values are kept', () => {
 		listSort: 'unchecked',
 		hiddenSubheading: 'Someday',
 		plainItems: true,
+		showOverdue: false,
 	};
 	assert.deepEqual(sanitizeSettings(raw), raw);
 });
@@ -176,4 +177,10 @@ test('plain items are off unless turned on', () => {
 	assert.equal(sanitizeSettings({}).plainItems, false);
 	assert.equal(sanitizeSettings({ plainItems: true }).plainItems, true);
 	assert.equal(sanitizeSettings({ plainItems: 'yes' }).plainItems, false);
+});
+
+test('overdue to-dos show unless turned off', () => {
+	assert.equal(sanitizeSettings({}).showOverdue, true);
+	assert.equal(sanitizeSettings({ showOverdue: false }).showOverdue, false);
+	assert.equal(sanitizeSettings({ showOverdue: 'no' }).showOverdue, true);
 });

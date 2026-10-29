@@ -142,7 +142,7 @@ export class CalendarView extends ItemView {
 				sort: settings.listSort,
 				showDone: settings.showDone,
 				offCalendarLabel: settings.hiddenSubheading,
-				overdue: this.selectedDay === today
+				overdue: settings.showOverdue && this.selectedDay === today
 					? events.filter((e) => !e.onCalendar && e.task === 'open' && e.start < today).sort(compareByStart)
 					: [],
 				strings: DAY_LIST_STRINGS[settings.settingsLanguage],

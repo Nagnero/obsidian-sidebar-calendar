@@ -42,6 +42,8 @@ export interface SidebarCalendarSettings {
 	hiddenSubheading: string;
 	/** Read list items without a task box outside the hidden sub-heading as entries too. */
 	plainItems: boolean;
+	/** On today, list the open to-dos of earlier days. */
+	showOverdue: boolean;
 }
 
 export const DEFAULT_SETTINGS: SidebarCalendarSettings = {
@@ -57,6 +59,7 @@ export const DEFAULT_SETTINGS: SidebarCalendarSettings = {
 	listSort: 'start',
 	hiddenSubheading: 'To do',
 	plainItems: false,
+	showOverdue: true,
 };
 
 export const MIN_LANES = 1;
@@ -99,6 +102,7 @@ export function sanitizeSettings(raw: unknown): SidebarCalendarSettings {
 		listSort: isListSort(data.listSort) ? data.listSort : d.listSort,
 		hiddenSubheading: sanitizeSubheading(data.hiddenSubheading),
 		plainItems: typeof data.plainItems === 'boolean' ? data.plainItems : d.plainItems,
+		showOverdue: typeof data.showOverdue === 'boolean' ? data.showOverdue : d.showOverdue,
 	};
 }
 
