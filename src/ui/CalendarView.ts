@@ -5,6 +5,7 @@ import { eventsOnDay } from '../layout/weekLayout';
 import type { TemplateHeadings } from '../data/DailyNotes';
 import { kindColorCss } from '../kindColor';
 import { sortEntries } from '../data/sortEntries';
+import { visibleEvents } from '../data/visibleEvents';
 import type SidebarCalendarPlugin from '../main';
 import type { CalendarEvent } from '../types';
 import { AddEntryModal } from './AddEntryModal';
@@ -56,6 +57,7 @@ export class CalendarView extends ItemView {
 		const locale = appLocale();
 		const { settings } = this.plugin;
 		const events = this.plugin.eventStore.getEvents();
+		const visible = visibleEvents(events, settings);
 		const dailyNotes = settings.dailyNotes && this.plugin.dailyNotes.isAvailable()
 			? this.plugin.dailyNotes
 			: null;
@@ -80,7 +82,7 @@ export class CalendarView extends ItemView {
 				today: todayKey(),
 				weekStart: settings.weekStart,
 				locale,
-				events: settings.showOneDay ? events : events.filter((e) => e.start !== e.end),
+				events: visible.grid,
 				maxLanes: settings.maxLanes,
 				colorFor,
 				selectedDay: this.selectedDay,
@@ -112,8 +114,9 @@ export class CalendarView extends ItemView {
 			root,
 			{
 				day: this.selectedDay,
-				events: sortEntries(eventsOnDay(events, this.selectedDay), settings.listSort, kinds.map((k) => k.name)),
+				events: sortEntries(eventsOnDay(visible.list, this.selectedDay), settings.listSort, kinds.map((k) => k.name)),
 				sort: settings.listSort,
+				showDone: settings.showDone,
 				locale,
 				colorFor,
 			},
@@ -122,6 +125,11 @@ export class CalendarView extends ItemView {
 				onEventMenu: eventMenu,
 				onSort: (sort) => {
 					settings.listSort = sort;
+					void this.plugin.saveData(settings);
+					this.plugin.refreshViews();
+				},
+				onShowDone: (showDone) => {
+					settings.showDone = showDone;
 					void this.plugin.saveData(settings);
 					this.plugin.refreshViews();
 				},

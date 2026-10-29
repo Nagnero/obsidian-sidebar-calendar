@@ -143,10 +143,6 @@
 	border-bottom-right-radius: 0;
 }
 
-.sidebar-calendar__bar.is-done {
-	opacity: 0.35;
-}
-
 .sidebar-calendar__more {
 	z-index: 1;
 	text-align: center;

@@ -21,6 +21,8 @@ export interface SidebarCalendarSettings {
 	dailyNotes: boolean;
 	/** Draw entries whose `start` equals `end` on the grid. The day list shows them either way. */
 	showOneDay: boolean;
+	/** Show done tasks on the grid and in the day list. Chosen from the day list's sort menu. */
+	showDone: boolean;
 	/** Every H1 seen in the template, in template order; ones no longer there come last. */
 	kinds: Kind[];
 	/** Name of the kind chosen last when adding an entry. */
@@ -35,6 +37,7 @@ export const DEFAULT_SETTINGS: SidebarCalendarSettings = {
 	maxLanes: 3,
 	dailyNotes: true,
 	showOneDay: true,
+	showDone: true,
 	kinds: [],
 	lastKind: '',
 	listSort: 'start',
@@ -73,6 +76,7 @@ export function sanitizeSettings(raw: unknown): SidebarCalendarSettings {
 		maxLanes: lanes,
 		dailyNotes: typeof data.dailyNotes === 'boolean' ? data.dailyNotes : d.dailyNotes,
 		showOneDay: typeof data.showOneDay === 'boolean' ? data.showOneDay : d.showOneDay,
+		showDone: typeof data.showDone === 'boolean' ? data.showDone : d.showDone,
 		kinds,
 		lastKind: typeof data.lastKind === 'string' ? data.lastKind : d.lastKind,
 		listSort: isListSort(data.listSort) ? data.listSort : d.listSort,

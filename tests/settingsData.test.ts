@@ -16,6 +16,7 @@ test('valid values are kept', () => {
 		maxLanes: 5,
 		dailyNotes: false,
 		showOneDay: false,
+		showDone: false,
 		kinds: [
 			{ name: '업무', enabled: true, color: '#0090ff' },
 			{ name: 'Journaling', enabled: false, color: '' },
@@ -43,6 +44,13 @@ test('bar rows are rounded and clamped to 1-6', () => {
 	assert.equal(sanitizeSettings({ maxLanes: 2.6 }).maxLanes, 3);
 	assert.equal(sanitizeSettings({ maxLanes: '4' }).maxLanes, DEFAULT_SETTINGS.maxLanes);
 	assert.equal(sanitizeSettings({ maxLanes: NaN }).maxLanes, DEFAULT_SETTINGS.maxLanes);
+});
+
+test('show completed accepts only a boolean', () => {
+	assert.equal(sanitizeSettings({}).showDone, true);
+	assert.equal(sanitizeSettings({ showDone: false }).showDone, false);
+	assert.equal(sanitizeSettings({ showDone: 'false' }).showDone, true);
+	assert.equal(sanitizeSettings({ showDone: 0 }).showDone, true);
 });
 
 test('week start accepts only Sunday or Monday', () => {

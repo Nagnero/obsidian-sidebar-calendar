@@ -33,7 +33,7 @@ The calendar reads the H1 headings of your core **Daily notes** template as kind
 ```
 
 - A section runs from the H1 to the next H1. Deeper headings inside it, like `## 오후`, do not end it.
-- `[ ]` and `[x]` make an entry a task. Done entries are faded.
+- `[ ]` and `[x]` make an entry a task. Done entries are struck through in the list under the calendar.
 - `~10-23`, `~10/23` or `~2026-10-23` at the end sets the last day. A month and day earlier than the note's date means next year. Parentheses are part of the title, and a range just before trailing parentheses (`출장 ~10-23 (회의)`) still counts.
 - Indented items are notes about the entry and do not show on the calendar.
 
@@ -49,7 +49,7 @@ To add an entry from the calendar, drag across days or double-click a day, pick 
 
 To make an entry last several days, or one day again, right-click its bar, its entry in the list, or its line in the daily note, choose **Change duration…**, type the number of days and press Enter. The `~MM-DD` at the end of the line is written, changed or removed for you. In a note that is open, the change goes through the editor, so you can undo it there.
 
-The sort button at the right of the list header orders the selected day's entries by **Start date** (the default: earlier start first, longer entries first, then title), **Note order** (as written in the daily notes), **Unchecked first** (open tasks, then plain items, then done tasks), or **Kind** (the template's heading order). The choice is saved and affects only the list, not the bars.
+The sort and filter button at the right of the list header orders the selected day's entries by **Start date** (the default: earlier start first, longer entries first, then title), **Note order** (as written in the daily notes), **Unchecked first** (open tasks, then plain items, then done tasks), or **Kind** (the template's heading order). The choice is saved and affects only the list, not the bars. Uncheck **Show completed** in the same menu to hide done tasks from both the list and the calendar; the choice is saved.
 
 ## Development
 
