@@ -27,4 +27,4 @@ Preconditions: baseline fixtures. `D(23).md` has the long `Quarterly planning wo
 
 - Chips cover the middle of a day cell, so a click there opens the chip's note. `click` and `dblclick` on a `.sidebar-calendar__day` press its date number row for that reason.
 - `sidebar` and `theme` change the window, not the vault; `stop` resets them.
-- White text on the yellow kind color is hard to read in the light theme; the fixtures use red and the accent.
+- White text has the least contrast on the `yellow` kind color in the light theme. It stays legible at 11 px; to look at it, pick yellow for `업무` in the color popover and screenshot the sidebar.
