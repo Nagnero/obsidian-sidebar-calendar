@@ -17,6 +17,8 @@ export interface DayListModel {
 	events: readonly CalendarEvent[];
 	sort: ListSort;
 	showDone: boolean;
+	/** Heading of the group of entries that are not on the grid: the hidden sub-heading's name. */
+	offCalendarLabel: string;
 	locale: string;
 	colorFor: (event: CalendarEvent) => string | null;
 }
@@ -56,7 +58,27 @@ export function renderDayList(parent: HTMLElement, model: DayListModel, handlers
 		return;
 	}
 
-	for (const event of model.events) {
+	const onCalendar = model.events.filter((event) => event.onCalendar);
+	const offCalendar = model.events.filter((event) => !event.onCalendar);
+	if (offCalendar.length === 0) {
+		renderItems(list, onCalendar, model, handlers);
+		return;
+	}
+	if (onCalendar.length > 0) {
+		list.createDiv({ cls: 'sidebar-calendar__day-list-group', text: 'Events' });
+		renderItems(list, onCalendar, model, handlers);
+	}
+	list.createDiv({ cls: 'sidebar-calendar__day-list-group', text: model.offCalendarLabel });
+	renderItems(list, offCalendar, model, handlers);
+}
+
+function renderItems(
+	list: HTMLElement,
+	events: readonly CalendarEvent[],
+	model: DayListModel,
+	handlers: DayListHandlers,
+): void {
+	for (const event of events) {
 		const item = list.createDiv({ cls: 'sidebar-calendar__event-item', attr: { 'data-event': event.id } });
 		if (event.task === 'done') item.addClass('is-done');
 		const swatch = item.createSpan({ cls: 'sidebar-calendar__event-swatch' });

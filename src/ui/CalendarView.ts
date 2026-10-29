@@ -119,6 +119,7 @@ export class CalendarView extends ItemView {
 				events: sortEntries(eventsOnDay(visible.list, this.selectedDay), settings.listSort, kinds.map((k) => k.name)),
 				sort: settings.listSort,
 				showDone: settings.showDone,
+				offCalendarLabel: settings.hiddenSubheading,
 				locale,
 				colorFor,
 			},
