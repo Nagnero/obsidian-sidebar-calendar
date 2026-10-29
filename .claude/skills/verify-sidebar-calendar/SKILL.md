@@ -59,7 +59,7 @@ Read-only. Prints the Obsidian version, vault path, plugin version, and whether 
 | `node $V task-latency <n> '<title>'` | Selects day `n` (opening its daily note), clicks the live-preview checkbox on the line containing `title`, and prints `before`/`after` (list item `done`, day `ring`) with `listMs` and `ringMs`, the ms from the click until each changed. Each run toggles the box. |
 | `node $V day <n>` | Prints `YYYY-MM-DD` for day `n` of the current month, to build selectors. |
 
-Add `--settings` to `click`, `hover`, `fill`, `select`, `eval`, or `screenshot` to act on the Settings window. Obsidian 1.14 opens Settings in a separate window, so main-window selectors never see it.
+Add `--settings` to `click`, `hover`, `fill`, `select`, `press`, `eval`, or `screenshot` to act on the Settings window. Obsidian 1.14 opens Settings in a separate window, so main-window selectors never see it.
 
 Stable handles, all from `src/ui/`:
 
@@ -72,7 +72,7 @@ Stable handles, all from `src/ui/`:
 - Header buttons: `[aria-label="Previous month"]`, `[aria-label="Current month"]`, `[aria-label="Next month"]`.
 - Day list: `.sidebar-calendar__day-list`, items `.sidebar-calendar__event-item`, the sort button `[aria-label="Sort entries"]`, and its menu items `.menu .menu-item:has-text("Note order")` (checked ones have `mod-checked`).
 - Day marks: `.sidebar-calendar__note-dot` (daily note) and `.sidebar-calendar__task-ring` (unchecked task) inside `.sidebar-calendar__note-marks`.
-- Settings gear (main window): `.clickable-icon:has(svg.lucide-settings)`. In the Settings window: `.vertical-tab-nav-item:has-text("Sidebar Calendar")`, the template status `.sidebar-calendar-template-status .setting-item-description`, kind rows `.sidebar-calendar-kind-setting[data-kind="<H1 text>"]` with the switch `.checkbox-container` (`is-enabled` when on), and on a row not in the template the delete button `.clickable-icon`. The language dropdown `.setting-item:has(.setting-item-name:has-text("Language")) select` (its name also contains `언어`). Calendar section switches by row name, for example `.setting-item:has(.setting-item-name:text-is("Show one-day entries")) .checkbox-container`.
+- Settings gear (main window): `.clickable-icon:has(svg.lucide-settings)`. In the Settings window: `.vertical-tab-nav-item:has-text("Sidebar Calendar")`, the template status `.sidebar-calendar-template-status .setting-item-description`, kind rows `.sidebar-calendar-kind-setting[data-kind="<H1 text>"]` with the switch `.checkbox-container` (`is-enabled` when on), the color swatch `.sidebar-calendar-color__swatch` (`aria-expanded` while its popover is open), the custom color button `.sidebar-calendar-color__custom` and its hidden `input[type=color]`, and on a row not in the template the delete button `.clickable-icon`. The swatch's popover is `.sidebar-calendar-color__popover` with dots `.sidebar-calendar-color__dot[data-color="<color>"]` (`data-color=""` is the theme accent, then `red` … `pink`; the current one has `aria-pressed="true"`). The language dropdown `.setting-item:has(.setting-item-name:has-text("Language")) select` (its name also contains `언어`). Calendar section switches by row name, for example `.setting-item:has(.setting-item-name:text-is("Show one-day entries")) .checkbox-container`.
 
 ## Evidence
 

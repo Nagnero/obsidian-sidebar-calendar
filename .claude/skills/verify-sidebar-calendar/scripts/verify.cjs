@@ -103,7 +103,7 @@ function seedVault() {
 				maxLanes: 3,
 				dailyNotes: true,
 				kinds: [
-					{ name: '업무', enabled: true, color: '#e5484d' },
+					{ name: '업무', enabled: true, color: 'red' },
 					{ name: '개인', enabled: true, color: '' },
 					{ name: 'Journaling', enabled: false, color: '' },
 				],
@@ -483,7 +483,7 @@ const HELP = `usage: node verify.cjs <command>
   task-latency <n> <t>   open day n's note, click the checkbox on the line with t, print ms until the list and ring change
   day <n>                print YYYY-MM-DD for day n of the current month
   stop                   stop this run's Obsidian and delete its vault (artifacts are kept)
-add --settings to eval/click/hover/fill/select/screenshot to act on the Settings window
+add --settings to eval/click/hover/fill/select/press/screenshot to act on the Settings window
 env: VERIFY_RUN_ID (default "default"), VERIFY_PORT (default 9333), OBSIDIAN_BIN (skip download)`;
 
 (async () => {
