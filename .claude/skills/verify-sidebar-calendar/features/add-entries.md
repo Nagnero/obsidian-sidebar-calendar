@@ -34,6 +34,8 @@ Preconditions:
 - **No kinds.** Open the plugin's settings tab (see [kind-colors.md](./kind-colors.md)), turn off `업무` and `개인` with `node $V --settings click '.sidebar-calendar-kind-setting[data-kind="<kind>"] .checkbox-container'`, then `node $V dblclick ".sidebar-calendar__day[data-date=\"$(node $V day 21)\"]"` and `node $V eval 'return { notice: [...document.querySelectorAll(".notice")].map(n => n.textContent), modal: document.querySelector(".modal-container .modal-title")?.textContent ?? null }'`. The notice is `Add a top-level heading (# …) to the daily note template, or turn one on in the Sidebar Calendar settings.` and `modal` is null.
 - **Proof.** Keep `h-add/drag-modal.png`, `h-add/drag-added.png`, `h-add/dblclick-modal.png` and `h-add/dblclick-added.png`, then run `node $V stop`.
 
+- **Event or to-do.** Double-click D(15), click `.modal-container .sidebar-calendar__kind-btn[data-type="todo"]` and the `개인` kind, fill `은행 가기` and press Enter. `D(15).md` is `Existing daily note\n\n# 개인\n## To do\n- [ ] 은행 가기\n`, and the D(15) list shows it under `To do` with a circle. A drag from D(16) to D(17) opens the dialog with `Event` pressed and `To do` disabled, since a to-do is for one day.
+
 ## Gotchas
 
 - The drag must be real mouse down, move and up; `drag` does that. Clicking two cells is two plain clicks, not a drag.

@@ -391,6 +391,11 @@
 	gap: var(--size-4-2);
 }
 
+.sidebar-calendar__kind-btn:disabled {
+	opacity: 0.4;
+	cursor: not-allowed;
+}
+
 .sidebar-calendar__kind-swatch {
 	width: 8px;
 	height: 8px;

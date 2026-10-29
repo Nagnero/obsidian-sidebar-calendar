@@ -389,3 +389,10 @@ test('a moved entry parses back on its new day with the same length and place', 
 		['자소서', '2026-11-02', false],
 	]);
 });
+
+test('a new to-do goes under the To do sub-heading', () => {
+	assert.equal(
+		appendScheduleLine('# 개인\n- [ ] 약속\n', '개인', { title: '자소서', start: DAY, end: DAY }, HIDDEN, false),
+		'# 개인\n- [ ] 약속\n## To do\n- [ ] 자소서\n',
+	);
+});

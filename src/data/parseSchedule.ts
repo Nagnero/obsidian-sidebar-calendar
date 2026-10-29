@@ -93,13 +93,14 @@ export function templateH1s(text: string): string[] {
 }
 
 /**
- * `text` with `entry` written as an open task in the visible part of the first `# kind` section,
- * outside the `hiddenSubheading` region: after its last top-level item and that item's indented
- * lines or, with no such item, after the free text that follows the H1. A note without that H1
- * gets a new `# kind` section at the end.
+ * `text` with `entry` written as an open task in the first `# kind` section. An event goes in the
+ * visible part, outside the `hiddenSubheading` region: after its last top-level item and that
+ * item's indented lines or, with no such item, after the free text that follows the H1. A to-do
+ * (`onCalendar` false) goes under that sub-heading, as `putEntry` puts one. A note without that
+ * H1 gets a new `# kind` section at the end.
  */
-export function appendScheduleLine(text: string, kind: string, entry: NewEntry, hiddenSubheading: string): string {
-	return putEntry(text, { lines: [formatEntryLine(entry)], kind, onCalendar: true }, hiddenSubheading);
+export function appendScheduleLine(text: string, kind: string, entry: NewEntry, hiddenSubheading: string, onCalendar = true): string {
+	return putEntry(text, { lines: [formatEntryLine(entry)], kind, onCalendar }, hiddenSubheading);
 }
 
 /**
