@@ -67,6 +67,7 @@
 	grid-row: 1 / -1;
 	border-radius: var(--radius-s);
 	cursor: pointer;
+	user-select: none;
 }
 
 .sidebar-calendar__day:hover {
@@ -74,7 +75,29 @@
 }
 
 .sidebar-calendar__weeks {
+	position: relative;
 	user-select: none;
+}
+
+.sidebar-calendar.is-compact {
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
+}
+
+.sidebar-calendar.is-compact .sidebar-calendar__month {
+	flex: none;
+}
+
+.sidebar-calendar.is-compact .sidebar-calendar__weeks {
+	height: var(--sidebar-calendar-week-height);
+	overflow: hidden;
+}
+
+.sidebar-calendar.is-compact .sidebar-calendar__day-list {
+	flex: 1 1 auto;
+	min-height: 0;
+	overflow-y: auto;
 }
 
 .sidebar-calendar__day.is-selected {
@@ -253,8 +276,20 @@
 	color: var(--text-normal);
 }
 
+.sidebar-calendar__day-list-group {
+	margin-top: var(--size-4-2);
+	padding: 0 var(--size-4-2) var(--size-2-1);
+	font-size: var(--font-ui-smaller);
+	font-weight: var(--font-semibold);
+	color: var(--text-muted);
+}
+
+.sidebar-calendar__day-list-header + .sidebar-calendar__day-list-group {
+	margin-top: 0;
+}
+
 .sidebar-calendar__day-list-empty {
-	padding: var(--size-4-1) 0;
+	padding: var(--size-4-1) var(--size-4-2);
 	font-size: var(--font-ui-small);
 	color: var(--text-faint);
 }
@@ -275,9 +310,40 @@
 .sidebar-calendar__event-swatch {
 	flex: none;
 	width: 4px;
+	margin: 0 5px;
 	align-self: stretch;
 	border-radius: 2px;
 	background-color: var(--sidebar-calendar-bar-color, var(--interactive-accent));
+}
+
+.sidebar-calendar__event-check {
+	flex: none;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 14px;
+	height: 14px;
+	margin-top: 2px;
+	border: 1.5px solid var(--sidebar-calendar-bar-color, var(--interactive-accent));
+	border-radius: 50%;
+	color: transparent;
+	cursor: pointer;
+}
+
+.sidebar-calendar__event-check:hover {
+	background-color: color-mix(in srgb, var(--sidebar-calendar-bar-color, var(--interactive-accent)) 20%, transparent);
+}
+
+.sidebar-calendar__event-check svg {
+	width: 10px;
+	height: 10px;
+	stroke-width: 3;
+}
+
+.sidebar-calendar__event-item.is-done .sidebar-calendar__event-check {
+	background-color: var(--sidebar-calendar-bar-color, var(--interactive-accent));
+	color: var(--text-on-accent);
+	opacity: 0.6;
 }
 
 .sidebar-calendar__event-text {

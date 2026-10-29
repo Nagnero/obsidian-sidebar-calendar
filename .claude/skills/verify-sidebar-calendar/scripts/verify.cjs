@@ -102,6 +102,7 @@ function seedVault() {
 				weekStart: 0,
 				maxLanes: 3,
 				dailyNotes: true,
+				plainItems: true,
 				kinds: [
 					{ name: '업무', enabled: true, color: 'red' },
 					{ name: '개인', enabled: true, color: '' },
@@ -123,7 +124,7 @@ function seedVault() {
 	writeFile(`${day(20)}.md`, '# 업무\n- Crowded 1\n- Crowded 2\n- Crowded 3\n- Crowded 4\n  - nested note, not an entry\n');
 	writeFile(`${day(22)}.md`, '# 업무\n- [ ] Report\n- [x] Groceries\n\n# Journaling\n- Journal line, not an entry\n');
 	writeFile(`${day(27)}.md`, `# 개인\n- [x] Call mom\n- Zoo\n# 업무\n- [ ] Budget ~${mm}-28\n- Memo\n`);
-	writeFile(`${day(10)}.md`, '# 개인\n- 18시 기헌이 약속\n## To do\n- [ ] 메리츠증권 자소서 작성\n### Later\n- Renew passport\n');
+	writeFile(`${day(10)}.md`, '# 개인\n- 18시 기헌이 약속\n## To do\n- [ ] 메리츠증권 자소서 작성\n### Later\n- [ ] Renew passport\n- Plain note, not a to-do\n');
 	writeFile(`${day(23)}.md`, `# 개인\n- Quarterly planning workshop with the whole product team ~${mm}-24\n`);
 	writeFile(`${day(25)}.md`, '# 업무\n- [x] Paid rent\n- Lunch\n\n# Journaling\n- [ ] Journal task, not read\n');
 }
@@ -214,6 +215,8 @@ async function launch() {
 	await page.waitForFunction((id) => !!app.plugins.plugins[id], PLUGIN_ID, { timeout: 20_000 });
 	await page.evaluate((id) => app.commands.executeCommandById(`${id}:open-view`), PLUGIN_ID);
 	await page.locator('.sidebar-calendar__weeks').waitFor({ timeout: 10_000 });
+	// Tall enough for the whole month and the day list, so the calendar starts outside its one-week view.
+	await page.evaluate(() => require('@electron/remote').getCurrentWindow().setSize(1024, 1000));
 	await browser.close();
 	console.log(`verify: ready. run=${RUN_ID} port=${PORT} vault=${VAULT} artifacts=${ARTIFACTS}`);
 }
@@ -466,15 +469,18 @@ async function snapshot(name) {
 			dayList: {
 				title: text(root.querySelector('.sidebar-calendar__day-list-title')),
 				headerButtons: [...root.querySelectorAll('.sidebar-calendar__day-list-header .clickable-icon')].map((b) => b.getAttribute('aria-label')),
+				groups: [...root.querySelectorAll('.sidebar-calendar__day-list-group')].map(text),
 				items: [...root.querySelectorAll('.sidebar-calendar__event-item')].map((i) => ({
 					event: i.dataset.event,
+					marker: i.querySelector('.sidebar-calendar__event-check') ? 'circle' : 'bar',
 					hasBar: !!root.querySelector(`.sidebar-calendar__bar[data-event="${CSS.escape(i.dataset.event)}"]`),
 					title: text(i.querySelector('.sidebar-calendar__event-title')),
 					done: i.classList.contains('is-done'),
 					range: text(i.querySelector('.sidebar-calendar__event-range')),
 				})),
-				empty: text(root.querySelector('.sidebar-calendar__day-list-empty')),
+				empty: [...root.querySelectorAll('.sidebar-calendar__day-list-empty')].map(text),
 			},
+			compact: root.classList.contains('is-compact'),
 			listOnly: app.plugins.plugins['sidebar-calendar'].eventStore.getEvents().filter((e) => !e.onCalendar).map((e) => e.id),
 			activeFile: app.workspace.getActiveFile()?.path ?? null,
 			cursorLine: app.workspace.activeEditor?.editor?.getCursor().line ?? null,

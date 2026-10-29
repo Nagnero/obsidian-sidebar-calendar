@@ -6,7 +6,7 @@ import { activeKinds, Kind, reconcileKinds } from './settingsData';
 import { DayKey, todayKey } from './date/dayKey';
 import { DailyNotes, TemplateHeadings } from './data/DailyNotes';
 import { EventStore } from './data/EventStore';
-import { parseSchedule, ScheduleRules, setEntryEnd } from './data/parseSchedule';
+import { parseSchedule, ScheduleRules, setEntryEnd, setEntryTask } from './data/parseSchedule';
 import type { CalendarEvent } from './types';
 import { appLocale, CalendarView } from './ui/CalendarView';
 import { DurationModal } from './ui/DurationModal';
@@ -162,7 +162,15 @@ export default class SidebarCalendarPlugin extends Plugin {
 	 * `editor-change` at once. A closed note is edited on disk.
 	 */
 	async setEntryEnd(entry: EntryRef, end: DayKey): Promise<void> {
-		const rewrite = (text: string) => setEntryEnd(text, entry.start, this.scheduleRules(), entry.line, end);
+		await this.rewriteEntryLine(entry, (text) => setEntryEnd(text, entry.start, this.scheduleRules(), entry.line, end));
+	}
+
+	/** Checks or unchecks `entry`'s task box, by the same write path as `setEntryEnd`. */
+	async setEntryTask(entry: EntryRef, done: boolean): Promise<void> {
+		await this.rewriteEntryLine(entry, (text) => setEntryTask(text, entry.start, this.scheduleRules(), entry.line, done));
+	}
+
+	private async rewriteEntryLine(entry: EntryRef, rewrite: (text: string) => string | null): Promise<void> {
 		const editor = this.openEditor(entry.path);
 		if (editor) {
 			const next = rewrite(editor.getValue());
@@ -184,7 +192,8 @@ export default class SidebarCalendarPlugin extends Plugin {
 	}
 
 	private scheduleRules(): ScheduleRules {
-		return { kinds: this.activeKinds().map((k) => k.name), hiddenSubheading: this.settings.hiddenSubheading };
+		const { hiddenSubheading, plainItems } = this.settings;
+		return { kinds: this.activeKinds().map((k) => k.name), hiddenSubheading, plainItems };
 	}
 
 	/** The enabled kinds the template has, in template order. */

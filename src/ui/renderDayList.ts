@@ -11,12 +11,16 @@ const SORT_LABELS: Record<ListSort, string> = {
 	kind: 'Kind',
 };
 
+const DOUBLE_CLICK_MS = 250;
+
 export interface DayListModel {
 	day: DayKey;
 	/** Already in `sort` order. */
 	events: readonly CalendarEvent[];
 	sort: ListSort;
 	showDone: boolean;
+	/** Heading of the group of entries that are not on the grid: the hidden sub-heading's name. */
+	offCalendarLabel: string;
 	locale: string;
 	colorFor: (event: CalendarEvent) => string | null;
 }
@@ -24,6 +28,7 @@ export interface DayListModel {
 export interface DayListHandlers {
 	onOpenEvent: (event: CalendarEvent, evt: MouseEvent) => void;
 	onEventMenu: (event: CalendarEvent, evt: MouseEvent) => void;
+	onToggleTask: (event: CalendarEvent, done: boolean) => void;
 	onSort: (sort: ListSort) => void;
 	onShowDone: (showDone: boolean) => void;
 }
@@ -50,24 +55,62 @@ export function renderDayList(parent: HTMLElement, model: DayListModel, handlers
 		menu.showAtMouseEvent(evt);
 	});
 
-	if (model.events.length === 0) {
-		list.createDiv({ cls: 'sidebar-calendar__day-list-empty', text: 'No events' });
+	renderGroup(list, 'Events', model.events.filter((event) => event.onCalendar), model, handlers);
+	renderGroup(list, model.offCalendarLabel, model.events.filter((event) => !event.onCalendar), model, handlers);
+}
+
+function renderGroup(
+	list: HTMLElement,
+	label: string,
+	events: readonly CalendarEvent[],
+	model: DayListModel,
+	handlers: DayListHandlers,
+): void {
+	list.createDiv({ cls: 'sidebar-calendar__day-list-group', text: label });
+	if (events.length === 0) {
+		list.createDiv({ cls: 'sidebar-calendar__day-list-empty', text: 'None' });
 		return;
 	}
-
-	for (const event of model.events) {
+	for (const event of events) {
 		const item = list.createDiv({ cls: 'sidebar-calendar__event-item', attr: { 'data-event': event.id } });
 		if (event.task === 'done') item.addClass('is-done');
-		const swatch = item.createSpan({ cls: 'sidebar-calendar__event-swatch' });
 		const color = model.colorFor(event);
-		if (color) swatch.style.setProperty('--sidebar-calendar-bar-color', color);
+		if (color) item.style.setProperty('--sidebar-calendar-bar-color', color);
+		if (event.onCalendar) {
+			item.createSpan({ cls: 'sidebar-calendar__event-swatch' });
+		} else {
+			const check = item.createSpan({
+				cls: 'sidebar-calendar__event-check',
+				attr: { role: 'checkbox', 'aria-checked': String(event.task === 'done') },
+			});
+			setIcon(check, 'check');
+			check.addEventListener('click', (evt) => {
+				evt.stopPropagation();
+				if (evt.detail <= 1) handlers.onToggleTask(event, event.task !== 'done');
+			});
+			check.addEventListener('dblclick', (evt) => evt.stopPropagation());
+		}
 
 		const text = item.createDiv({ cls: 'sidebar-calendar__event-text' });
 		text.createDiv({ cls: 'sidebar-calendar__event-title', text: event.title });
-		if (event.start !== event.end) {
+		// A to-do is meant for its own day, so only one that runs longer shows its dates.
+		if (event.onCalendar || event.start !== event.end) {
 			text.createDiv({ cls: 'sidebar-calendar__event-range', text: formatRange(event.start, event.end, model.locale) });
 		}
-		item.addEventListener('click', (evt) => handlers.onOpenEvent(event, evt));
+		if (event.task === null) {
+			item.addEventListener('click', (evt) => handlers.onOpenEvent(event, evt));
+		} else {
+			// A task's double-click toggles it, so its single click waits to see whether a second one follows.
+			let pendingOpen: number | undefined;
+			item.addEventListener('click', (evt) => {
+				if (evt.detail > 1) return;
+				pendingOpen = window.setTimeout(() => handlers.onOpenEvent(event, evt), DOUBLE_CLICK_MS);
+			});
+			item.addEventListener('dblclick', () => {
+				window.clearTimeout(pendingOpen);
+				handlers.onToggleTask(event, event.task !== 'done');
+			});
+		}
 		item.addEventListener('contextmenu', (evt) => handlers.onEventMenu(event, evt));
 	}
 }

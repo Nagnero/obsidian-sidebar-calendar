@@ -1,15 +1,15 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { appendScheduleLine, ParsedEntry, parseSchedule, setEntryEnd, templateH1s } from '../src/data/parseSchedule';
+import { appendScheduleLine, ParsedEntry, parseSchedule, setEntryEnd, setEntryTask, templateH1s } from '../src/data/parseSchedule';
 
 const DAY = '2026-10-20';
 const KINDS = ['업무', '개인'];
 
 const HIDDEN = 'To do';
-const RULES = { kinds: KINDS, hiddenSubheading: HIDDEN };
+const RULES = { kinds: KINDS, hiddenSubheading: HIDDEN, plainItems: true };
 
 function parse(text: string, day = DAY, kinds: readonly string[] = KINDS) {
-	return parseSchedule(text, day, { kinds, hiddenSubheading: HIDDEN });
+	return parseSchedule(text, day, { ...RULES, kinds });
 }
 
 function append(text: string, kind: string, entry: { title: string; start: string; end: string }) {
@@ -56,23 +56,22 @@ test('deeper headings inside a section are part of it; the next H1 ends it', () 
 const onCalendar = (text: string, kinds: readonly string[] = ['Personal']) =>
 	parse(text, DAY, kinds).map((e) => [e.title, e.onCalendar]);
 
-test('items under the To do sub-heading are entries kept off the calendar', () => {
+test('task items under the To do sub-heading are entries kept off the calendar, plain items there are not entries', () => {
 	const text = '# Personal\n- [ ] 18시 기헌이 약속\n## To do\n- [ ] 메리츠증권 자소서 작성\n  - 마감 금요일\n- 장보기\n';
 	assert.deepEqual(parse(text, DAY, ['Personal']).map((e) => [e.line, e.title, e.task, e.kind, e.onCalendar]), [
 		[1, '18시 기헌이 약속', 'open', 'Personal', true],
 		[3, '메리츠증권 자소서 작성', 'open', 'Personal', false],
-		[5, '장보기', null, 'Personal', false],
 	]);
 });
 
 test('the To do region ends at the next heading of the same or a higher level', () => {
-	assert.deepEqual(onCalendar('# Personal\n## To do\n- a\n## Evening\n- b\n'), [['a', false], ['b', true]]);
-	assert.deepEqual(onCalendar('# Personal\n### To do\n- a\n## Evening\n- b\n'), [['a', false], ['b', true]]);
-	assert.deepEqual(onCalendar('# Personal\n## To do\n- a\n# 업무\n- b\n', ['Personal', '업무']), [['a', false], ['b', true]]);
+	assert.deepEqual(onCalendar('# Personal\n## To do\n- [ ] a\n## Evening\n- [ ] b\n'), [['a', false], ['b', true]]);
+	assert.deepEqual(onCalendar('# Personal\n### To do\n- [ ] a\n## Evening\n- [ ] b\n'), [['a', false], ['b', true]]);
+	assert.deepEqual(onCalendar('# Personal\n## To do\n- [ ] a\n# 업무\n- [ ] b\n', ['Personal', '업무']), [['a', false], ['b', true]]);
 });
 
 test('deeper headings inside the To do region stay hidden', () => {
-	assert.deepEqual(onCalendar('# Personal\n## To do\n- a\n### Later\n- b\n#### Much later\n- c\n## Done\n- d\n'), [
+	assert.deepEqual(onCalendar('# Personal\n## To do\n- [ ] a\n### Later\n- [ ] b\n#### Much later\n- [ ] c\n## Done\n- [ ] d\n'), [
 		['a', false],
 		['b', false],
 		['c', false],
@@ -81,15 +80,15 @@ test('deeper headings inside the To do region stay hidden', () => {
 });
 
 test('the To do name matches in any case, as the whole heading text', () => {
-	assert.deepEqual(onCalendar('# Personal\n## TO DO\n- a\n'), [['a', false]]);
-	assert.deepEqual(onCalendar('# Personal\n## to do ##\n- a\n'), [['a', false]]);
-	assert.deepEqual(onCalendar('# Personal\n## To do list\n- a\n## Todo\n- b\n'), [['a', true], ['b', true]]);
-	assert.deepEqual(parseSchedule('# Personal\n## 할 일\n- a\n## To do\n- b\n', DAY, { kinds: ['Personal'], hiddenSubheading: '할 일' })
+	assert.deepEqual(onCalendar('# Personal\n## TO DO\n- [ ] a\n'), [['a', false]]);
+	assert.deepEqual(onCalendar('# Personal\n## to do ##\n- [ ] a\n'), [['a', false]]);
+	assert.deepEqual(onCalendar('# Personal\n## To do list\n- [ ] a\n## Todo\n- [ ] b\n'), [['a', true], ['b', true]]);
+	assert.deepEqual(parseSchedule('# Personal\n## 할 일\n- [ ] a\n## To do\n- [ ] b\n', DAY, { kinds: ['Personal'], hiddenSubheading: '할 일', plainItems: true })
 		.map((e) => [e.title, e.onCalendar]), [['a', false], ['b', true]]);
 });
 
 test('an H1 named To do is a kind, not a hidden region', () => {
-	assert.deepEqual(onCalendar('# To do\n- a\n', ['To do']), [['a', true]]);
+	assert.deepEqual(onCalendar('# To do\n- [ ] a\n', ['To do']), [['a', true]]);
 });
 
 test('an H1 may have closing #s', () => {
@@ -328,4 +327,26 @@ test('setEntryEnd round-trips through parseSchedule', () => {
 			assert.deepEqual(entry && [entry.title, entry.task, entry.end], [title, task, end], `${title} → ${end}`);
 		}
 	}
+});
+
+test('setEntryTask checks and unchecks a task entry, keeping its range and marker', () => {
+	assert.equal(setEntryTask('# 업무\n- [ ] 출장 ~10-23\n', DAY, RULES, 1, true), '# 업무\n- [x] 출장 ~10-23\n');
+	assert.equal(setEntryTask('# 업무\r\n* [x] 보고서\r\n', DAY, RULES, 1, false), '# 업무\r\n* [ ] 보고서\r\n');
+});
+
+test('setEntryTask returns null for a plain item or a line that is not an entry', () => {
+	const text = '# 업무\n- 회의\n- [ ] 보고서\n';
+	for (const line of [0, 1, 3]) assert.equal(setEntryTask(text, DAY, RULES, line, true), null, `line ${line}`);
+});
+
+test('without plainItems only items with a task box are entries', () => {
+	const text = '# 업무\n- [ ] 보고서\n- 회의\n- [x] 장보기\n## To do\n- [ ] 자소서\n- 메모\n';
+	assert.deepEqual(
+		parseSchedule(text, DAY, { ...RULES, plainItems: false }).map((e) => [e.line, e.title, e.onCalendar]),
+		[[1, '보고서', true], [3, '장보기', true], [5, '자소서', false]],
+	);
+});
+
+test('setEntryEnd leaves a plain item alone without plainItems', () => {
+	assert.equal(setEntryEnd('# 업무\n- 회의\n', DAY, { ...RULES, plainItems: false }, 1, '2026-10-22'), null);
 });

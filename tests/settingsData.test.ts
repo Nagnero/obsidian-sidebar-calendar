@@ -26,6 +26,7 @@ test('valid values are kept', () => {
 		lastKind: '업무',
 		listSort: 'unchecked',
 		hiddenSubheading: 'Someday',
+		plainItems: true,
 	};
 	assert.deepEqual(sanitizeSettings(raw), raw);
 });
@@ -169,4 +170,10 @@ test('active kinds are the enabled ones the template has, in template order', ()
 test('list sort accepts only a known sort key', () => {
 	for (const sort of ['start', 'note', 'unchecked', 'kind']) assert.equal(sanitizeSettings({ listSort: sort }).listSort, sort);
 	for (const sort of ['title', 'Kind', 1, null]) assert.equal(sanitizeSettings({ listSort: sort }).listSort, 'start');
+});
+
+test('plain items are off unless turned on', () => {
+	assert.equal(sanitizeSettings({}).plainItems, false);
+	assert.equal(sanitizeSettings({ plainItems: true }).plainItems, true);
+	assert.equal(sanitizeSettings({ plainItems: 'yes' }).plainItems, false);
 });

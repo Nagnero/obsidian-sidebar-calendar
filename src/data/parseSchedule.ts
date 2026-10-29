@@ -21,6 +21,8 @@ export interface ScheduleRules {
 	kinds: readonly string[];
 	/** Sub-heading name, matched case-insensitively, whose items stay off the grid. */
 	hiddenSubheading: string;
+	/** Whether a list item without a task box outside the hidden sub-heading is an entry. */
+	plainItems: boolean;
 }
 
 export interface NewEntry {
@@ -43,6 +45,7 @@ const FENCE_RE = /^ {0,3}(`{3,}|~{3,})/;
 const ITEM_RE = /^[-*+][ \t]+(.*)$/;
 const CONTINUATION_RE = /^[ \t]+\S/;
 const TASK_RE = /^\[([^\]])\](?:[ \t]+(.*))?$/;
+const BOX_RE = /^([-*+][ \t]+)\[[^\]]\]/;
 const RANGE_RE = /\s*~(?:(\d{4})-(\d{1,2})-(\d{1,2})|(\d{1,2})[-/](\d{1,2}))$/;
 const PAREN_RE = /\s*\([^()]*\)$/;
 const TEMPLATE_VARIABLE_RE = /{{[^}]*}}/;
@@ -50,7 +53,8 @@ const TEMPLATE_VARIABLE_RE = /{{[^}]*}}/;
 /**
  * The entries of a daily note dated `day`. Each top-level list item under an H1 whose text is
  * one of the kinds is an entry of that kind, including items under deeper headings; the section
- * ends at the next H1. Items under the hidden sub-heading are entries with `onCalendar` false.
+ * ends at the next H1. Task items under the hidden sub-heading are entries with `onCalendar` false.
+ * An item without a task box is an entry only outside that sub-heading and with `rules.plainItems`.
  * Indented items, code blocks and frontmatter are ignored.
  */
 export function parseSchedule(text: string, day: DayKey, rules: ScheduleRules): ParsedEntry[] {
@@ -63,7 +67,8 @@ export function parseSchedule(text: string, day: DayKey, rules: ScheduleRules): 
 		for (let i = section.from; i < section.to; i++) {
 			const item = classes[i]?.kind === 'text' ? ITEM_RE.exec(lines[i] ?? '') : null;
 			const entry = item ? parseItem(item[1] ?? '', day) : null;
-			if (entry) entries.push({ line: i, ...entry, kind: section.h1, onCalendar: !hidden[i - section.from] });
+			const onCalendar = !hidden[i - section.from];
+			if (entry && (entry.task !== null || (onCalendar && rules.plainItems))) entries.push({ line: i, ...entry, kind: section.h1, onCalendar });
 		}
 	}
 	return entries;
@@ -132,6 +137,17 @@ export function setEntryEnd(text: string, day: DayKey, rules: ScheduleRules, lin
 	const tail = paren && RANGE_RE.test(body.slice(0, paren.index)) ? paren[0] : '';
 	const head = body.slice(0, body.length - tail.length).replace(RANGE_RE, '');
 	parts[2 * line] = head + rangeToken(day, end) + tail + old.slice(body.length);
+	return parts.join('');
+}
+
+/**
+ * `text` with the task box of the entry on 0-based `line` set to `[x]` when `done`, else `[ ]`.
+ * Only that line changes. Null when the line is not a task entry.
+ */
+export function setEntryTask(text: string, day: DayKey, rules: ScheduleRules, line: number, done: boolean): string | null {
+	if (!parseSchedule(text, day, rules).some((entry) => entry.line === line && entry.task !== null)) return null;
+	const parts = text.split(/(\r?\n)/);
+	parts[2 * line] = (parts[2 * line] ?? '').replace(BOX_RE, `$1[${done ? 'x' : ' '}]`);
 	return parts.join('');
 }
 

@@ -61,7 +61,10 @@ const en = {
 	showOneDayDesc: 'When off, the calendar shows only entries that span several days. The list under the calendar still shows every entry of the selected day.',
 	hiddenSubheading: 'Sub-heading hidden from the calendar',
 	hiddenSubheadingDesc:
-		'List items under a sub-heading (## or deeper) with this name inside a kind are not drawn on the calendar, until the next heading of the same or a higher level. They still show in the list under the calendar and count toward the open-task ring. Not case-sensitive.',
+		'Tasks under a sub-heading (## or deeper) with this name inside a kind are not drawn on the calendar, until the next heading of the same or a higher level. They show as to-dos in the list under the calendar and count toward the open-task ring. Items without a checkbox there are ignored. Not case-sensitive.',
+	plainItems: 'Show items without a checkbox',
+	plainItemsDesc:
+		'When on, list items without a checkbox outside the hidden sub-heading are entries too. When off, only items with a checkbox (- [ ] or - [x]) are entries.',
 	dailyNotes: 'Daily notes',
 	dailyNotesDesc:
 		'Mark days that have a daily note with a dot, and with a ring when the note has an unchecked task. Clicking such a day opens its note. Uses the folder, format and template of the core daily notes plugin, which must be turned on.',
@@ -113,7 +116,10 @@ const ko: SettingsStrings = {
 	showOneDayDesc: '끄면 Calendar에는 여러 날에 걸친 일정만 표시됩니다. Calendar 아래 목록에는 선택한 날의 일정이 모두 그대로 표시됩니다.',
 	hiddenSubheading: 'Calendar에서 숨길 소제목',
 	hiddenSubheadingDesc:
-		'종류 안에서 이 이름의 소제목(## 이하) 아래에 적은 목록 항목은 Calendar에 막대로 표시하지 않습니다. 같은 수준이나 더 높은 수준의 다음 제목에서 이 구역이 끝납니다. Calendar 아래 목록에는 그대로 표시되고, 완료하지 않은 할 일은 빈 원에도 반영됩니다. 대소문자는 구분하지 않습니다.',
+		'종류 안에서 이 이름의 소제목(## 이하) 아래에 적은 할 일은 Calendar에 막대로 표시하지 않습니다. 같은 수준이나 더 높은 수준의 다음 제목에서 이 구역이 끝납니다. Calendar 아래 목록에는 할 일로 표시되고, 완료하지 않은 할 일은 빈 원에도 반영됩니다. 이 구역의 체크박스 없는 항목은 무시합니다. 대소문자는 구분하지 않습니다.',
+	plainItems: '체크박스 없는 항목도 표시',
+	plainItemsDesc:
+		'켜면 숨길 소제목 밖에 있는 체크박스 없는 목록 항목도 일정으로 표시합니다. 끄면 체크박스가 있는 항목(- [ ], - [x])만 일정으로 표시합니다.',
 	dailyNotes: '일일 노트',
 	dailyNotesDesc:
 		'일일 노트가 있는 날은 점으로, 그 노트에 완료하지 않은 할 일이 있으면 빈 원으로 표시합니다. 그런 날을 클릭하면 노트가 열립니다. 코어 플러그인 일일 노트의 폴더, 형식, 템플릿을 사용하므로 그 플러그인을 켜 두어야 합니다.',
