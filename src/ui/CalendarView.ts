@@ -108,6 +108,7 @@ export class CalendarView extends ItemView {
 				onOpenEvent: openEvent,
 				onEventMenu: eventMenu,
 				onAddEntry: (start, end) => void this.promptEntry(start, end),
+				onResizeEvent: (event, end) => void this.plugin.setEntryEnd(event, end),
 			},
 		);
 

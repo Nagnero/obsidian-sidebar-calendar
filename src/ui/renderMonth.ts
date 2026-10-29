@@ -4,7 +4,7 @@ import { buildMonthGrid, weekdayOrder } from '../date/monthGrid';
 import { layoutWeek } from '../layout/weekLayout';
 import type { BarStyle } from '../settingsData';
 import type { CalendarEvent } from '../types';
-import { enableRangeSelect } from './rangeSelect';
+import { enableDayDrag } from './dayDrag';
 
 /** What the marks under a day number show: a dot for a daily note, plus a ring when it has an unchecked task. */
 export type NoteMark = 'none' | 'note' | 'open-tasks';
@@ -34,6 +34,8 @@ export interface MonthViewHandlers {
 	onEventMenu: (event: CalendarEvent, evt: MouseEvent) => void;
 	/** A range of days was dragged across, or one day double-clicked. */
 	onAddEntry: (start: DayKey, end: DayKey) => void;
+	/** The end handle of an entry's bar was dragged to `end`. */
+	onResizeEvent: (event: CalendarEvent, end: DayKey) => void;
 }
 
 export function renderMonth(parent: HTMLElement, model: MonthViewModel, handlers: MonthViewHandlers): void {
@@ -42,9 +44,9 @@ export function renderMonth(parent: HTMLElement, model: MonthViewModel, handlers
 
 	const weeksEl = parent.createDiv({ cls: 'sidebar-calendar__weeks' });
 	weeksEl.toggleClass('is-titled', model.barStyle === 'title');
-	enableRangeSelect(weeksEl, handlers.onAddEntry);
+	const drag = enableDayDrag(weeksEl, { onSelect: handlers.onAddEntry, onResize: handlers.onResizeEvent });
 	for (const week of buildMonthGrid(model.year, model.month, model.weekStart)) {
-		renderWeek(weeksEl, week, model, handlers);
+		renderWeek(weeksEl, week, model, handlers, drag.startResize);
 	}
 }
 
@@ -85,7 +87,13 @@ function renderWeekdays(parent: HTMLElement, model: MonthViewModel): void {
  * One week is a 7-column grid. Day cells span every row so they act as the background and
  * click target; row 1 holds the date numbers, then one row per bar lane, then a "+N" row.
  */
-function renderWeek(parent: HTMLElement, week: DayKey[], model: MonthViewModel, handlers: MonthViewHandlers): void {
+function renderWeek(
+	parent: HTMLElement,
+	week: DayKey[],
+	model: MonthViewModel,
+	handlers: MonthViewHandlers,
+	startResize: (event: CalendarEvent, evt: PointerEvent) => void,
+): void {
 	const layout = layoutWeek(week, model.events, model.maxLanes);
 
 	// Every week reserves all bar rows and the "+N" row so week heights never depend on events.
@@ -133,6 +141,10 @@ function renderWeek(parent: HTMLElement, week: DayKey[], model: MonthViewModel, 
 		});
 		barEl.addEventListener('click', (evt) => handlers.onOpenEvent(bar.event, evt));
 		barEl.addEventListener('contextmenu', (evt) => handlers.onEventMenu(bar.event, evt));
+		if (!bar.continuesAfter) {
+			const handle = barEl.createDiv({ cls: 'sidebar-calendar__bar-handle' });
+			handle.addEventListener('pointerdown', (evt) => startResize(bar.event, evt));
+		}
 	}
 
 	layout.hiddenCounts.forEach((count, col) => {

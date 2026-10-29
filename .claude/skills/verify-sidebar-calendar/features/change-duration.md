@@ -2,8 +2,11 @@
 
 Right-clicking a bar or a day-list item in the calendar opens a menu with **Change duration…** (`calendar-range` icon). In the editor, the same item is added to Obsidian's editor menu when the note is a daily note and the right-clicked line is an entry (a top-level list item under an enabled kind's H1). It opens a dialog titled with the entry's title, with a **Days** number input that starts at the entry's current length, and a line under it that previews the resulting range in the app language. Enter applies, Escape cancels, and an unchanged number writes nothing. One day removes the `~…` token; more days write ` ~MM-DD` (` ~YYYY-MM-DD` in another year) where the parser reads it, keeping the task box, the title and trailing parentheses. A note open in an editor is changed in that editor, so the change shows in the editor and the calendar at once and Ctrl+Z undoes it; Obsidian saves it to disk about two seconds later. A closed note is changed on disk.
 
+The bar segment that holds an entry's last day also has a 6 px end handle at its right edge (`cursor: ew-resize`, a short line on hover). Pressing it and dragging to another day, across weeks too, highlights the entry's start through the hovered day (never before the start) and, on release, writes that end through the same path as the dialog. Escape cancels the drag. Dragging a handle never opens the add-entry modal or the note; a plain click elsewhere on the bar still opens the note.
+
 ## Sub-features
 
+- `k-resize` drags a one-day bar's handle two days right, across a week boundary, back before the start (one day again), cancels with Escape, and writes through the editor when the note is open.
 - `k-bar` turns a one-day entry into a 3-day entry from its bar's context menu.
 - `k-list` turns a multi-day entry into a one-day entry from a day-list item, after Escape cancels once.
 - `k-editor` changes an entry from the editor's context menu in an open note, shows it in the editor and calendar within about 100 ms, and undoes with Ctrl+Z.
@@ -15,6 +18,16 @@ Right-clicking a bar or a day-list item in the calendar opens a menu with **Chan
 - In a daily note, right-click a schedule entry line, choose **Change duration…**, type a number and press Enter.
 
 ## Driving it with verify.cjs
+
+Resize first, from a fresh launch. `H(id)` is `.sidebar-calendar__bar[data-event="<id>"] .sidebar-calendar__bar-handle`; a snapshot shows `handle: true` only on the segment holding the entry's last day.
+
+- **Two days right.** Run `node $V drag 'H(D(22).md:1)' ".sidebar-calendar__day[data-date=\"$(node $V day 24)\"]" k-resize/in-progress`. It prints `inRangeBeforeRelease` D(22) to D(24) and saves the sidebar mid-drag. `D(22).md` line 1 is `- [ ] Report ~MM-24`; `node $V snapshot k-resize/after` has bar `D(22).md:1` at column `5 / 8`, `modal` null, `activeFile` null and `selected` unchanged.
+- **Across a week.** `drag 'H(D(3).md:3)'` to D(5) writes `- Dentist ~MM-05`; the snapshot has two bars for it, and only the week 1 one has `handle: true`.
+- **Escape.** `node $V drag-cancel 'H(D(5).md:1)' ".sidebar-calendar__day[data-date=\"$(node $V day 14)\"]" k-resize/escape` prints the highlighted range, then `inRangeAfterEscape: []`; `D(5).md` is unchanged, no note is open and no modal shows.
+- **Before the start.** `drag 'H(D(22).md:1)'` to D(19) highlights only D(22) and removes the `~MM-24` again.
+- **Open note.** Click D(22) (opens its note), then `drag 'H(D(22).md:1)'` to D(23). `eval "return app.workspace.getLeavesOfType('markdown').map(l => [l.view.file?.path, l.view.editor?.getLine(1)])"` shows `- [ ] Report ~MM-23` in the editor, and the bar is `5 / 7`. `app.workspace.activeEditor` is null here because the calendar leaf has focus; read the leaf's editor.
+
+Then the dialog and menus:
 
 Preconditions:
 
@@ -33,6 +46,7 @@ Preconditions:
 
 ## Gotchas
 
+- `drag` needs the handle selector, not the bar's: pressing the middle of a bar starts a range select instead.
 - Without the plugin's CodeMirror `contextmenu` handler, Obsidian runs `editor-menu` before it moves the cursor to the clicked line, so the menu (Obsidian's own heading items included) describes the line the cursor was on. Always start the editor step with the cursor on another line, or the bug is hidden.
 - Clicking D(3), D(5), D(8) or D(22) opens their note, which changes which write path runs. The bar and list steps use a closed note on purpose; the editor step uses an open one.
 - `fill` types into the number input like a user; the preview updates on each keystroke.

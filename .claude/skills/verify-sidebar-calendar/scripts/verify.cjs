@@ -256,7 +256,7 @@ async function evalJs(code) {
 	console.log(JSON.stringify(result, null, 2));
 }
 
-async function act(kind, selector, value) {
+async function act(kind, selector, value, shot) {
 	const { browser, page } = await connect();
 	const target = page.locator(selector).first();
 	await target.waitFor({ timeout: 5_000 });
@@ -282,17 +282,23 @@ async function act(kind, selector, value) {
 	} else if (kind === 'dblclick') {
 		await target.dblclick(onDayNumber);
 		await page.waitForTimeout(400);
-	} else if (kind === 'drag') {
+	} else if (kind === 'drag' || kind === 'drag-cancel') {
 		// Real mouse down, moves and up, so the calendar sees the same events a user's drag makes.
 		const to = page.locator(value).first();
 		const [a, b] = [await target.boundingBox(), await to.boundingBox()];
+		const inRangeNow = () => page.$$eval('.sidebar-calendar__day.is-in-range', (cells) => cells.map((c) => c.dataset.date));
 		await page.mouse.move(a.x + a.width / 2, a.y + a.height / 2);
 		await page.mouse.down();
 		await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2, { steps: 12 });
-		const inRange = await page.$$eval('.sidebar-calendar__day.is-in-range', (cells) => cells.map((c) => c.dataset.date));
+		const result = { inRangeBeforeRelease: await inRangeNow() };
+		if (shot) result.screenshot = await saveScreenshot(page, shot, '.mod-right-split');
+		if (kind === 'drag-cancel') {
+			await page.keyboard.press('Escape');
+			result.inRangeAfterEscape = await inRangeNow();
+		}
 		await page.mouse.up();
 		await page.waitForTimeout(400);
-		console.log(JSON.stringify({ inRangeBeforeRelease: inRange }));
+		console.log(JSON.stringify(result));
 	} else if (kind === 'hover') {
 		// Obsidian shows tooltips after a delay and removes them when the pointer leaves, so read
 		// the tooltip here, in the same connection, instead of in a later snapshot.
@@ -363,12 +369,17 @@ async function press(key) {
 	await browser.close();
 }
 
-async function screenshot(name, selector) {
-	const { browser, page } = await connect();
+async function saveScreenshot(page, name, selector) {
 	const file = path.join(ARTIFACTS, name.endsWith('.png') ? name : `${name}.png`);
 	fs.mkdirSync(path.dirname(file), { recursive: true });
 	if (selector) await page.locator(selector).first().screenshot({ path: file });
 	else await page.screenshot({ path: file });
+	return file;
+}
+
+async function screenshot(name, selector) {
+	const { browser, page } = await connect();
+	const file = await saveScreenshot(page, name, selector);
 	await browser.close();
 	console.log(file);
 }
@@ -438,6 +449,7 @@ async function snapshot(name) {
 					return t ? t.scrollWidth > t.clientWidth : null;
 				})(),
 				done: b.classList.contains('is-done'),
+				handle: !!b.querySelector('.sidebar-calendar__bar-handle'),
 				height: b.getBoundingClientRect().height,
 				width: Math.round(b.getBoundingClientRect().width),
 			})),
@@ -519,7 +531,9 @@ const HELP = `usage: node verify.cjs <command>
   click '<selector>'     click the first match (CSS or Playwright selector)
   dblclick '<selector>'  double-click the first match
   rightclick '<selector>'  right-click the first match (opens its context menu)
-  drag '<from>' '<to>'   press on the first match of from, drag to the first match of to, release
+  drag '<from>' '<to>' [shot]  press on the first match of from, drag to the first match of to, release
+                         (with shot, saves a screenshot of the sidebar before the release)
+  drag-cancel '<from>' '<to>' [shot]  the same, but press Escape before the release
   press <key>            press a key in the focused element (e.g. Enter, Escape)
   hover '<selector>'     hover the first match and print the tooltip it shows
   fill '<selector>' <v>  clear the first match and type v like a user
@@ -543,7 +557,9 @@ env: VERIFY_RUN_ID (default "default"), VERIFY_PORT (default 9333), OBSIDIAN_BIN
 		case 'click': return act('click', arg ?? die('click needs a selector'));
 		case 'dblclick': return act('dblclick', arg ?? die('dblclick needs a selector'));
 		case 'rightclick': return act('rightclick', arg ?? die('rightclick needs a selector'));
-		case 'drag': return act('drag', arg ?? die('drag needs a from selector'), value ?? die('drag needs a to selector'));
+		case 'drag':
+		case 'drag-cancel':
+			return act(cmd, arg ?? die(`${cmd} needs a from selector`), value ?? die(`${cmd} needs a to selector`), ARGS[3]);
 		case 'press': return press(arg ?? die('press needs a key'));
 		case 'hover': return act('hover', arg ?? die('hover needs a selector'));
 		case 'fill': return act('fill', arg ?? die('fill needs a selector'), value ?? die('fill needs a value'));

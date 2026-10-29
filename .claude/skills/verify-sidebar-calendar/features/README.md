@@ -58,6 +58,6 @@ Each feature file starts with an H1 title and one paragraph of user-visible beha
 - [Settings language](./settings-language.md) (`j-*`) covers the English / Korean switch at the top of the settings tab and the saved choice.
 - [To do sub-heading](./todo-subheading.md) (`l-*`) covers items under `## To do` that are listed and ringed but not drawn, adding entries above that sub-heading, and its setting.
 - [Titled bars](./titled-bars.md) (`m-*`) covers chips with the entry's title at narrow and wide widths, light and dark, events on chips, and the line style.
-- [Changing an entry's duration](./change-duration.md) (`k-*`) covers **Change duration…** in the context menu of bars, day-list items and entry lines in the editor, its dialog, and the open-editor and closed-note write paths.
+- [Changing an entry's duration](./change-duration.md) (`k-*`) covers dragging a bar's end handle, and **Change duration…** in the context menu of bars, day-list items and entry lines in the editor, its dialog, and the open-editor and closed-note write paths.
 
 Not mapped yet: month navigation, week start setting, day rollover. Auto refresh is exercised only through `f-done` (a file edited on disk, and a checkbox clicked in the editor with `task-latency`) `h-*` and `k-*` (files the plugin writes, and an edit through the open editor).

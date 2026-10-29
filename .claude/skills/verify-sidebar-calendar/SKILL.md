@@ -48,7 +48,8 @@ Read-only. Prints the Obsidian version, vault path, plugin version, and whether 
 | `node $V click '<selector>'` | Clicks the first match, then waits 400 ms for the re-render. A day cell is clicked on its date number row, since chips cover its middle. |
 | `node $V dblclick '<selector>'` | Double-clicks the first match, then waits 400 ms. |
 | `node $V rightclick '<selector>'` | Real right button press on the first match, which opens its context menu, then waits 400 ms. Pick a menu item with `click '.menu .menu-item:has-text("<title>")'`. |
-| `node $V drag '<from>' '<to>'` | Real mouse down on `from`, moves to `to`, mouse up. Prints `inRangeBeforeRelease`, the days highlighted just before release. |
+| `node $V drag '<from>' '<to>' [shot]` | Real mouse down on `from`, moves to `to`, mouse up. Prints `inRangeBeforeRelease`, the days highlighted just before release; with `shot`, also saves a screenshot of the sidebar at that moment. |
+| `node $V drag-cancel '<from>' '<to>' [shot]` | The same, but presses Escape before the release and also prints `inRangeAfterEscape`. |
 | `node $V press <key>` | Presses a key in the focused element (`Enter`, `Escape`). |
 | `node $V hover '<selector>'` | Hovers and prints `{"tooltip": "..."}` for the tooltip Obsidian shows. Tooltips vanish when the pointer leaves, so read them here, not in a later snapshot. |
 | `node $V fill '<selector>' <value>` | Clears an input and types like a user, so Obsidian's change handlers fire. |
@@ -67,7 +68,8 @@ Stable handles, all from `src/ui/`:
 
 - Day cell: `.sidebar-calendar__day[data-date="YYYY-MM-DD"]` (classes `is-today`, `is-selected`, `is-other-month`).
 - Bar: `.sidebar-calendar__bar[data-event="<daily note path>:<line>"]`, for example `data-event="2026-10-05.md:1"` (0-based line of the list item). A multi-week entry has one bar per week. In the title style its text is `.sidebar-calendar__bar-title`; done entries have `is-done`, which strikes the title through and changes nothing else.
-- Range highlight while dragging: `.sidebar-calendar__day.is-in-range`.
+- Range highlight while dragging: `.sidebar-calendar__day.is-in-range`. While a resize drag runs, `.sidebar-calendar__weeks` has `is-resizing`.
+- End handle: `.sidebar-calendar__bar[data-event="<id>"] .sidebar-calendar__bar-handle`, only on the segment holding the entry's last day.
 - Add-entry modal: title `.modal-container .modal-title`, input `.modal-container input.sidebar-calendar__entry-input`, kind buttons `.modal-container .sidebar-calendar__kind-btn[data-kind="<H1 text>"]` with `aria-pressed`.
 - Duration dialog: title `.modal-container .modal-title`, input `.modal-container input.sidebar-calendar__duration-input`, preview `.sidebar-calendar__duration-preview`. The context menu item is `.menu .menu-item:has-text("Change duration")`; in the editor, right-click a line with `.workspace-leaf.mod-active .cm-line:has-text("<text>")`.
 - Overflow: `.sidebar-calendar__more` with text `+N`.

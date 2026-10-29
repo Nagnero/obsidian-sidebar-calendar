@@ -161,7 +161,7 @@ export default class SidebarCalendarPlugin extends Plugin {
 	 * there, is never overwritten by the editor's pending save, and reaches the calendar through
 	 * `editor-change` at once. A closed note is edited on disk.
 	 */
-	private async setEntryEnd(entry: EntryRef, end: DayKey): Promise<void> {
+	async setEntryEnd(entry: EntryRef, end: DayKey): Promise<void> {
 		const rewrite = (text: string) => setEntryEnd(text, entry.start, this.scheduleRules(), entry.line, end);
 		const editor = this.openEditor(entry.path);
 		if (editor) {
