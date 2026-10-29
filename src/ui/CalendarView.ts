@@ -80,7 +80,7 @@ export class CalendarView extends ItemView {
 		const eventMenu = (event: CalendarEvent, evt: MouseEvent) => {
 			evt.preventDefault();
 			const menu = new Menu();
-			this.plugin.addDurationItem(menu, event);
+			this.plugin.addEntryItems(menu, event);
 			menu.showAtMouseEvent(evt);
 		};
 		const openTaskDays = new Set(events.filter((e) => e.task === 'open').map((e) => e.start));
@@ -90,7 +90,7 @@ export class CalendarView extends ItemView {
 		};
 
 		const monthEl = root.createDiv({ cls: 'sidebar-calendar__month' });
-		this.weeksEl = renderMonth(
+		const month = renderMonth(
 			monthEl,
 			{
 				year: this.year,
@@ -126,8 +126,11 @@ export class CalendarView extends ItemView {
 				onEventMenu: eventMenu,
 				onAddEntry: (start, end) => void this.promptEntry(start, end),
 				onResizeEvent: (event, end) => void this.plugin.setEntryEnd(event, end),
+				onMoveEvent: (event, start) => void this.plugin.moveEntry(event, start),
 			},
 		);
+
+		this.weeksEl = month.weeksEl;
 
 		renderDayList(
 			root,
@@ -144,6 +147,7 @@ export class CalendarView extends ItemView {
 				onOpenEvent: openEvent,
 				onEventMenu: eventMenu,
 				onToggleTask: (event, done) => void this.plugin.setEntryTask(event, done),
+				onStartMove: month.drag.startMove,
 				onSort: (sort) => {
 					settings.listSort = sort;
 					void this.plugin.saveData(settings);

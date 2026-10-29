@@ -29,6 +29,8 @@ export interface DayListHandlers {
 	onOpenEvent: (event: CalendarEvent, evt: MouseEvent) => void;
 	onEventMenu: (event: CalendarEvent, evt: MouseEvent) => void;
 	onToggleTask: (event: CalendarEvent, done: boolean) => void;
+	/** A press on a row, which may become a drag onto a day of the calendar. */
+	onStartMove: (event: CalendarEvent, evt: PointerEvent) => void;
 	onSort: (sort: ListSort) => void;
 	onShowDone: (showDone: boolean) => void;
 }
@@ -112,5 +114,6 @@ function renderGroup(
 			});
 		}
 		item.addEventListener('contextmenu', (evt) => handlers.onEventMenu(event, evt));
+		item.addEventListener('pointerdown', (evt) => handlers.onStartMove(event, evt));
 	}
 }

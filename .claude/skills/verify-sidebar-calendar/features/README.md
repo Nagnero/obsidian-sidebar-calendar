@@ -60,6 +60,7 @@ Each feature file starts with an H1 title and one paragraph of user-visible beha
 - [To do sub-heading](./todo-subheading.md) (`l-*`) covers items under `## To do` that are listed and ringed but not drawn, adding entries above that sub-heading, and its setting.
 - [Titled bars](./titled-bars.md) (`m-*`) covers chips with the entry's title at narrow and wide widths, light and dark, events on chips, and the line style.
 - [Day list groups and tasks](./day-list-tasks.md) (`n-*`) covers the Events and To do groups, dates, the to-do circle, double-click toggling, and the plain-items setting.
+- [Moving entries](./move-entries.md) (`p-*`) covers dragging bars and day-list rows to another day, **Move to date…**, and which menu items events and to-dos get.
 - [One-week view](./compact-week.md) (`o-*`) covers the one-week calendar in a short pane and moving it a week per wheel gesture.
 - [Changing an entry's duration](./change-duration.md) (`k-*`) covers dragging a bar's end handle, and **Change duration…** in the context menu of bars, day-list items and entry lines in the editor, its dialog, and the open-editor and closed-note write paths.
 

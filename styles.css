@@ -79,6 +79,10 @@
 	user-select: none;
 }
 
+.sidebar-calendar__weeks.is-moving {
+	cursor: grabbing;
+}
+
 .sidebar-calendar.is-compact {
 	display: flex;
 	flex-direction: column;

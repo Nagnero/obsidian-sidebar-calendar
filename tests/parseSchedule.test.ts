@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { appendScheduleLine, ParsedEntry, parseSchedule, setEntryEnd, setEntryTask, templateH1s } from '../src/data/parseSchedule';
+import { appendScheduleLine, putEntry, takeEntry, ParsedEntry, parseSchedule, setEntryEnd, setEntryTask, templateH1s } from '../src/data/parseSchedule';
 
 const DAY = '2026-10-20';
 const KINDS = ['업무', '개인'];
@@ -349,4 +349,43 @@ test('without plainItems only items with a task box are entries', () => {
 
 test('setEntryEnd leaves a plain item alone without plainItems', () => {
 	assert.equal(setEntryEnd('# 업무\n- 회의\n', DAY, { ...RULES, plainItems: false }, 1, '2026-10-22'), null);
+});
+
+test('takeEntry lifts an entry with its indented lines and moves its range to the new start', () => {
+	const text = '# 업무\n- [ ] 출장 ~10-23 (부산)\n  - KTX\n- 회의\n';
+	assert.deepEqual(takeEntry(text, DAY, RULES, 1, '2026-10-25'), {
+		text: '# 업무\n- 회의\n',
+		block: { lines: ['- [ ] 출장 ~10-28 (부산)', '  - KTX'], kind: '업무', onCalendar: true },
+	});
+	assert.deepEqual(takeEntry('# 업무\n- [x] 보고서\n', DAY, RULES, 1, '2026-12-31')?.block.lines, ['- [x] 보고서']);
+	assert.equal(takeEntry(text, DAY, RULES, 2, '2026-10-25'), null);
+});
+
+test('putEntry puts an event after the visible items and a to-do under the To do heading', () => {
+	const target = '# 업무\n- 회의\n## To do\n- [ ] 메일\n### Later\n- [ ] 여권\n';
+	const event = { lines: ['- [ ] 출장'], kind: '업무', onCalendar: true };
+	const todo = { lines: ['- [ ] 자소서', '  - 마감 금요일'], kind: '업무', onCalendar: false };
+	assert.equal(putEntry(target, event, HIDDEN), '# 업무\n- 회의\n- [ ] 출장\n## To do\n- [ ] 메일\n### Later\n- [ ] 여권\n');
+	assert.equal(
+		putEntry(target, todo, HIDDEN),
+		'# 업무\n- 회의\n## To do\n- [ ] 메일\n- [ ] 자소서\n  - 마감 금요일\n### Later\n- [ ] 여권\n',
+	);
+});
+
+test('putEntry adds the To do heading or the kind section when the note lacks it', () => {
+	const todo = { lines: ['- [ ] 자소서'], kind: '업무', onCalendar: false };
+	assert.equal(putEntry('# 업무\n- 회의\n\n# 개인\n', todo, HIDDEN), '# 업무\n- 회의\n## To do\n- [ ] 자소서\n\n# 개인\n');
+	assert.equal(putEntry('# 개인\n- 산책\n', todo, HIDDEN), '# 개인\n- 산책\n\n# 업무\n## To do\n- [ ] 자소서\n');
+});
+
+test('a moved entry parses back on its new day with the same length and place', () => {
+	const from = '# 업무\n- [ ] 출장 ~10-22\n## To do\n- [ ] 자소서\n';
+	const event = takeEntry(from, DAY, RULES, 1, '2026-11-02');
+	const todo = takeEntry(from, DAY, RULES, 3, '2026-11-02');
+	assert.ok(event && todo);
+	const to = putEntry(putEntry('# 업무\n', event.block, HIDDEN), todo.block, HIDDEN);
+	assert.deepEqual(parse(to, '2026-11-02').map((e) => [e.title, e.end, e.onCalendar]), [
+		['출장', '2026-11-04', true],
+		['자소서', '2026-11-02', false],
+	]);
 });

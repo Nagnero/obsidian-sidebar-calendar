@@ -97,10 +97,15 @@ export class DailyNotes {
 	 * region, creating the note if needed.
 	 */
 	async addEntry(entry: NewEntry, kind: string, hiddenSubheading: string): Promise<void> {
+		const file = await this.noteFor(entry.start);
+		if (file) await this.app.vault.process(file, (text) => appendScheduleLine(text, kind, entry, hiddenSubheading));
+	}
+
+	/** The daily note for `day`, created from the template if missing. Null when core daily notes is off. */
+	async noteFor(day: DayKey): Promise<TFile | null> {
 		const options = this.options();
-		if (!options) return;
-		const file = this.find(entry.start) ?? (await this.create(entry.start, options));
-		await this.app.vault.process(file, (text) => appendScheduleLine(text, kind, entry, hiddenSubheading));
+		if (!options) return null;
+		return this.find(day) ?? (await this.create(day, options));
 	}
 
 	private async create(day: DayKey, options: DailyNoteOptions): Promise<TFile> {
