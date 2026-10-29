@@ -19,4 +19,6 @@ export interface CalendarEvent {
 	/** Text of the H1 the entry sits under. */
 	kind: string;
 	task: TaskState;
+	/** False for an item under the kind's hidden sub-heading: listed for its day, but not drawn on the grid. */
+	onCalendar: boolean;
 }

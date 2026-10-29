@@ -29,6 +29,8 @@ export interface SidebarCalendarSettings {
 	lastKind: string;
 	/** Order of the selected day's list. */
 	listSort: ListSort;
+	/** Sub-heading inside a kind whose items are listed for their day but not drawn on the grid. */
+	hiddenSubheading: string;
 }
 
 export const DEFAULT_SETTINGS: SidebarCalendarSettings = {
@@ -41,6 +43,7 @@ export const DEFAULT_SETTINGS: SidebarCalendarSettings = {
 	kinds: [],
 	lastKind: '',
 	listSort: 'start',
+	hiddenSubheading: 'To do',
 };
 
 export const MIN_LANES = 1;
@@ -80,6 +83,7 @@ export function sanitizeSettings(raw: unknown): SidebarCalendarSettings {
 		kinds,
 		lastKind: typeof data.lastKind === 'string' ? data.lastKind : d.lastKind,
 		listSort: isListSort(data.listSort) ? data.listSort : d.listSort,
+		hiddenSubheading: sanitizeSubheading(data.hiddenSubheading),
 	};
 }
 
@@ -105,6 +109,12 @@ export function reconcileKinds(stored: readonly Kind[], templateH1s: readonly st
 /** The enabled kinds that the template has, in template order. These are what gets read and offered. */
 export function activeKinds(kinds: readonly Kind[], templateH1s: readonly string[]): Kind[] {
 	return templateH1s.flatMap((name) => kinds.filter((k) => k.name === name && k.enabled).slice(0, 1));
+}
+
+/** A sub-heading name as typed, without surrounding spaces or leading `#`s; empty gives the default. */
+export function sanitizeSubheading(raw: unknown): string {
+	const name = typeof raw === 'string' ? raw.trim().replace(/^#+/, '').trim() : '';
+	return name === '' ? DEFAULT_SETTINGS.hiddenSubheading : name;
 }
 
 function nextColor(taken: readonly Kind[]): NamedColor {

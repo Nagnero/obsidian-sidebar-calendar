@@ -4,7 +4,7 @@ import { visibleEvents } from '../src/data/visibleEvents';
 import type { CalendarEvent, TaskState } from '../src/types';
 
 function entry(title: string, task: TaskState, end = '2026-10-22'): CalendarEvent {
-	return { id: `2026-10-22.md:${title}`, path: '2026-10-22.md', line: 1, title, start: '2026-10-22', end, kind: '업무', task };
+	return { id: `2026-10-22.md:${title}`, path: '2026-10-22.md', line: 1, title, start: '2026-10-22', end, kind: '업무', task, onCalendar: true };
 }
 
 const EVENTS = [
@@ -39,4 +39,11 @@ test('both filters combine on the grid', () => {
 	const { list, grid } = visibleEvents(EVENTS, { showOneDay: false, showDone: false });
 	assert.deepEqual(titles(list), ['open day', 'plain day', 'open trip']);
 	assert.deepEqual(titles(grid), ['open trip']);
+});
+
+test('entries off the calendar are listed but never drawn on the grid', () => {
+	const todo = { ...entry('todo', 'open'), onCalendar: false };
+	const { list, grid } = visibleEvents([...EVENTS, todo], { showOneDay: true, showDone: true });
+	assert.deepEqual(titles(list), [...titles(EVENTS), 'todo']);
+	assert.deepEqual(titles(grid), titles(EVENTS));
 });

@@ -11,6 +11,16 @@ export interface ParsedEntry {
 	/** Text of the H1 the entry sits under. */
 	kind: string;
 	task: TaskState;
+	/** False for an item under the kind's hidden sub-heading: listed for its day, but not drawn on the grid. */
+	onCalendar: boolean;
+}
+
+/** Which parts of a daily note are schedule entries. */
+export interface ScheduleRules {
+	/** Names of the enabled kinds, in template order. */
+	kinds: readonly string[];
+	/** Sub-heading name, matched case-insensitively, whose items stay off the grid. */
+	hiddenSubheading: string;
 }
 
 export interface NewEntry {
@@ -39,19 +49,21 @@ const TEMPLATE_VARIABLE_RE = /{{[^}]*}}/;
 
 /**
  * The entries of a daily note dated `day`. Each top-level list item under an H1 whose text is
- * one of `kinds` is an entry of that kind, including items under deeper headings; the section
- * ends at the next H1. Indented items, code blocks and frontmatter are ignored.
+ * one of the kinds is an entry of that kind, including items under deeper headings; the section
+ * ends at the next H1. Items under the hidden sub-heading are entries with `onCalendar` false.
+ * Indented items, code blocks and frontmatter are ignored.
  */
-export function parseSchedule(text: string, day: DayKey, kinds: readonly string[]): ParsedEntry[] {
+export function parseSchedule(text: string, day: DayKey, rules: ScheduleRules): ParsedEntry[] {
 	const lines = text.split(/\r?\n/);
 	const classes = classify(lines);
 	const entries: ParsedEntry[] = [];
-	for (const { h1, from, to } of h1Sections(classes)) {
-		if (!kinds.includes(h1)) continue;
-		for (let i = from; i < to; i++) {
+	for (const section of h1Sections(classes)) {
+		if (!rules.kinds.includes(section.h1)) continue;
+		const hidden = hiddenLines(classes, section, rules.hiddenSubheading);
+		for (let i = section.from; i < section.to; i++) {
 			const item = classes[i]?.kind === 'text' ? ITEM_RE.exec(lines[i] ?? '') : null;
 			const entry = item ? parseItem(item[1] ?? '', day) : null;
-			if (entry) entries.push({ line: i, ...entry, kind: h1 });
+			if (entry) entries.push({ line: i, ...entry, kind: section.h1, onCalendar: !hidden[i - section.from] });
 		}
 	}
 	return entries;
@@ -69,11 +81,12 @@ export function templateH1s(text: string): string[] {
 }
 
 /**
- * `text` with `entry` written as an open task in the first `# kind` section: after the section's
- * last top-level item and that item's indented lines, or, with no item, after the section's last
- * non-blank line. A note without that H1 gets a new `# kind` section at the end.
+ * `text` with `entry` written as an open task in the visible part of the first `# kind` section,
+ * outside the `hiddenSubheading` region: after its last top-level item and that item's indented
+ * lines or, with no such item, after the free text that follows the H1. A note without that H1
+ * gets a new `# kind` section at the end.
  */
-export function appendScheduleLine(text: string, kind: string, entry: NewEntry): string {
+export function appendScheduleLine(text: string, kind: string, entry: NewEntry, hiddenSubheading: string): string {
 	const eol = text.includes('\r\n') ? '\r\n' : '\n';
 	const item = formatEntryLine(entry);
 	const lines = text.split(/\r?\n/);
@@ -86,16 +99,19 @@ export function appendScheduleLine(text: string, kind: string, entry: NewEntry):
 	}
 
 	const isText = (i: number) => classes[i]?.kind === 'text';
+	const hidden = hiddenLines(classes, section, hiddenSubheading);
 	let lastItem = -1;
-	let lastContent = section.from - 1;
 	for (let i = section.from; i < section.to; i++) {
-		if (isText(i) && ITEM_RE.test(lines[i] ?? '')) lastItem = i;
-		if ((lines[i] ?? '').trim() !== '') lastContent = i;
+		if (!hidden[i - section.from] && isText(i) && ITEM_RE.test(lines[i] ?? '')) lastItem = i;
 	}
-	let at = lastContent + 1;
+	let at: number;
 	if (lastItem >= 0) {
 		at = lastItem + 1;
 		while (at < section.to && isText(at) && CONTINUATION_RE.test(lines[at] ?? '')) at++;
+	} else {
+		let lastText = section.from - 1;
+		for (let i = section.from; i < section.to && isText(i); i++) if ((lines[i] ?? '').trim() !== '') lastText = i;
+		at = lastText + 1;
 	}
 	lines.splice(at, 0, item);
 	return lines.join(eol);
@@ -106,8 +122,8 @@ export function appendScheduleLine(text: string, kind: string, entry: NewEntry):
  * token is replaced, added or, when `end` is `day`, removed. A token just before trailing
  * parentheses is rewritten in place. Only that line changes. Null when the line is not an entry.
  */
-export function setEntryEnd(text: string, day: DayKey, kinds: readonly string[], line: number, end: DayKey): string | null {
-	if (!parseSchedule(text, day, kinds).some((entry) => entry.line === line)) return null;
+export function setEntryEnd(text: string, day: DayKey, rules: ScheduleRules, line: number, end: DayKey): string | null {
+	if (!parseSchedule(text, day, rules).some((entry) => entry.line === line)) return null;
 	// Odd indexes hold the line breaks, so every other line keeps its own.
 	const parts = text.split(/(\r?\n)/);
 	const old = parts[2 * line] ?? '';
@@ -170,7 +186,27 @@ function h1Sections(classes: readonly LineKind[]): Section[] {
 	return sections;
 }
 
-function parseItem(content: string, day: DayKey): Omit<ParsedEntry, 'line' | 'kind'> | null {
+/**
+ * Per line of `section` (index 0 is `section.from`), whether it is in a region opened by a
+ * sub-heading named `name` (any case). The region ends at the next heading of the same or a
+ * higher level.
+ */
+function hiddenLines(classes: readonly LineKind[], section: Section, name: string): boolean[] {
+	const wanted = name.toLowerCase();
+	let level: number | null = null;
+	const hidden: boolean[] = [];
+	for (let i = section.from; i < section.to; i++) {
+		const line = classes[i];
+		if (line?.kind === 'heading') {
+			if (level !== null && line.level <= level) level = null;
+			if (level === null && line.text.toLowerCase() === wanted) level = line.level;
+		}
+		hidden.push(level !== null);
+	}
+	return hidden;
+}
+
+function parseItem(content: string, day: DayKey): Omit<ParsedEntry, 'line' | 'kind' | 'onCalendar'> | null {
 	let rest = content.trim();
 	let task: TaskState = null;
 	const box = TASK_RE.exec(rest);

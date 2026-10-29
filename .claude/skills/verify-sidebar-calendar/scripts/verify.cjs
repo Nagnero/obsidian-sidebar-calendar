@@ -123,6 +123,7 @@ function seedVault() {
 	writeFile(`${day(20)}.md`, '# 업무\n- Crowded 1\n- Crowded 2\n- Crowded 3\n- Crowded 4\n  - nested note, not an entry\n');
 	writeFile(`${day(22)}.md`, '# 업무\n- [ ] Report\n- [x] Groceries\n\n# Journaling\n- Journal line, not an entry\n');
 	writeFile(`${day(27)}.md`, `# 개인\n- [x] Call mom\n- Zoo\n# 업무\n- [ ] Budget ~${mm}-28\n- Memo\n`);
+	writeFile(`${day(10)}.md`, '# 개인\n- 18시 기헌이 약속\n## To do\n- [ ] 메리츠증권 자소서 작성\n### Later\n- Renew passport\n');
 	writeFile(`${day(25)}.md`, '# 업무\n- [x] Paid rent\n- Lunch\n\n# Journaling\n- [ ] Journal task, not read\n');
 }
 
@@ -408,12 +409,15 @@ async function snapshot(name) {
 				title: text(root.querySelector('.sidebar-calendar__day-list-title')),
 				headerButtons: [...root.querySelectorAll('.sidebar-calendar__day-list-header .clickable-icon')].map((b) => b.getAttribute('aria-label')),
 				items: [...root.querySelectorAll('.sidebar-calendar__event-item')].map((i) => ({
+					event: i.dataset.event,
+					hasBar: !!root.querySelector(`.sidebar-calendar__bar[data-event="${CSS.escape(i.dataset.event)}"]`),
 					title: text(i.querySelector('.sidebar-calendar__event-title')),
 					done: i.classList.contains('is-done'),
 					range: text(i.querySelector('.sidebar-calendar__event-range')),
 				})),
 				empty: text(root.querySelector('.sidebar-calendar__day-list-empty')),
 			},
+			listOnly: app.plugins.plugins['sidebar-calendar'].eventStore.getEvents().filter((e) => !e.onCalendar).map((e) => e.id),
 			activeFile: app.workspace.getActiveFile()?.path ?? null,
 			cursorLine: app.workspace.activeEditor?.editor?.getCursor().line ?? null,
 			modal: text(document.querySelector('.modal-container .modal-title')),

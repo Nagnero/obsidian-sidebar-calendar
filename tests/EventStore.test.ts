@@ -32,7 +32,7 @@ function fakeVault(saved: Record<string, string>) {
 		},
 	} as unknown as App;
 	const dailyNotes = { dayOf: (file: { path: string }) => file.path.slice(0, 10) } as unknown as DailyNotes;
-	return { store: new EventStore(app, dailyNotes, () => KINDS), editors, release };
+	return { store: new EventStore(app, dailyNotes, () => ({ kinds: KINDS, hiddenSubheading: 'To do' })), editors, release };
 }
 
 const titles = (store: EventStore) => store.getEvents().map((e) => `${e.title}:${e.task}`);

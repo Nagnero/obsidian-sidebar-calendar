@@ -2,7 +2,7 @@ import type { App, MarkdownView } from 'obsidian';
 import type { DayKey } from '../date/dayKey';
 import type { CalendarEvent } from '../types';
 import type { DailyNotes } from './DailyNotes';
-import { parseSchedule } from './parseSchedule';
+import { parseSchedule, ScheduleRules } from './parseSchedule';
 import { compareByStart } from './sortEntries';
 
 const LOG_PREFIX = '[Sidebar Calendar]';
@@ -20,8 +20,7 @@ export class EventStore {
 	constructor(
 		private app: App,
 		private dailyNotes: DailyNotes,
-		/** Names of the enabled kinds, in template order. */
-		private getKinds: () => readonly string[],
+		private getRules: () => ScheduleRules,
 	) {}
 
 	getEvents(): readonly CalendarEvent[] {
@@ -32,7 +31,7 @@ export class EventStore {
 	/** Rebuilds the event list. A reload that a later one overtook leaves the list alone. */
 	async reload(): Promise<void> {
 		const generation = ++this.generation;
-		const kinds = this.getKinds();
+		const rules = this.getRules();
 		const { vault, metadataCache } = this.app;
 
 		const notes = vault.getMarkdownFiles().flatMap((file) => {
@@ -41,7 +40,7 @@ export class EventStore {
 		});
 		const saved = await Promise.all(notes.map(async ({ file }) => {
 			const headings = metadataCache.getFileCache(file)?.headings ?? [];
-			return headings.some((h) => h.level === 1 && kinds.includes(h.heading.trim())) ? vault.cachedRead(file) : null;
+			return headings.some((h) => h.level === 1 && rules.kinds.includes(h.heading.trim())) ? vault.cachedRead(file) : null;
 		}));
 		if (generation !== this.generation) return;
 
@@ -51,7 +50,7 @@ export class EventStore {
 		const byNote = new Map<string, CalendarEvent[]>();
 		notes.forEach(({ file, day }, i) => {
 			const text = editing.get(file.path) ?? saved[i];
-			if (text != null) byNote.set(file.path, toEvents(file.path, day, text, kinds));
+			if (text != null) byNote.set(file.path, toEvents(file.path, day, text, rules));
 		});
 		this.byNote = byNote;
 		this.events = null;
@@ -62,7 +61,7 @@ export class EventStore {
 	 * Returns whether they changed.
 	 */
 	updateNote(path: string, day: DayKey, text: string): boolean {
-		const next = toEvents(path, day, text, this.getKinds());
+		const next = toEvents(path, day, text, this.getRules());
 		if (JSON.stringify(next) === JSON.stringify(this.byNote.get(path) ?? [])) return false;
 		this.byNote.set(path, next);
 		this.events = null;
@@ -83,7 +82,7 @@ export class EventStore {
 	/** One-line summary, e.g. for a notice. */
 	summary(): string {
 		if (!this.dailyNotes.isAvailable()) return 'turn on the core Daily notes plugin to read schedules';
-		const kinds = this.getKinds();
+		const { kinds } = this.getRules();
 		if (kinds.length === 0) return 'no kinds: add an H1 heading to the daily note template';
 		return `${this.getEvents().length} event(s) in ${this.byNote.size} daily note(s) under ${kinds.map((k) => `"# ${k}"`).join(', ')}`;
 	}
@@ -93,13 +92,13 @@ export class EventStore {
 		console.debug(`${LOG_PREFIX} ${this.summary()}`);
 		for (const e of this.getEvents()) {
 			const range = e.start === e.end ? e.start : `${e.start} ~ ${e.end}`;
-			console.debug(`${LOG_PREFIX} ${range} | ${TASK_MARK[e.task ?? 'plain']} | ${e.title} | ${e.kind} | ${e.id}`);
+			console.debug(`${LOG_PREFIX} ${range} | ${TASK_MARK[e.task ?? 'plain']} | ${e.title} | ${e.kind}${e.onCalendar ? '' : ' (list only)'} | ${e.id}`);
 		}
 	}
 }
 
-function toEvents(path: string, day: DayKey, text: string, kinds: readonly string[]): CalendarEvent[] {
-	return parseSchedule(text, day, kinds).map(
+function toEvents(path: string, day: DayKey, text: string, rules: ScheduleRules): CalendarEvent[] {
+	return parseSchedule(text, day, rules).map(
 		(entry): CalendarEvent => ({ ...entry, id: `${path}:${entry.line}`, path, start: day }),
 	);
 }

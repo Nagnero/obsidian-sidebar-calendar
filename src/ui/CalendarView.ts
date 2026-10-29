@@ -168,7 +168,7 @@ export class CalendarView extends ItemView {
 		new AddEntryModal(this.app, formatRange(start, end, appLocale()), kinds, settings.lastKind, (title, kind) => {
 			settings.lastKind = kind;
 			void plugin.saveData(settings);
-			void plugin.dailyNotes.addEntry({ title, start, end }, kind);
+			void plugin.dailyNotes.addEntry({ title, start, end }, kind, settings.hiddenSubheading);
 		}).open();
 	}
 
