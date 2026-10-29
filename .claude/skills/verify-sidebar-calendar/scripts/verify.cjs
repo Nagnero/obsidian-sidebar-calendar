@@ -102,6 +102,7 @@ function seedVault() {
 				weekStart: 0,
 				maxLanes: 3,
 				dailyNotes: true,
+				plainItems: true,
 				kinds: [
 					{ name: '업무', enabled: true, color: 'red' },
 					{ name: '개인', enabled: true, color: '' },

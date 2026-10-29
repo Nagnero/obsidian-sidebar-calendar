@@ -40,6 +40,8 @@ export interface SidebarCalendarSettings {
 	listSort: ListSort;
 	/** Sub-heading inside a kind whose items are listed for their day but not drawn on the grid. */
 	hiddenSubheading: string;
+	/** Read list items without a task box outside the hidden sub-heading as entries too. */
+	plainItems: boolean;
 }
 
 export const DEFAULT_SETTINGS: SidebarCalendarSettings = {
@@ -54,6 +56,7 @@ export const DEFAULT_SETTINGS: SidebarCalendarSettings = {
 	lastKind: '',
 	listSort: 'start',
 	hiddenSubheading: 'To do',
+	plainItems: false,
 };
 
 export const MIN_LANES = 1;
@@ -95,6 +98,7 @@ export function sanitizeSettings(raw: unknown): SidebarCalendarSettings {
 		lastKind: typeof data.lastKind === 'string' ? data.lastKind : d.lastKind,
 		listSort: isListSort(data.listSort) ? data.listSort : d.listSort,
 		hiddenSubheading: sanitizeSubheading(data.hiddenSubheading),
+		plainItems: typeof data.plainItems === 'boolean' ? data.plainItems : d.plainItems,
 	};
 }
 

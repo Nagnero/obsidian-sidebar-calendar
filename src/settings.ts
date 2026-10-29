@@ -147,6 +147,16 @@ export class SidebarCalendarSettingTab extends PluginSettingTab {
 			);
 
 		new Setting(containerEl)
+			.setName(t.plainItems)
+			.setDesc(t.plainItemsDesc)
+			.addToggle((toggle) =>
+				toggle.setValue(settings.plainItems).onChange(async (value) => {
+					settings.plainItems = value;
+					await plugin.saveSettings();
+				}),
+			);
+
+		new Setting(containerEl)
 			.setName(t.dailyNotes)
 			.setDesc(t.dailyNotesDesc)
 			.addToggle((toggle) =>

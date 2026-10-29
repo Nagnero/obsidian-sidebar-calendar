@@ -21,6 +21,8 @@ export interface ScheduleRules {
 	kinds: readonly string[];
 	/** Sub-heading name, matched case-insensitively, whose items stay off the grid. */
 	hiddenSubheading: string;
+	/** Whether a list item without a task box outside the hidden sub-heading is an entry. */
+	plainItems: boolean;
 }
 
 export interface NewEntry {
@@ -51,8 +53,8 @@ const TEMPLATE_VARIABLE_RE = /{{[^}]*}}/;
 /**
  * The entries of a daily note dated `day`. Each top-level list item under an H1 whose text is
  * one of the kinds is an entry of that kind, including items under deeper headings; the section
- * ends at the next H1. Task items under the hidden sub-heading are entries with `onCalendar` false;
- * plain items there are not entries.
+ * ends at the next H1. Task items under the hidden sub-heading are entries with `onCalendar` false.
+ * An item without a task box is an entry only outside that sub-heading and with `rules.plainItems`.
  * Indented items, code blocks and frontmatter are ignored.
  */
 export function parseSchedule(text: string, day: DayKey, rules: ScheduleRules): ParsedEntry[] {
@@ -66,7 +68,7 @@ export function parseSchedule(text: string, day: DayKey, rules: ScheduleRules): 
 			const item = classes[i]?.kind === 'text' ? ITEM_RE.exec(lines[i] ?? '') : null;
 			const entry = item ? parseItem(item[1] ?? '', day) : null;
 			const onCalendar = !hidden[i - section.from];
-			if (entry && (onCalendar || entry.task !== null)) entries.push({ line: i, ...entry, kind: section.h1, onCalendar });
+			if (entry && (entry.task !== null || (onCalendar && rules.plainItems))) entries.push({ line: i, ...entry, kind: section.h1, onCalendar });
 		}
 	}
 	return entries;

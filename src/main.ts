@@ -192,7 +192,8 @@ export default class SidebarCalendarPlugin extends Plugin {
 	}
 
 	private scheduleRules(): ScheduleRules {
-		return { kinds: this.activeKinds().map((k) => k.name), hiddenSubheading: this.settings.hiddenSubheading };
+		const { hiddenSubheading, plainItems } = this.settings;
+		return { kinds: this.activeKinds().map((k) => k.name), hiddenSubheading, plainItems };
 	}
 
 	/** The enabled kinds the template has, in template order. */

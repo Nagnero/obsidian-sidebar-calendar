@@ -6,10 +6,10 @@ const DAY = '2026-10-20';
 const KINDS = ['업무', '개인'];
 
 const HIDDEN = 'To do';
-const RULES = { kinds: KINDS, hiddenSubheading: HIDDEN };
+const RULES = { kinds: KINDS, hiddenSubheading: HIDDEN, plainItems: true };
 
 function parse(text: string, day = DAY, kinds: readonly string[] = KINDS) {
-	return parseSchedule(text, day, { kinds, hiddenSubheading: HIDDEN });
+	return parseSchedule(text, day, { ...RULES, kinds });
 }
 
 function append(text: string, kind: string, entry: { title: string; start: string; end: string }) {
@@ -83,7 +83,7 @@ test('the To do name matches in any case, as the whole heading text', () => {
 	assert.deepEqual(onCalendar('# Personal\n## TO DO\n- [ ] a\n'), [['a', false]]);
 	assert.deepEqual(onCalendar('# Personal\n## to do ##\n- [ ] a\n'), [['a', false]]);
 	assert.deepEqual(onCalendar('# Personal\n## To do list\n- [ ] a\n## Todo\n- [ ] b\n'), [['a', true], ['b', true]]);
-	assert.deepEqual(parseSchedule('# Personal\n## 할 일\n- [ ] a\n## To do\n- [ ] b\n', DAY, { kinds: ['Personal'], hiddenSubheading: '할 일' })
+	assert.deepEqual(parseSchedule('# Personal\n## 할 일\n- [ ] a\n## To do\n- [ ] b\n', DAY, { kinds: ['Personal'], hiddenSubheading: '할 일', plainItems: true })
 		.map((e) => [e.title, e.onCalendar]), [['a', false], ['b', true]]);
 });
 
@@ -337,4 +337,16 @@ test('setEntryTask checks and unchecks a task entry, keeping its range and marke
 test('setEntryTask returns null for a plain item or a line that is not an entry', () => {
 	const text = '# 업무\n- 회의\n- [ ] 보고서\n';
 	for (const line of [0, 1, 3]) assert.equal(setEntryTask(text, DAY, RULES, line, true), null, `line ${line}`);
+});
+
+test('without plainItems only items with a task box are entries', () => {
+	const text = '# 업무\n- [ ] 보고서\n- 회의\n- [x] 장보기\n## To do\n- [ ] 자소서\n- 메모\n';
+	assert.deepEqual(
+		parseSchedule(text, DAY, { ...RULES, plainItems: false }).map((e) => [e.line, e.title, e.onCalendar]),
+		[[1, '보고서', true], [3, '장보기', true], [5, '자소서', false]],
+	);
+});
+
+test('setEntryEnd leaves a plain item alone without plainItems', () => {
+	assert.equal(setEntryEnd('# 업무\n- 회의\n', DAY, { ...RULES, plainItems: false }, 1, '2026-10-22'), null);
 });
