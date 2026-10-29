@@ -14,6 +14,7 @@ test('valid values are kept', () => {
 		settingsLanguage: 'ko',
 		weekStart: 1,
 		maxLanes: 5,
+		barStyle: 'line',
 		dailyNotes: false,
 		showOneDay: false,
 		showDone: false,
@@ -45,6 +46,12 @@ test('bar rows are rounded and clamped to 1-6', () => {
 	assert.equal(sanitizeSettings({ maxLanes: 2.6 }).maxLanes, 3);
 	assert.equal(sanitizeSettings({ maxLanes: '4' }).maxLanes, DEFAULT_SETTINGS.maxLanes);
 	assert.equal(sanitizeSettings({ maxLanes: NaN }).maxLanes, DEFAULT_SETTINGS.maxLanes);
+});
+
+test('bar style is title unless line is saved', () => {
+	assert.equal(sanitizeSettings({}).barStyle, 'title');
+	assert.equal(sanitizeSettings({ barStyle: 'line' }).barStyle, 'line');
+	assert.equal(sanitizeSettings({ barStyle: 'thin' }).barStyle, 'title');
 });
 
 test('show completed accepts only a boolean', () => {

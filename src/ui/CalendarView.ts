@@ -84,6 +84,7 @@ export class CalendarView extends ItemView {
 				locale,
 				events: visible.grid,
 				maxLanes: settings.maxLanes,
+				barStyle: settings.barStyle,
 				colorFor,
 				selectedDay: this.selectedDay,
 				noteMark,

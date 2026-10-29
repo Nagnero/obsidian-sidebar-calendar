@@ -3,6 +3,14 @@ import { isListSort, ListSort } from './data/sortEntries';
 import { isSettingsLanguage, SettingsLanguage } from './i18n';
 import { KindColor, NAMED_COLORS, NamedColor, parseKindColor } from './kindColor';
 
+/** How the grid draws an entry: a filled bar with its title, or a thin line. */
+export const BAR_STYLES = ['title', 'line'] as const;
+export type BarStyle = (typeof BAR_STYLES)[number];
+
+export function isBarStyle(value: unknown): value is BarStyle {
+	return BAR_STYLES.some((style) => style === value);
+}
+
 /** An H1 of the daily note template, used as a kind of schedule entry. */
 export interface Kind {
 	/** The H1 text, trimmed. Unique within the settings. */
@@ -17,6 +25,7 @@ export interface SidebarCalendarSettings {
 	settingsLanguage: SettingsLanguage;
 	weekStart: Weekday;
 	maxLanes: number;
+	barStyle: BarStyle;
 	/** Mark days that have a daily note, and ones with an unchecked task (uses the core Daily notes plugin). */
 	dailyNotes: boolean;
 	/** Draw entries whose `start` equals `end` on the grid. The day list shows them either way. */
@@ -37,6 +46,7 @@ export const DEFAULT_SETTINGS: SidebarCalendarSettings = {
 	settingsLanguage: 'en',
 	weekStart: 0,
 	maxLanes: 3,
+	barStyle: 'title',
 	dailyNotes: true,
 	showOneDay: true,
 	showDone: true,
@@ -77,6 +87,7 @@ export function sanitizeSettings(raw: unknown): SidebarCalendarSettings {
 		settingsLanguage: isSettingsLanguage(data.settingsLanguage) ? data.settingsLanguage : d.settingsLanguage,
 		weekStart: data.weekStart === 1 || data.weekStart === '1' ? 1 : 0,
 		maxLanes: lanes,
+		barStyle: isBarStyle(data.barStyle) ? data.barStyle : d.barStyle,
 		dailyNotes: typeof data.dailyNotes === 'boolean' ? data.dailyNotes : d.dailyNotes,
 		showOneDay: typeof data.showOneDay === 'boolean' ? data.showOneDay : d.showOneDay,
 		showDone: typeof data.showDone === 'boolean' ? data.showDone : d.showDone,

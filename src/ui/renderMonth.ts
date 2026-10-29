@@ -2,6 +2,7 @@ import { setIcon, setTooltip } from 'obsidian';
 import { DayKey, makeDayKey, Weekday, yearMonth } from '../date/dayKey';
 import { buildMonthGrid, weekdayOrder } from '../date/monthGrid';
 import { layoutWeek } from '../layout/weekLayout';
+import type { BarStyle } from '../settingsData';
 import type { CalendarEvent } from '../types';
 import { enableRangeSelect } from './rangeSelect';
 
@@ -17,6 +18,7 @@ export interface MonthViewModel {
 	locale: string;
 	events: readonly CalendarEvent[];
 	maxLanes: number;
+	barStyle: BarStyle;
 	/** Bar color for an event; null means the theme's accent color. */
 	colorFor: (event: CalendarEvent) => string | null;
 	selectedDay: DayKey | null;
@@ -39,6 +41,7 @@ export function renderMonth(parent: HTMLElement, model: MonthViewModel, handlers
 	renderWeekdays(parent, model);
 
 	const weeksEl = parent.createDiv({ cls: 'sidebar-calendar__weeks' });
+	weeksEl.toggleClass('is-titled', model.barStyle === 'title');
 	enableRangeSelect(weeksEl, handlers.onAddEntry);
 	for (const week of buildMonthGrid(model.year, model.month, model.weekStart)) {
 		renderWeek(weeksEl, week, model, handlers);
@@ -119,6 +122,8 @@ function renderWeek(parent: HTMLElement, week: DayKey[], model: MonthViewModel, 
 		const barEl = weekEl.createDiv({ cls: 'sidebar-calendar__bar', attr: { 'data-event': bar.event.id } });
 		if (bar.continuesBefore) barEl.addClass('is-continued-before');
 		if (bar.continuesAfter) barEl.addClass('is-continued-after');
+		if (bar.event.task === 'done') barEl.addClass('is-done');
+		if (model.barStyle === 'title') barEl.createSpan({ cls: 'sidebar-calendar__bar-title', text: bar.event.title });
 		const color = model.colorFor(bar.event);
 		if (color) barEl.style.setProperty('--sidebar-calendar-bar-color', color);
 		barEl.style.gridColumn = `${bar.startCol + 1} / ${bar.endCol + 2}`;

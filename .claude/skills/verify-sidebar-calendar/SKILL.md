@@ -45,7 +45,7 @@ Read-only. Prints the Obsidian version, vault path, plugin version, and whether 
 
 | Command | Does |
 | --- | --- |
-| `node $V click '<selector>'` | Clicks the first match, then waits 400 ms for the re-render. |
+| `node $V click '<selector>'` | Clicks the first match, then waits 400 ms for the re-render. A day cell is clicked on its date number row, since chips cover its middle. |
 | `node $V dblclick '<selector>'` | Double-clicks the first match, then waits 400 ms. |
 | `node $V rightclick '<selector>'` | Real right button press on the first match, which opens its context menu, then waits 400 ms. Pick a menu item with `click '.menu .menu-item:has-text("<title>")'`. |
 | `node $V drag '<from>' '<to>'` | Real mouse down on `from`, moves to `to`, mouse up. Prints `inRangeBeforeRelease`, the days highlighted just before release. |
@@ -53,8 +53,10 @@ Read-only. Prints the Obsidian version, vault path, plugin version, and whether 
 | `node $V hover '<selector>'` | Hovers and prints `{"tooltip": "..."}` for the tooltip Obsidian shows. Tooltips vanish when the pointer leaves, so read them here, not in a later snapshot. |
 | `node $V fill '<selector>' <value>` | Clears an input and types like a user, so Obsidian's change handlers fire. |
 | `node $V select '<selector>' <value>` | Chooses the option with that value in a `<select>` like a user, so Obsidian's dropdown `onChange` fires. |
-| `node $V snapshot <name>` | Saves the calendar state as JSON and prints it: title, weekdays, today, selected day, every bar (event id, week index, grid column, lane, computed color and opacity, continued flags), every `+N`, `noteDots` and `taskRings` (dates), `markRowHeights` and `weekHeights` (distinct heights in px), the day list (items in display order with `event`, `hasBar` and `done`, and the header's `headerButtons` labels), `listOnly` (IDs of entries under the hidden sub-heading), the open `menu` (titles with `checked`, and `{"separator": true}` for each separator), the active file, the editor's `cursorLine`, and the open `modal` title. |
-| `node $V screenshot <name>` | Saves a PNG of the window. |
+| `node $V snapshot <name>` | Saves the calendar state as JSON and prints it: title, weekdays, today, selected day, every bar (event id, week index, grid column, lane, computed color and opacity, continued flags, `text`, `textClipped`, `done`, `height`, `width`), every `+N`, `noteDots` and `taskRings` (dates), `markRowHeights` and `weekHeights` (distinct heights in px), the day list (items in display order with `event`, `hasBar` and `done`, and the header's `headerButtons` labels), `listOnly` (IDs of entries under the hidden sub-heading), the open `menu` (titles with `checked`, and `{"separator": true}` for each separator), the active file, the editor's `cursorLine`, and the open `modal` title. |
+| `node $V screenshot <name> ['<selector>']` | Saves a PNG of the window, or of the first match, such as `'.mod-right-split'` for the sidebar. |
+| `node $V sidebar <px>` | Resizes the right sidebar like dragging its edge and prints the sidebar and calendar widths. `336` gives a 300 px calendar, `486` a 450 px one. |
+| `node $V theme light\|dark` | Switches the base color scheme. |
 | `node $V eval '<js body>'` | Runs a function body in the window with `app` in scope and prints the returned JSON. For reading state (files, settings), not for driving the UI. |
 | `node $V task-latency <n> '<title>'` | Selects day `n` (opening its daily note), clicks the live-preview checkbox on the line containing `title`, and prints `before`/`after` (list item `done`, day `ring`) with `listMs` and `ringMs`, the ms from the click until each changed. Each run toggles the box. |
 | `node $V day <n>` | Prints `YYYY-MM-DD` for day `n` of the current month, to build selectors. |
@@ -64,7 +66,7 @@ Add `--settings` to `click`, `hover`, `fill`, `select`, `press`, `eval`, or `scr
 Stable handles, all from `src/ui/`:
 
 - Day cell: `.sidebar-calendar__day[data-date="YYYY-MM-DD"]` (classes `is-today`, `is-selected`, `is-other-month`).
-- Bar: `.sidebar-calendar__bar[data-event="<daily note path>:<line>"]`, for example `data-event="2026-10-05.md:1"` (0-based line of the list item). A multi-week entry has one bar per week. Done entries look like the others.
+- Bar: `.sidebar-calendar__bar[data-event="<daily note path>:<line>"]`, for example `data-event="2026-10-05.md:1"` (0-based line of the list item). A multi-week entry has one bar per week. In the title style its text is `.sidebar-calendar__bar-title`; done entries have `is-done`, which strikes the title through and changes nothing else.
 - Range highlight while dragging: `.sidebar-calendar__day.is-in-range`.
 - Add-entry modal: title `.modal-container .modal-title`, input `.modal-container input.sidebar-calendar__entry-input`, kind buttons `.modal-container .sidebar-calendar__kind-btn[data-kind="<H1 text>"]` with `aria-pressed`.
 - Duration dialog: title `.modal-container .modal-title`, input `.modal-container input.sidebar-calendar__duration-input`, preview `.sidebar-calendar__duration-preview`. The context menu item is `.menu .menu-item:has-text("Change duration")`; in the editor, right-click a line with `.workspace-leaf.mod-active .cm-line:has-text("<text>")`.

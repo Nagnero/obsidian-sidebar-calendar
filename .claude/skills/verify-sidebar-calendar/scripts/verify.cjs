@@ -124,6 +124,7 @@ function seedVault() {
 	writeFile(`${day(22)}.md`, '# 업무\n- [ ] Report\n- [x] Groceries\n\n# Journaling\n- Journal line, not an entry\n');
 	writeFile(`${day(27)}.md`, `# 개인\n- [x] Call mom\n- Zoo\n# 업무\n- [ ] Budget ~${mm}-28\n- Memo\n`);
 	writeFile(`${day(10)}.md`, '# 개인\n- 18시 기헌이 약속\n## To do\n- [ ] 메리츠증권 자소서 작성\n### Later\n- Renew passport\n');
+	writeFile(`${day(23)}.md`, `# 개인\n- Quarterly planning workshop with the whole product team ~${mm}-24\n`);
 	writeFile(`${day(25)}.md`, '# 업무\n- [x] Paid rent\n- Lunch\n\n# Journaling\n- [ ] Journal task, not read\n');
 }
 
@@ -260,6 +261,9 @@ async function act(kind, selector, value) {
 	const target = page.locator(selector).first();
 	await target.waitFor({ timeout: 5_000 });
 	console.log(`verify: ${kind} ${selector}`);
+	// Titled bars cover the middle of a day cell, so a click there would hit a bar. Users click a
+	// day on its number, which no bar covers.
+	const onDayNumber = (await target.evaluate((el) => el.matches('.sidebar-calendar__day'))) ? { position: { x: (await target.boundingBox()).width / 2, y: 10 } } : {};
 	if (kind === 'fill') {
 		// Types like a user so Obsidian's change handlers fire.
 		await target.fill('');
@@ -269,14 +273,14 @@ async function act(kind, selector, value) {
 		await target.selectOption(value);
 		await page.waitForTimeout(600);
 	} else if (kind === 'click') {
-		await target.click();
+		await target.click(onDayNumber);
 		await page.waitForTimeout(400);
 	} else if (kind === 'rightclick') {
 		// A real right button press, so the page sees mousedown, mouseup and contextmenu.
 		await target.click({ button: 'right' });
 		await page.waitForTimeout(400);
 	} else if (kind === 'dblclick') {
-		await target.dblclick();
+		await target.dblclick(onDayNumber);
 		await page.waitForTimeout(400);
 	} else if (kind === 'drag') {
 		// Real mouse down, moves and up, so the calendar sees the same events a user's drag makes.
@@ -359,13 +363,42 @@ async function press(key) {
 	await browser.close();
 }
 
-async function screenshot(name) {
+async function screenshot(name, selector) {
 	const { browser, page } = await connect();
 	const file = path.join(ARTIFACTS, name.endsWith('.png') ? name : `${name}.png`);
 	fs.mkdirSync(path.dirname(file), { recursive: true });
-	await page.screenshot({ path: file });
+	if (selector) await page.locator(selector).first().screenshot({ path: file });
+	else await page.screenshot({ path: file });
 	await browser.close();
 	console.log(file);
+}
+
+/** Resizes the right sidebar the way dragging its edge does, and prints the calendar's width. */
+async function sidebar(px) {
+	const { browser, page } = await connect();
+	const widths = await page.evaluate(async (size) => {
+		app.workspace.rightSplit.setSize(size);
+		await new Promise((r) => setTimeout(r, 400));
+		return {
+			sidebar: app.workspace.rightSplit.containerEl.getBoundingClientRect().width,
+			calendar: document.querySelector('.sidebar-calendar__weeks')?.getBoundingClientRect().width ?? null,
+		};
+	}, px);
+	await browser.close();
+	console.log(JSON.stringify(widths));
+}
+
+/** Switches the base color scheme like Settings → Appearance → Base color scheme. */
+async function theme(mode) {
+	if (mode !== 'light' && mode !== 'dark') die('theme needs light or dark');
+	const { browser, page } = await connect();
+	const body = await page.evaluate(async (name) => {
+		app.changeTheme(name);
+		await new Promise((r) => setTimeout(r, 400));
+		return document.body.className.split(' ').filter((c) => c.startsWith('theme-'));
+	}, mode === 'dark' ? 'obsidian' : 'moonstone');
+	await browser.close();
+	console.log(JSON.stringify({ body }));
 }
 
 /** Saves a readable dump of the calendar's state: month, cells, bars (with color), +N, day list. */
@@ -399,6 +432,14 @@ async function snapshot(name) {
 				opacity: getComputedStyle(b).opacity,
 				continuedBefore: b.classList.contains('is-continued-before'),
 				continuedAfter: b.classList.contains('is-continued-after'),
+				text: text(b.querySelector('.sidebar-calendar__bar-title')),
+				textClipped: (() => {
+					const t = b.querySelector('.sidebar-calendar__bar-title');
+					return t ? t.scrollWidth > t.clientWidth : null;
+				})(),
+				done: b.classList.contains('is-done'),
+				height: b.getBoundingClientRect().height,
+				width: Math.round(b.getBoundingClientRect().width),
 			})),
 			more: [...root.querySelectorAll('.sidebar-calendar__more')].map((m) => ({
 				week: [...root.querySelectorAll('.sidebar-calendar__week')].indexOf(m.parentElement),
@@ -484,7 +525,9 @@ const HELP = `usage: node verify.cjs <command>
   fill '<selector>' <v>  clear the first match and type v like a user
   select '<selector>' <v>  choose option value v in the first matching <select>, like a user
   snapshot <name>        save calendar state as JSON to the artifacts dir
-  screenshot <name>      save a PNG of the window to the artifacts dir
+  screenshot <name> [s]  save a PNG of the window (or of the first match of selector s) to the artifacts dir
+  sidebar <px>           resize the right sidebar to px wide and print the sidebar and calendar widths
+  theme light|dark       switch the base color scheme
   task-latency <n> <t>   open day n's note, click the checkbox on the line with t, print ms until the list and ring change
   day <n>                print YYYY-MM-DD for day n of the current month
   stop                   stop this run's Obsidian and delete its vault (artifacts are kept)
@@ -506,7 +549,9 @@ env: VERIFY_RUN_ID (default "default"), VERIFY_PORT (default 9333), OBSIDIAN_BIN
 		case 'fill': return act('fill', arg ?? die('fill needs a selector'), value ?? die('fill needs a value'));
 		case 'select': return act('select', arg ?? die('select needs a selector'), value ?? die('select needs a value'));
 		case 'snapshot': return snapshot(arg ?? die('snapshot needs a name'));
-		case 'screenshot': return screenshot(arg ?? die('screenshot needs a name'));
+		case 'screenshot': return screenshot(arg ?? die('screenshot needs a name'), value);
+		case 'sidebar': return sidebar(Number(arg ?? die('sidebar needs a width in px')));
+		case 'theme': return theme(arg ?? die('theme needs light or dark'));
 		case 'task-latency': return taskLatency(Number(arg ?? die('task-latency needs a day')), value ?? die('task-latency needs a title'));
 		case 'day': return console.log(day(Number(arg)));
 		case 'stop': return stop();

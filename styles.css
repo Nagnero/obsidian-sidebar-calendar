@@ -130,6 +130,33 @@
 	cursor: pointer;
 }
 
+/* Titled bars are chips with the entry's title, so the bar rows grow to fit the text. */
+.sidebar-calendar__weeks.is-titled {
+	--sidebar-calendar-lane-height: 18px;
+	--sidebar-calendar-bar-height: 16px;
+}
+
+.sidebar-calendar__weeks.is-titled .sidebar-calendar__bar {
+	margin: 0 1px;
+	border-radius: var(--radius-s);
+	overflow: hidden;
+}
+
+.sidebar-calendar__bar-title {
+	display: block;
+	padding: 0 3px;
+	font-size: 11px;
+	line-height: var(--sidebar-calendar-bar-height);
+	color: var(--text-on-accent);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.sidebar-calendar__bar.is-done .sidebar-calendar__bar-title {
+	text-decoration: line-through;
+}
+
 /* A bar cut at the week edge runs to the edge with a flat end, so it reads as continuing. */
 .sidebar-calendar__bar.is-continued-before {
 	margin-left: 0;

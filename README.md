@@ -44,6 +44,8 @@ In **Settings → Sidebar Calendar**, each kind has a switch and a color. Turn o
 
 The first row of the settings tab, **Language (언어)**, shows the tab in English (the default) or Korean. Only the settings tab changes language.
 
+Each bar shows the entry's title inside it, cut with `…` when the day is too narrow, and a done task's title is struck through. Set **Bar style** to **Line** for thin bars without text.
+
 Turn off **Show one-day entries** to draw only entries that span several days on the calendar. The list under the calendar still shows every entry of the selected day.
 
 To add an entry from the calendar, drag across days or double-click a day, pick a kind, type a title, and press Enter. The entry is written as an open task, `- [ ] <title>` (with `~MM-DD` for a range), under that kind's H1 in the first day's daily note, after its last item outside the `## To do` region. A missing note is created from your template first, so the entry lands inside its structure. The kind you picked last is preselected next time. Clicking a bar or a list entry opens its daily note at that line.
