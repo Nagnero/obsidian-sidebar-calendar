@@ -75,7 +75,29 @@
 }
 
 .sidebar-calendar__weeks {
+	position: relative;
 	user-select: none;
+}
+
+.sidebar-calendar.is-compact {
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
+}
+
+.sidebar-calendar.is-compact .sidebar-calendar__month {
+	flex: none;
+}
+
+.sidebar-calendar.is-compact .sidebar-calendar__weeks {
+	height: var(--sidebar-calendar-week-height);
+	overflow: hidden;
+}
+
+.sidebar-calendar.is-compact .sidebar-calendar__day-list {
+	flex: 1 1 auto;
+	min-height: 0;
+	overflow-y: auto;
 }
 
 .sidebar-calendar__day.is-selected {

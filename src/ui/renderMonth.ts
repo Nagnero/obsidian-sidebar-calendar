@@ -38,7 +38,8 @@ export interface MonthViewHandlers {
 	onResizeEvent: (event: CalendarEvent, end: DayKey) => void;
 }
 
-export function renderMonth(parent: HTMLElement, model: MonthViewModel, handlers: MonthViewHandlers): void {
+/** Draws the month and returns the element that holds its week rows. */
+export function renderMonth(parent: HTMLElement, model: MonthViewModel, handlers: MonthViewHandlers): HTMLElement {
 	renderHeader(parent, model, handlers);
 	renderWeekdays(parent, model);
 
@@ -48,6 +49,7 @@ export function renderMonth(parent: HTMLElement, model: MonthViewModel, handlers
 	for (const week of buildMonthGrid(model.year, model.month, model.weekStart)) {
 		renderWeek(weeksEl, week, model, handlers, drag.startResize);
 	}
+	return weeksEl;
 }
 
 function renderHeader(parent: HTMLElement, model: MonthViewModel, handlers: MonthViewHandlers): void {
