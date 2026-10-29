@@ -56,9 +56,11 @@ export function renderMonth(
 		onResize: handlers.onResizeEvent,
 		onMove: handlers.onMoveEvent,
 	});
-	for (const week of buildMonthGrid(model.year, model.month, model.weekStart)) {
-		renderWeek(weeksEl, week, model, handlers, drag);
-	}
+	// A trailing row of only next month's days would crowd the sidebar without showing this month.
+	const weeks = buildMonthGrid(model.year, model.month, model.weekStart).filter((week) =>
+		week.some((day) => yearMonth(day).month === model.month),
+	);
+	for (const week of weeks) renderWeek(weeksEl, week, model, handlers, drag);
 	return { weeksEl, drag };
 }
 

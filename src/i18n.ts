@@ -19,7 +19,7 @@ export interface Around {
 
 const en = {
 	language: 'Language (언어)',
-	languageDesc: 'Applies to this settings tab only.',
+	languageDesc: 'Applies to this settings tab and the group names in the list under the calendar.',
 	template: 'Daily note template',
 	templateOff: 'Turn on the core daily notes plugin. Kinds come from the top-level headings of its template.',
 	templateNone: 'Linked to core daily notes, which has no template. Set one in its settings; its top-level headings become the kinds.',
@@ -74,7 +74,7 @@ export type SettingsStrings = typeof en;
 
 const ko: SettingsStrings = {
 	language: '언어 (Language)',
-	languageDesc: '이 설정 탭에만 적용됩니다.',
+	languageDesc: '이 설정 탭과 Calendar 아래 목록의 묶음 이름에 적용됩니다.',
 	template: '일일 노트 템플릿',
 	templateOff: "코어 플러그인 '일일 노트'를 켜 주십시오. 종류는 일일 노트 템플릿의 최상위 제목(#)에서 가져옵니다.",
 	templateNone: '일일 노트 템플릿이 지정되지 않았습니다. 일일 노트 설정에서 템플릿을 지정하면 그 템플릿의 최상위 제목(#)이 종류가 됩니다.',
@@ -126,3 +126,16 @@ const ko: SettingsStrings = {
 };
 
 export const SETTINGS_STRINGS: Record<SettingsLanguage, SettingsStrings> = { en, ko };
+
+/** Words of the list under the calendar that follow the language setting. */
+export interface DayListStrings {
+	events: string;
+	none: string;
+	overdue: string;
+	moveToToday: string;
+}
+
+export const DAY_LIST_STRINGS: Record<SettingsLanguage, DayListStrings> = {
+	en: { events: 'Events', none: 'None', overdue: 'Overdue', moveToToday: 'Move to today' },
+	ko: { events: '일정', none: '없음', overdue: '지난 할 일', moveToToday: '오늘로 옮기기' },
+};

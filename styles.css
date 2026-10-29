@@ -350,6 +350,16 @@
 	opacity: 0.6;
 }
 
+.sidebar-calendar__event-action {
+	flex: none;
+	margin-left: auto;
+	padding: var(--size-2-1);
+}
+
+.sidebar-calendar__day-list-group.mod-overdue {
+	color: var(--text-error);
+}
+
 .sidebar-calendar__event-text {
 	min-width: 0;
 }

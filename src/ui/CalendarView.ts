@@ -3,8 +3,9 @@ import { VIEW_TYPE_SIDEBAR_CALENDAR } from '../constants';
 import { addDays, DayKey, todayKey, yearMonth } from '../date/dayKey';
 import { eventsOnDay } from '../layout/weekLayout';
 import type { TemplateHeadings } from '../data/DailyNotes';
+import { DAY_LIST_STRINGS } from '../i18n';
 import { kindColorCss } from '../kindColor';
-import { sortEntries } from '../data/sortEntries';
+import { compareByStart, sortEntries } from '../data/sortEntries';
 import { visibleEvents } from '../data/visibleEvents';
 import type SidebarCalendarPlugin from '../main';
 import type { CalendarEvent } from '../types';
@@ -83,6 +84,7 @@ export class CalendarView extends ItemView {
 			this.plugin.addEntryItems(menu, event);
 			menu.showAtMouseEvent(evt);
 		};
+		const today = todayKey();
 		const openTaskDays = new Set(events.filter((e) => e.task === 'open').map((e) => e.start));
 		const noteMark = (day: DayKey): NoteMark => {
 			if (!dailyNotes?.find(day)) return 'none';
@@ -95,7 +97,7 @@ export class CalendarView extends ItemView {
 			{
 				year: this.year,
 				month: this.month,
-				today: todayKey(),
+				today,
 				weekStart: settings.weekStart,
 				locale,
 				events: visible.grid,
@@ -140,6 +142,10 @@ export class CalendarView extends ItemView {
 				sort: settings.listSort,
 				showDone: settings.showDone,
 				offCalendarLabel: settings.hiddenSubheading,
+				overdue: this.selectedDay === today
+					? events.filter((e) => !e.onCalendar && e.task === 'open' && e.start < today).sort(compareByStart)
+					: [],
+				strings: DAY_LIST_STRINGS[settings.settingsLanguage],
 				locale,
 				colorFor,
 			},
@@ -148,6 +154,7 @@ export class CalendarView extends ItemView {
 				onEventMenu: eventMenu,
 				onToggleTask: (event, done) => void this.plugin.setEntryTask(event, done),
 				onStartMove: month.drag.startMove,
+				onMoveToToday: (event) => void this.plugin.moveEntry(event, today),
 				onSort: (sort) => {
 					settings.listSort = sort;
 					void this.plugin.saveData(settings);

@@ -1,4 +1,5 @@
 import type { CalendarEvent } from '../types';
+import { compareForGrid } from './sortEntries';
 
 export interface Visibility {
 	/** Draw entries whose `start` equals `end` on the grid. The day list shows them either way. */
@@ -7,11 +8,14 @@ export interface Visibility {
 	showDone: boolean;
 }
 
-/** The entries the day list and the month grid show. Entries with `onCalendar` false are listed only. */
+/**
+ * The entries the day list and the month grid show. Entries with `onCalendar` false are listed
+ * only. The grid's are in `compareForGrid` order.
+ */
 export function visibleEvents(
 	events: readonly CalendarEvent[],
 	{ showOneDay, showDone }: Visibility,
 ): { list: readonly CalendarEvent[]; grid: readonly CalendarEvent[] } {
 	const list = showDone ? events : events.filter((e) => e.task !== 'done');
-	return { list, grid: list.filter((e) => e.onCalendar && (showOneDay || e.start !== e.end)) };
+	return { list, grid: list.filter((e) => e.onCalendar && (showOneDay || e.start !== e.end)).sort(compareForGrid) };
 }
