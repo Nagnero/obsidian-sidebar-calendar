@@ -67,6 +67,7 @@
 	grid-row: 1 / -1;
 	border-radius: var(--radius-s);
 	cursor: pointer;
+	user-select: none;
 }
 
 .sidebar-calendar__day:hover {
@@ -266,7 +267,7 @@
 }
 
 .sidebar-calendar__day-list-empty {
-	padding: var(--size-4-1) 0;
+	padding: var(--size-4-1) var(--size-4-2);
 	font-size: var(--font-ui-small);
 	color: var(--text-faint);
 }
@@ -290,11 +291,6 @@
 	align-self: stretch;
 	border-radius: 2px;
 	background-color: var(--sidebar-calendar-bar-color, var(--interactive-accent));
-}
-
-.sidebar-calendar__event-check {
-	flex: none;
-	margin: 2px 0 0;
 }
 
 .sidebar-calendar__event-text {

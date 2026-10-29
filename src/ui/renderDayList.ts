@@ -11,6 +11,8 @@ const SORT_LABELS: Record<ListSort, string> = {
 	kind: 'Kind',
 };
 
+const DOUBLE_CLICK_MS = 250;
+
 export interface DayListModel {
 	day: DayKey;
 	/** Already in `sort` order. */
@@ -53,31 +55,22 @@ export function renderDayList(parent: HTMLElement, model: DayListModel, handlers
 		menu.showAtMouseEvent(evt);
 	});
 
-	if (model.events.length === 0) {
-		list.createDiv({ cls: 'sidebar-calendar__day-list-empty', text: 'No events' });
-		return;
-	}
-
-	const onCalendar = model.events.filter((event) => event.onCalendar);
-	const offCalendar = model.events.filter((event) => !event.onCalendar);
-	if (offCalendar.length === 0) {
-		renderItems(list, onCalendar, model, handlers);
-		return;
-	}
-	if (onCalendar.length > 0) {
-		list.createDiv({ cls: 'sidebar-calendar__day-list-group', text: 'Events' });
-		renderItems(list, onCalendar, model, handlers);
-	}
-	list.createDiv({ cls: 'sidebar-calendar__day-list-group', text: model.offCalendarLabel });
-	renderItems(list, offCalendar, model, handlers);
+	renderGroup(list, 'Events', model.events.filter((event) => event.onCalendar), model, handlers);
+	renderGroup(list, model.offCalendarLabel, model.events.filter((event) => !event.onCalendar), model, handlers);
 }
 
-function renderItems(
+function renderGroup(
 	list: HTMLElement,
+	label: string,
 	events: readonly CalendarEvent[],
 	model: DayListModel,
 	handlers: DayListHandlers,
 ): void {
+	list.createDiv({ cls: 'sidebar-calendar__day-list-group', text: label });
+	if (events.length === 0) {
+		list.createDiv({ cls: 'sidebar-calendar__day-list-empty', text: 'None' });
+		return;
+	}
 	for (const event of events) {
 		const item = list.createDiv({ cls: 'sidebar-calendar__event-item', attr: { 'data-event': event.id } });
 		if (event.task === 'done') item.addClass('is-done');
@@ -85,20 +78,23 @@ function renderItems(
 		const color = model.colorFor(event);
 		if (color) swatch.style.setProperty('--sidebar-calendar-bar-color', color);
 
-		if (event.task !== null) {
-			const box = item.createEl('input', { cls: 'task-list-item-checkbox sidebar-calendar__event-check', type: 'checkbox' });
-			box.checked = event.task === 'done';
-			box.addEventListener('click', (evt) => {
-				evt.stopPropagation();
-				handlers.onToggleTask(event, box.checked);
-			});
-		}
 		const text = item.createDiv({ cls: 'sidebar-calendar__event-text' });
 		text.createDiv({ cls: 'sidebar-calendar__event-title', text: event.title });
-		if (event.start !== event.end) {
-			text.createDiv({ cls: 'sidebar-calendar__event-range', text: formatRange(event.start, event.end, model.locale) });
+		text.createDiv({ cls: 'sidebar-calendar__event-range', text: formatRange(event.start, event.end, model.locale) });
+		if (event.task === null) {
+			item.addEventListener('click', (evt) => handlers.onOpenEvent(event, evt));
+		} else {
+			// A task's double-click toggles it, so its single click waits to see whether a second one follows.
+			let pendingOpen: number | undefined;
+			item.addEventListener('click', (evt) => {
+				if (evt.detail > 1) return;
+				pendingOpen = window.setTimeout(() => handlers.onOpenEvent(event, evt), DOUBLE_CLICK_MS);
+			});
+			item.addEventListener('dblclick', () => {
+				window.clearTimeout(pendingOpen);
+				handlers.onToggleTask(event, event.task !== 'done');
+			});
 		}
-		item.addEventListener('click', (evt) => handlers.onOpenEvent(event, evt));
 		item.addEventListener('contextmenu', (evt) => handlers.onEventMenu(event, evt));
 	}
 }
