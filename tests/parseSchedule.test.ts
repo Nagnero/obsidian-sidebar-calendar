@@ -5,8 +5,15 @@ import { appendScheduleLine, ParsedEntry, parseSchedule, setEntryEnd, templateH1
 const DAY = '2026-10-20';
 const KINDS = ['업무', '개인'];
 
+const HIDDEN = 'To do';
+const RULES = { kinds: KINDS, hiddenSubheading: HIDDEN };
+
 function parse(text: string, day = DAY, kinds: readonly string[] = KINDS) {
-	return parseSchedule(text, day, kinds);
+	return parseSchedule(text, day, { kinds, hiddenSubheading: HIDDEN });
+}
+
+function append(text: string, kind: string, entry: { title: string; start: string; end: string }) {
+	return appendScheduleLine(text, kind, entry, HIDDEN);
 }
 
 function one(item: string, day = DAY): ParsedEntry {
@@ -17,7 +24,7 @@ function one(item: string, day = DAY): ParsedEntry {
 }
 
 test('plain item is a one-day entry of its H1 kind on the note date', () => {
-	assert.deepEqual(one('- 14:00 치과'), { line: 1, title: '14:00 치과', end: DAY, kind: '업무', task: null });
+	assert.deepEqual(one('- 14:00 치과'), { line: 1, title: '14:00 치과', end: DAY, kind: '업무', task: null, onCalendar: true });
 });
 
 test('every list marker works', () => {
@@ -44,6 +51,45 @@ test('H1s that are not kinds are not read, and match is exact', () => {
 test('deeper headings inside a section are part of it; the next H1 ends it', () => {
 	const text = ['# 업무', '- 첫째', '## 오후', '- 둘째', '### 메모', '- 셋째', '# 메모', '- 아님', '## 업무', '- 아님'].join('\n');
 	assert.deepEqual(parse(text).map((e) => [e.line, e.title]), [[1, '첫째'], [3, '둘째'], [5, '셋째']]);
+});
+
+const onCalendar = (text: string, kinds: readonly string[] = ['Personal']) =>
+	parse(text, DAY, kinds).map((e) => [e.title, e.onCalendar]);
+
+test('items under the To do sub-heading are entries kept off the calendar', () => {
+	const text = '# Personal\n- [ ] 18시 기헌이 약속\n## To do\n- [ ] 메리츠증권 자소서 작성\n  - 마감 금요일\n- 장보기\n';
+	assert.deepEqual(parse(text, DAY, ['Personal']).map((e) => [e.line, e.title, e.task, e.kind, e.onCalendar]), [
+		[1, '18시 기헌이 약속', 'open', 'Personal', true],
+		[3, '메리츠증권 자소서 작성', 'open', 'Personal', false],
+		[5, '장보기', null, 'Personal', false],
+	]);
+});
+
+test('the To do region ends at the next heading of the same or a higher level', () => {
+	assert.deepEqual(onCalendar('# Personal\n## To do\n- a\n## Evening\n- b\n'), [['a', false], ['b', true]]);
+	assert.deepEqual(onCalendar('# Personal\n### To do\n- a\n## Evening\n- b\n'), [['a', false], ['b', true]]);
+	assert.deepEqual(onCalendar('# Personal\n## To do\n- a\n# 업무\n- b\n', ['Personal', '업무']), [['a', false], ['b', true]]);
+});
+
+test('deeper headings inside the To do region stay hidden', () => {
+	assert.deepEqual(onCalendar('# Personal\n## To do\n- a\n### Later\n- b\n#### Much later\n- c\n## Done\n- d\n'), [
+		['a', false],
+		['b', false],
+		['c', false],
+		['d', true],
+	]);
+});
+
+test('the To do name matches in any case, as the whole heading text', () => {
+	assert.deepEqual(onCalendar('# Personal\n## TO DO\n- a\n'), [['a', false]]);
+	assert.deepEqual(onCalendar('# Personal\n## to do ##\n- a\n'), [['a', false]]);
+	assert.deepEqual(onCalendar('# Personal\n## To do list\n- a\n## Todo\n- b\n'), [['a', true], ['b', true]]);
+	assert.deepEqual(parseSchedule('# Personal\n## 할 일\n- a\n## To do\n- b\n', DAY, { kinds: ['Personal'], hiddenSubheading: '할 일' })
+		.map((e) => [e.title, e.onCalendar]), [['a', false], ['b', true]]);
+});
+
+test('an H1 named To do is a kind, not a hidden region', () => {
+	assert.deepEqual(onCalendar('# To do\n- a\n', ['To do']), [['a', true]]);
 });
 
 test('an H1 may have closing #s', () => {
@@ -74,7 +120,7 @@ test('MM-DD before the start date means next year', () => {
 });
 
 test('invalid or backwards range keeps the entry as one day', () => {
-	assert.deepEqual(one('- 회의 ~02-30'), { line: 1, title: '회의', end: DAY, kind: '업무', task: null });
+	assert.deepEqual(one('- 회의 ~02-30'), { line: 1, title: '회의', end: DAY, kind: '업무', task: null, onCalendar: true });
 	assert.equal(one('- 회의 ~2026-10-19').end, DAY);
 	assert.equal(one('- 회의 ~2026-13-01').end, DAY);
 	assert.equal(one('- 회의 ~2026-10-19').title, '회의');
@@ -82,8 +128,8 @@ test('invalid or backwards range keeps the entry as one day', () => {
 
 test('parentheses are title text, and a range just before trailing parentheses still counts', () => {
 	assert.equal(one('- 점심 (김밥천국)').title, '점심 (김밥천국)');
-	assert.deepEqual(one('- [x] 부산 출장 (업무) ~10-23'), { line: 1, title: '부산 출장 (업무)', end: '2026-10-23', kind: '업무', task: 'done' });
-	assert.deepEqual(one('- 부산 출장 ~10-23 (회의)'), { line: 1, title: '부산 출장 (회의)', end: '2026-10-23', kind: '업무', task: null });
+	assert.deepEqual(one('- [x] 부산 출장 (업무) ~10-23'), { line: 1, title: '부산 출장 (업무)', end: '2026-10-23', kind: '업무', task: 'done', onCalendar: true });
+	assert.deepEqual(one('- 부산 출장 ~10-23 (회의)'), { line: 1, title: '부산 출장 (회의)', end: '2026-10-23', kind: '업무', task: null, onCalendar: true });
 });
 
 test('nested items are ignored', () => {
@@ -133,43 +179,84 @@ const entry = (title: string, end = DAY) => ({ title, start: DAY, end });
 
 test('append writes an open task after the last top-level item and its nested items', () => {
 	const text = '# 업무\n- 치과\n  - 예약됨\n\n# 개인\n텍스트\n';
-	assert.equal(appendScheduleLine(text, '업무', entry('보고서')), '# 업무\n- 치과\n  - 예약됨\n- [ ] 보고서\n\n# 개인\n텍스트\n');
+	assert.equal(append(text, '업무', entry('보고서')), '# 업무\n- 치과\n  - 예약됨\n- [ ] 보고서\n\n# 개인\n텍스트\n');
 });
 
 test('append into a section with free text goes below the text', () => {
 	assert.equal(
-		appendScheduleLine('# 업무\n오늘 할 일:\n\n# 개인\n', '업무', entry('a')),
+		append('# 업무\n오늘 할 일:\n\n# 개인\n', '업무', entry('a')),
 		'# 업무\n오늘 할 일:\n- [ ] a\n\n# 개인\n',
 	);
-	assert.equal(appendScheduleLine('# 업무\n\n# 개인\n', '업무', entry('a')), '# 업무\n- [ ] a\n\n# 개인\n');
+	assert.equal(append('# 업무\n\n# 개인\n', '업무', entry('a')), '# 업무\n- [ ] a\n\n# 개인\n');
 });
 
 test('append goes to the chosen H1, even past deeper headings, and not to a later section', () => {
 	const text = '# 업무\n- a\n# 개인\n- b\n## 저녁\n- c\n\n# Journaling\n일기\n';
 	assert.equal(
-		appendScheduleLine(text, '개인', entry('d')),
+		append(text, '개인', entry('d')),
 		'# 업무\n- a\n# 개인\n- b\n## 저녁\n- c\n- [ ] d\n\n# Journaling\n일기\n',
 	);
 });
 
-test('append writes the range', () => {
-	assert.equal(appendScheduleLine('# 업무\n', '업무', entry('제주 여행', '2026-10-23')), '# 업무\n- [ ] 제주 여행 ~10-23\n');
+test('append goes above the To do sub-heading, after the last visible item', () => {
+	const text = '# Personal\n- [ ] 18시 기헌이 약속\n  - 강남역\n## To do\n- [ ] 메리츠증권 자소서 작성\n';
 	assert.equal(
-		appendScheduleLine('# 업무\n', '업무', { title: '연말', start: '2026-12-30', end: '2027-01-02' }),
+		append(text, 'Personal', entry('점심')),
+		'# Personal\n- [ ] 18시 기헌이 약속\n  - 강남역\n- [ ] 점심\n## To do\n- [ ] 메리츠증권 자소서 작성\n',
+	);
+	assert.equal(
+		append('# Personal\n## to do\n- [ ] a\n## Evening\n- b\n', 'Personal', entry('c')),
+		'# Personal\n## to do\n- [ ] a\n## Evening\n- b\n- [ ] c\n',
+	);
+});
+
+test('append into a section whose items are all under To do goes right after the H1 and its text', () => {
+	assert.equal(
+		append('# Personal\n## To do\n- [ ] a\n', 'Personal', entry('b')),
+		'# Personal\n- [ ] b\n## To do\n- [ ] a\n',
+	);
+	assert.equal(
+		append('# Personal\n메모\n\n## To do\n- [ ] a\n\n# 업무\n', 'Personal', entry('b')),
+		'# Personal\n메모\n- [ ] b\n\n## To do\n- [ ] a\n\n# 업무\n',
+	);
+});
+
+test('an entry appended next to a To do region parses back on the calendar, and the To do item stays off it', () => {
+	const base = '# 개인\n## To do\n- [ ] 자소서\n### 나중에\n- [ ] 여권\n';
+	const text = append(append(base, '개인', entry('약속')), '개인', entry('출장', '2026-10-23'));
+	assert.deepEqual(parse(text).map((e) => [e.title, e.end, e.task, e.onCalendar]), [
+		['약속', DAY, 'open', true],
+		['출장', '2026-10-23', 'open', true],
+		['자소서', DAY, 'open', false],
+		['여권', DAY, 'open', false],
+	]);
+});
+
+test('setEntryEnd changes an entry under To do as well', () => {
+	assert.equal(
+		setEntryEnd('# 업무\n## To do\n- [ ] 보고서\n', DAY, RULES, 2, '2026-10-22'),
+		'# 업무\n## To do\n- [ ] 보고서 ~10-22\n',
+	);
+});
+
+test('append writes the range', () => {
+	assert.equal(append('# 업무\n', '업무', entry('제주 여행', '2026-10-23')), '# 업무\n- [ ] 제주 여행 ~10-23\n');
+	assert.equal(
+		append('# 업무\n', '업무', { title: '연말', start: '2026-12-30', end: '2027-01-02' }),
 		'# 업무\n- [ ] 연말 ~2027-01-02\n',
 	);
 });
 
 test('append adds the H1 at the end when the note lacks it', () => {
-	assert.equal(appendScheduleLine('메모\n', '업무', entry('a')), '메모\n\n# 업무\n- [ ] a\n');
-	assert.equal(appendScheduleLine('메모', '업무', entry('a')), '메모\n\n# 업무\n- [ ] a\n');
-	assert.equal(appendScheduleLine('', '업무', entry('a')), '# 업무\n- [ ] a\n');
-	assert.equal(appendScheduleLine('## 업무\n- x\n', '업무', entry('a')), '## 업무\n- x\n\n# 업무\n- [ ] a\n');
-	assert.equal(appendScheduleLine('메모\r\n', '업무', entry('a')), '메모\r\n\r\n# 업무\r\n- [ ] a\r\n');
+	assert.equal(append('메모\n', '업무', entry('a')), '메모\n\n# 업무\n- [ ] a\n');
+	assert.equal(append('메모', '업무', entry('a')), '메모\n\n# 업무\n- [ ] a\n');
+	assert.equal(append('', '업무', entry('a')), '# 업무\n- [ ] a\n');
+	assert.equal(append('## 업무\n- x\n', '업무', entry('a')), '## 업무\n- x\n\n# 업무\n- [ ] a\n');
+	assert.equal(append('메모\r\n', '업무', entry('a')), '메모\r\n\r\n# 업무\r\n- [ ] a\r\n');
 });
 
 test('append keeps CRLF inside an existing section', () => {
-	assert.equal(appendScheduleLine('# 업무\r\n- x\r\n', '업무', entry('a')), '# 업무\r\n- x\r\n- [ ] a\r\n');
+	assert.equal(append('# 업무\r\n- x\r\n', '업무', entry('a')), '# 업무\r\n- x\r\n- [ ] a\r\n');
 });
 
 test('appended entries parse back as open tasks of the chosen kind', () => {
@@ -180,7 +267,7 @@ test('appended entries parse back as open tasks of the chosen kind', () => {
 	];
 	for (const base of ['', '# 제목\n', '# 업무\n- [x] 기존\n  - 메모\n\n# 개인\n\n# Journaling\n일기\n']) {
 		let text = base;
-		for (const { kind, ...e } of entries) text = appendScheduleLine(text, kind, e);
+		for (const { kind, ...e } of entries) text = append(text, kind, e);
 		const parsed = parse(text);
 		for (const { kind, title, end } of entries) {
 			assert.ok(
@@ -193,49 +280,49 @@ test('appended entries parse back as open tasks of the chosen kind', () => {
 
 test('setEntryEnd turns a one-day entry into a 3-day entry', () => {
 	const text = '# 업무\n- [ ] 보고서\n- 회의\n';
-	assert.equal(setEntryEnd(text, DAY, KINDS, 1, '2026-10-22'), '# 업무\n- [ ] 보고서 ~10-22\n- 회의\n');
+	assert.equal(setEntryEnd(text, DAY, RULES, 1, '2026-10-22'), '# 업무\n- [ ] 보고서 ~10-22\n- 회의\n');
 });
 
 test('setEntryEnd replaces an existing range, in either written form', () => {
-	assert.equal(setEntryEnd('# 업무\n- 출장 ~10-23\n', DAY, KINDS, 1, '2026-10-25'), '# 업무\n- 출장 ~10-25\n');
-	assert.equal(setEntryEnd('# 업무\n- 출장 ~10/23\n', DAY, KINDS, 1, '2026-10-21'), '# 업무\n- 출장 ~10-21\n');
-	assert.equal(setEntryEnd('# 업무\n- 출장 ~2026-10-23\n', DAY, KINDS, 1, '2026-10-21'), '# 업무\n- 출장 ~10-21\n');
+	assert.equal(setEntryEnd('# 업무\n- 출장 ~10-23\n', DAY, RULES, 1, '2026-10-25'), '# 업무\n- 출장 ~10-25\n');
+	assert.equal(setEntryEnd('# 업무\n- 출장 ~10/23\n', DAY, RULES, 1, '2026-10-21'), '# 업무\n- 출장 ~10-21\n');
+	assert.equal(setEntryEnd('# 업무\n- 출장 ~2026-10-23\n', DAY, RULES, 1, '2026-10-21'), '# 업무\n- 출장 ~10-21\n');
 });
 
 test('setEntryEnd removes the range when the entry becomes one day', () => {
-	assert.equal(setEntryEnd('# 업무\n- [x] 출장 ~10-23\n', DAY, KINDS, 1, DAY), '# 업무\n- [x] 출장\n');
-	assert.equal(setEntryEnd('# 업무\n- 치과\n', DAY, KINDS, 1, DAY), '# 업무\n- 치과\n');
+	assert.equal(setEntryEnd('# 업무\n- [x] 출장 ~10-23\n', DAY, RULES, 1, DAY), '# 업무\n- [x] 출장\n');
+	assert.equal(setEntryEnd('# 업무\n- 치과\n', DAY, RULES, 1, DAY), '# 업무\n- 치과\n');
 });
 
 test('setEntryEnd keeps the task box and the list marker', () => {
-	assert.equal(setEntryEnd('# 업무\n* [/] 보고서\n', DAY, KINDS, 1, '2026-10-21'), '# 업무\n* [/] 보고서 ~10-21\n');
+	assert.equal(setEntryEnd('# 업무\n* [/] 보고서\n', DAY, RULES, 1, '2026-10-21'), '# 업무\n* [/] 보고서 ~10-21\n');
 });
 
 test('setEntryEnd keeps trailing parentheses in the title', () => {
-	assert.equal(setEntryEnd('# 업무\n- 워크숍 (취미)\n', DAY, KINDS, 1, '2026-10-21'), '# 업무\n- 워크숍 (취미) ~10-21\n');
-	assert.equal(setEntryEnd('# 업무\n- 출장 ~10-23 (회의)\n', DAY, KINDS, 1, '2026-10-25'), '# 업무\n- 출장 ~10-25 (회의)\n');
-	assert.equal(setEntryEnd('# 업무\n- 출장 ~10-23 (회의)\n', DAY, KINDS, 1, DAY), '# 업무\n- 출장 (회의)\n');
+	assert.equal(setEntryEnd('# 업무\n- 워크숍 (취미)\n', DAY, RULES, 1, '2026-10-21'), '# 업무\n- 워크숍 (취미) ~10-21\n');
+	assert.equal(setEntryEnd('# 업무\n- 출장 ~10-23 (회의)\n', DAY, RULES, 1, '2026-10-25'), '# 업무\n- 출장 ~10-25 (회의)\n');
+	assert.equal(setEntryEnd('# 업무\n- 출장 ~10-23 (회의)\n', DAY, RULES, 1, DAY), '# 업무\n- 출장 (회의)\n');
 });
 
 test('setEntryEnd writes the year when the range crosses into the next year', () => {
-	assert.equal(setEntryEnd('# 업무\n- 휴가\n', '2026-12-30', KINDS, 1, '2027-01-02'), '# 업무\n- 휴가 ~2027-01-02\n');
+	assert.equal(setEntryEnd('# 업무\n- 휴가\n', '2026-12-30', RULES, 1, '2027-01-02'), '# 업무\n- 휴가 ~2027-01-02\n');
 });
 
 test('setEntryEnd returns null for a line that is not an entry', () => {
 	const text = '# 업무\n- a\n  - nested\n텍스트\n# Journaling\n- b\n```\n- c\n```\n';
-	for (const line of [0, 2, 3, 4, 5, 7, 99]) assert.equal(setEntryEnd(text, DAY, KINDS, line, '2026-10-21'), null, `line ${line}`);
+	for (const line of [0, 2, 3, 4, 5, 7, 99]) assert.equal(setEntryEnd(text, DAY, RULES, line, '2026-10-21'), null, `line ${line}`);
 });
 
 test('setEntryEnd keeps CRLF and every other line byte for byte', () => {
 	const text = '# 업무\r\n- a  \r\n- b\n\n# 개인\r\n';
-	assert.equal(setEntryEnd(text, DAY, KINDS, 1, '2026-10-22'), '# 업무\r\n- a ~10-22  \r\n- b\n\n# 개인\r\n');
+	assert.equal(setEntryEnd(text, DAY, RULES, 1, '2026-10-22'), '# 업무\r\n- a ~10-22  \r\n- b\n\n# 개인\r\n');
 });
 
 test('setEntryEnd round-trips through parseSchedule', () => {
 	const text = '# 업무\n- [ ] 보고서\n- 출장 ~10-23 (회의)\n# 개인\n- 휴가 ~2026-11-02\n';
 	for (const { line, title, task } of parse(text)) {
 		for (const end of [DAY, '2026-10-21', '2026-12-31', '2027-01-05']) {
-			const next = setEntryEnd(text, DAY, KINDS, line, end);
+			const next = setEntryEnd(text, DAY, RULES, line, end);
 			assert.ok(next !== null);
 			const entry = parse(next).find((e) => e.line === line);
 			assert.deepEqual(entry && [entry.title, entry.task, entry.end], [title, task, end], `${title} → ${end}`);

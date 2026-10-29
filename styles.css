@@ -130,6 +130,64 @@
 	cursor: pointer;
 }
 
+/* The end handle sits on the segment holding the entry's last day. */
+.sidebar-calendar__bar {
+	position: relative;
+}
+
+.sidebar-calendar__bar-handle {
+	position: absolute;
+	top: 0;
+	right: 0;
+	bottom: 0;
+	width: 6px;
+	cursor: ew-resize;
+}
+
+.sidebar-calendar__bar:hover .sidebar-calendar__bar-handle::after {
+	content: "";
+	position: absolute;
+	top: 3px;
+	right: 2px;
+	bottom: 3px;
+	width: 2px;
+	border-radius: 1px;
+	background-color: var(--text-on-accent);
+	opacity: 0.7;
+}
+
+.sidebar-calendar__weeks.is-resizing,
+.sidebar-calendar__weeks.is-resizing * {
+	cursor: ew-resize;
+}
+
+/* Titled bars are chips with the entry's title, so the bar rows grow to fit the text. */
+.sidebar-calendar__weeks.is-titled {
+	--sidebar-calendar-lane-height: 18px;
+	--sidebar-calendar-bar-height: 16px;
+}
+
+.sidebar-calendar__weeks.is-titled .sidebar-calendar__bar {
+	margin: 0 1px;
+	border-radius: var(--radius-s);
+	overflow: hidden;
+}
+
+.sidebar-calendar__bar-title {
+	display: block;
+	padding: 0 3px;
+	font-size: 11px;
+	line-height: var(--sidebar-calendar-bar-height);
+	color: var(--text-on-accent);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.sidebar-calendar__bar.is-done .sidebar-calendar__bar-title {
+	text-decoration: line-through;
+}
+
 /* A bar cut at the week edge runs to the edge with a flat end, so it reads as continuing. */
 .sidebar-calendar__bar.is-continued-before {
 	margin-left: 0;
@@ -273,15 +331,43 @@
 .sidebar-calendar__duration {
 	display: flex;
 	align-items: center;
-	gap: var(--size-4-3);
+	gap: var(--size-4-2);
+	margin-bottom: var(--size-4-3);
+}
+
+.sidebar-calendar__duration-label {
+	min-width: 4em;
+	color: var(--text-muted);
+}
+
+.sidebar-calendar__duration-step {
+	min-width: 2.25em;
+	font-size: var(--font-ui-medium);
 }
 
 .sidebar-calendar__duration-input {
-	width: 6em;
+	width: 5em;
+	text-align: center;
+}
+
+.sidebar-calendar__duration-presets {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--size-4-2);
+	margin: 0 0 var(--size-4-3) calc(4em + var(--size-4-2));
+}
+
+.sidebar-calendar__duration-preset {
+	border-radius: var(--radius-l);
+	font-size: var(--font-ui-small);
+}
+
+.sidebar-calendar__duration-preset[aria-pressed="true"] {
+	background-color: var(--interactive-accent);
+	color: var(--text-on-accent);
 }
 
 .sidebar-calendar__duration-preview {
-	margin-top: var(--size-4-3);
 	color: var(--text-muted);
 }
 

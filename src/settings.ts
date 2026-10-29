@@ -1,7 +1,7 @@
 import { App, PluginSettingTab, Setting } from 'obsidian';
 import type { TemplateHeadings } from './data/DailyNotes';
 import { Around, isSettingsLanguage, LANGUAGE_NAMES, SETTINGS_LANGUAGES, SETTINGS_STRINGS, SettingsStrings } from './i18n';
-import { Kind, MAX_LANES, MIN_LANES } from './settingsData';
+import { DEFAULT_SETTINGS, isBarStyle, Kind, MAX_LANES, MIN_LANES, sanitizeSubheading } from './settingsData';
 import type SidebarCalendarPlugin from './main';
 import { renderKindColorControl } from './ui/kindColorControl';
 
@@ -109,6 +109,21 @@ export class SidebarCalendarSettingTab extends PluginSettingTab {
 			);
 
 		new Setting(containerEl)
+			.setName(t.barStyle)
+			.setDesc(t.barStyleDesc)
+			.addDropdown((dropdown) =>
+				dropdown
+					.addOption('title', t.barStyleTitle)
+					.addOption('line', t.barStyleLine)
+					.setValue(settings.barStyle)
+					.onChange(async (value) => {
+						if (!isBarStyle(value)) return;
+						settings.barStyle = value;
+						await plugin.saveSettings();
+					}),
+			);
+
+		new Setting(containerEl)
 			.setName(t.showOneDay)
 			.setDesc(t.showOneDayDesc)
 			.addToggle((toggle) =>
@@ -116,6 +131,19 @@ export class SidebarCalendarSettingTab extends PluginSettingTab {
 					settings.showOneDay = value;
 					await plugin.saveSettings();
 				}),
+			);
+
+		new Setting(containerEl)
+			.setName(t.hiddenSubheading)
+			.setDesc(t.hiddenSubheadingDesc)
+			.addText((text) =>
+				text
+					.setPlaceholder(DEFAULT_SETTINGS.hiddenSubheading)
+					.setValue(settings.hiddenSubheading)
+					.onChange(async (value) => {
+						settings.hiddenSubheading = sanitizeSubheading(value);
+						await plugin.saveSettings();
+					}),
 			);
 
 		new Setting(containerEl)

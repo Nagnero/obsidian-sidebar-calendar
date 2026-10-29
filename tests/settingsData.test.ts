@@ -14,6 +14,7 @@ test('valid values are kept', () => {
 		settingsLanguage: 'ko',
 		weekStart: 1,
 		maxLanes: 5,
+		barStyle: 'line',
 		dailyNotes: false,
 		showOneDay: false,
 		showDone: false,
@@ -24,6 +25,7 @@ test('valid values are kept', () => {
 		],
 		lastKind: '업무',
 		listSort: 'unchecked',
+		hiddenSubheading: 'Someday',
 	};
 	assert.deepEqual(sanitizeSettings(raw), raw);
 });
@@ -46,11 +48,26 @@ test('bar rows are rounded and clamped to 1-6', () => {
 	assert.equal(sanitizeSettings({ maxLanes: NaN }).maxLanes, DEFAULT_SETTINGS.maxLanes);
 });
 
+test('bar style is title unless line is saved', () => {
+	assert.equal(sanitizeSettings({}).barStyle, 'title');
+	assert.equal(sanitizeSettings({ barStyle: 'line' }).barStyle, 'line');
+	assert.equal(sanitizeSettings({ barStyle: 'thin' }).barStyle, 'title');
+});
+
 test('show completed accepts only a boolean', () => {
 	assert.equal(sanitizeSettings({}).showDone, true);
 	assert.equal(sanitizeSettings({ showDone: false }).showDone, false);
 	assert.equal(sanitizeSettings({ showDone: 'false' }).showDone, true);
 	assert.equal(sanitizeSettings({ showDone: 0 }).showDone, true);
+});
+
+test('hidden sub-heading is trimmed, loses leading #s, and falls back to To do when empty', () => {
+	assert.equal(sanitizeSettings({}).hiddenSubheading, 'To do');
+	assert.equal(sanitizeSettings({ hiddenSubheading: '  할 일 ' }).hiddenSubheading, '할 일');
+	assert.equal(sanitizeSettings({ hiddenSubheading: '## Later' }).hiddenSubheading, 'Later');
+	assert.equal(sanitizeSettings({ hiddenSubheading: ' ### ' }).hiddenSubheading, 'To do');
+	assert.equal(sanitizeSettings({ hiddenSubheading: '' }).hiddenSubheading, 'To do');
+	assert.equal(sanitizeSettings({ hiddenSubheading: 3 }).hiddenSubheading, 'To do');
 });
 
 test('week start accepts only Sunday or Monday', () => {

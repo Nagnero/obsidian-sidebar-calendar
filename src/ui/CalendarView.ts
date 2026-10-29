@@ -84,6 +84,7 @@ export class CalendarView extends ItemView {
 				locale,
 				events: visible.grid,
 				maxLanes: settings.maxLanes,
+				barStyle: settings.barStyle,
 				colorFor,
 				selectedDay: this.selectedDay,
 				noteMark,
@@ -107,6 +108,7 @@ export class CalendarView extends ItemView {
 				onOpenEvent: openEvent,
 				onEventMenu: eventMenu,
 				onAddEntry: (start, end) => void this.promptEntry(start, end),
+				onResizeEvent: (event, end) => void this.plugin.setEntryEnd(event, end),
 			},
 		);
 
@@ -168,7 +170,7 @@ export class CalendarView extends ItemView {
 		new AddEntryModal(this.app, formatRange(start, end, appLocale()), kinds, settings.lastKind, (title, kind) => {
 			settings.lastKind = kind;
 			void plugin.saveData(settings);
-			void plugin.dailyNotes.addEntry({ title, start, end }, kind);
+			void plugin.dailyNotes.addEntry({ title, start, end }, kind, settings.hiddenSubheading);
 		}).open();
 	}
 

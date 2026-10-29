@@ -6,7 +6,7 @@ import { activeKinds, Kind, reconcileKinds } from './settingsData';
 import { DayKey, todayKey } from './date/dayKey';
 import { DailyNotes, TemplateHeadings } from './data/DailyNotes';
 import { EventStore } from './data/EventStore';
-import { parseSchedule, setEntryEnd } from './data/parseSchedule';
+import { parseSchedule, ScheduleRules, setEntryEnd } from './data/parseSchedule';
 import type { CalendarEvent } from './types';
 import { appLocale, CalendarView } from './ui/CalendarView';
 import { DurationModal } from './ui/DurationModal';
@@ -24,7 +24,7 @@ export default class SidebarCalendarPlugin extends Plugin {
 	async onload() {
 		await this.loadSettings();
 		this.dailyNotes = new DailyNotes(this.app);
-		this.eventStore = new EventStore(this.app, this.dailyNotes, () => this.kindNames());
+		this.eventStore = new EventStore(this.app, this.dailyNotes, () => this.scheduleRules());
 
 		this.registerView(VIEW_TYPE_SIDEBAR_CALENDAR, (leaf) => new CalendarView(leaf, this));
 
@@ -67,7 +67,7 @@ export default class SidebarCalendarPlugin extends Plugin {
 			const day = file ? this.dailyNotes.dayOf(file) : null;
 			if (!file || day === null) return;
 			const line = editor.getCursor().line;
-			const entry = parseSchedule(editor.getValue(), day, this.kindNames()).find((e) => e.line === line);
+			const entry = parseSchedule(editor.getValue(), day, this.scheduleRules()).find((e) => e.line === line);
 			if (entry) this.addDurationItem(menu, { ...entry, path: file.path, start: day });
 		}));
 		this.registerAutoRefresh();
@@ -161,8 +161,8 @@ export default class SidebarCalendarPlugin extends Plugin {
 	 * there, is never overwritten by the editor's pending save, and reaches the calendar through
 	 * `editor-change` at once. A closed note is edited on disk.
 	 */
-	private async setEntryEnd(entry: EntryRef, end: DayKey): Promise<void> {
-		const rewrite = (text: string) => setEntryEnd(text, entry.start, this.kindNames(), entry.line, end);
+	async setEntryEnd(entry: EntryRef, end: DayKey): Promise<void> {
+		const rewrite = (text: string) => setEntryEnd(text, entry.start, this.scheduleRules(), entry.line, end);
 		const editor = this.openEditor(entry.path);
 		if (editor) {
 			const next = rewrite(editor.getValue());
@@ -183,8 +183,8 @@ export default class SidebarCalendarPlugin extends Plugin {
 		return null;
 	}
 
-	private kindNames(): string[] {
-		return this.activeKinds().map((k) => k.name);
+	private scheduleRules(): ScheduleRules {
+		return { kinds: this.activeKinds().map((k) => k.name), hiddenSubheading: this.settings.hiddenSubheading };
 	}
 
 	/** The enabled kinds the template has, in template order. */

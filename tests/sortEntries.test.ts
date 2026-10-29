@@ -5,7 +5,7 @@ import type { CalendarEvent, TaskState } from '../src/types';
 
 function entry(path: string, line: number, title: string, kind: string, task: TaskState, end?: string): CalendarEvent {
 	const start = path.slice(0, 10);
-	return { id: `${path}:${line}`, path, line, title, start, end: end ?? start, kind, task };
+	return { id: `${path}:${line}`, path, line, title, start, end: end ?? start, kind, task, onCalendar: true };
 }
 
 // Everything listed on 2026-10-20.

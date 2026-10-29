@@ -3,6 +3,14 @@ import { isListSort, ListSort } from './data/sortEntries';
 import { isSettingsLanguage, SettingsLanguage } from './i18n';
 import { KindColor, NAMED_COLORS, NamedColor, parseKindColor } from './kindColor';
 
+/** How the grid draws an entry: a filled bar with its title, or a thin line. */
+export const BAR_STYLES = ['title', 'line'] as const;
+export type BarStyle = (typeof BAR_STYLES)[number];
+
+export function isBarStyle(value: unknown): value is BarStyle {
+	return BAR_STYLES.some((style) => style === value);
+}
+
 /** An H1 of the daily note template, used as a kind of schedule entry. */
 export interface Kind {
 	/** The H1 text, trimmed. Unique within the settings. */
@@ -17,6 +25,7 @@ export interface SidebarCalendarSettings {
 	settingsLanguage: SettingsLanguage;
 	weekStart: Weekday;
 	maxLanes: number;
+	barStyle: BarStyle;
 	/** Mark days that have a daily note, and ones with an unchecked task (uses the core Daily notes plugin). */
 	dailyNotes: boolean;
 	/** Draw entries whose `start` equals `end` on the grid. The day list shows them either way. */
@@ -29,18 +38,22 @@ export interface SidebarCalendarSettings {
 	lastKind: string;
 	/** Order of the selected day's list. */
 	listSort: ListSort;
+	/** Sub-heading inside a kind whose items are listed for their day but not drawn on the grid. */
+	hiddenSubheading: string;
 }
 
 export const DEFAULT_SETTINGS: SidebarCalendarSettings = {
 	settingsLanguage: 'en',
 	weekStart: 0,
 	maxLanes: 3,
+	barStyle: 'title',
 	dailyNotes: true,
 	showOneDay: true,
 	showDone: true,
 	kinds: [],
 	lastKind: '',
 	listSort: 'start',
+	hiddenSubheading: 'To do',
 };
 
 export const MIN_LANES = 1;
@@ -74,12 +87,14 @@ export function sanitizeSettings(raw: unknown): SidebarCalendarSettings {
 		settingsLanguage: isSettingsLanguage(data.settingsLanguage) ? data.settingsLanguage : d.settingsLanguage,
 		weekStart: data.weekStart === 1 || data.weekStart === '1' ? 1 : 0,
 		maxLanes: lanes,
+		barStyle: isBarStyle(data.barStyle) ? data.barStyle : d.barStyle,
 		dailyNotes: typeof data.dailyNotes === 'boolean' ? data.dailyNotes : d.dailyNotes,
 		showOneDay: typeof data.showOneDay === 'boolean' ? data.showOneDay : d.showOneDay,
 		showDone: typeof data.showDone === 'boolean' ? data.showDone : d.showDone,
 		kinds,
 		lastKind: typeof data.lastKind === 'string' ? data.lastKind : d.lastKind,
 		listSort: isListSort(data.listSort) ? data.listSort : d.listSort,
+		hiddenSubheading: sanitizeSubheading(data.hiddenSubheading),
 	};
 }
 
@@ -105,6 +120,12 @@ export function reconcileKinds(stored: readonly Kind[], templateH1s: readonly st
 /** The enabled kinds that the template has, in template order. These are what gets read and offered. */
 export function activeKinds(kinds: readonly Kind[], templateH1s: readonly string[]): Kind[] {
 	return templateH1s.flatMap((name) => kinds.filter((k) => k.name === name && k.enabled).slice(0, 1));
+}
+
+/** A sub-heading name as typed, without surrounding spaces or leading `#`s; empty gives the default. */
+export function sanitizeSubheading(raw: unknown): string {
+	const name = typeof raw === 'string' ? raw.trim().replace(/^#+/, '').trim() : '';
+	return name === '' ? DEFAULT_SETTINGS.hiddenSubheading : name;
 }
 
 function nextColor(taken: readonly Kind[]): NamedColor {

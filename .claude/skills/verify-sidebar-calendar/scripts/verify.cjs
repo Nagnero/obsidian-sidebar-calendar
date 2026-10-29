@@ -123,6 +123,8 @@ function seedVault() {
 	writeFile(`${day(20)}.md`, '# 업무\n- Crowded 1\n- Crowded 2\n- Crowded 3\n- Crowded 4\n  - nested note, not an entry\n');
 	writeFile(`${day(22)}.md`, '# 업무\n- [ ] Report\n- [x] Groceries\n\n# Journaling\n- Journal line, not an entry\n');
 	writeFile(`${day(27)}.md`, `# 개인\n- [x] Call mom\n- Zoo\n# 업무\n- [ ] Budget ~${mm}-28\n- Memo\n`);
+	writeFile(`${day(10)}.md`, '# 개인\n- 18시 기헌이 약속\n## To do\n- [ ] 메리츠증권 자소서 작성\n### Later\n- Renew passport\n');
+	writeFile(`${day(23)}.md`, `# 개인\n- Quarterly planning workshop with the whole product team ~${mm}-24\n`);
 	writeFile(`${day(25)}.md`, '# 업무\n- [x] Paid rent\n- Lunch\n\n# Journaling\n- [ ] Journal task, not read\n');
 }
 
@@ -254,40 +256,54 @@ async function evalJs(code) {
 	console.log(JSON.stringify(result, null, 2));
 }
 
-async function act(kind, selector, value) {
+async function act(kind, selector, value, shot) {
 	const { browser, page } = await connect();
 	const target = page.locator(selector).first();
 	await target.waitFor({ timeout: 5_000 });
 	console.log(`verify: ${kind} ${selector}`);
+	// Titled bars cover the middle of a day cell, so a click there would hit a bar. Users click a
+	// day on its number, which no bar covers.
+	const onDayNumber = (await target.evaluate((el) => el.matches('.sidebar-calendar__day'))) ? { position: { x: (await target.boundingBox()).width / 2, y: 10 } } : {};
 	if (kind === 'fill') {
-		// Types like a user so Obsidian's change handlers fire.
-		await target.fill('');
-		await target.pressSequentially(value);
+		// Types like a user so Obsidian's change handlers fire. A date input takes no free typing;
+		// Playwright sets it the way the date picker does, firing input and change.
+		if ((await target.getAttribute('type')) === 'date') {
+			await target.fill(value);
+		} else {
+			await target.fill('');
+			await target.pressSequentially(value);
+		}
 		await page.waitForTimeout(600);
 	} else if (kind === 'select') {
 		await target.selectOption(value);
 		await page.waitForTimeout(600);
 	} else if (kind === 'click') {
-		await target.click();
+		await target.click(onDayNumber);
 		await page.waitForTimeout(400);
 	} else if (kind === 'rightclick') {
 		// A real right button press, so the page sees mousedown, mouseup and contextmenu.
 		await target.click({ button: 'right' });
 		await page.waitForTimeout(400);
 	} else if (kind === 'dblclick') {
-		await target.dblclick();
+		await target.dblclick(onDayNumber);
 		await page.waitForTimeout(400);
-	} else if (kind === 'drag') {
+	} else if (kind === 'drag' || kind === 'drag-cancel') {
 		// Real mouse down, moves and up, so the calendar sees the same events a user's drag makes.
 		const to = page.locator(value).first();
 		const [a, b] = [await target.boundingBox(), await to.boundingBox()];
+		const inRangeNow = () => page.$$eval('.sidebar-calendar__day.is-in-range', (cells) => cells.map((c) => c.dataset.date));
 		await page.mouse.move(a.x + a.width / 2, a.y + a.height / 2);
 		await page.mouse.down();
 		await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2, { steps: 12 });
-		const inRange = await page.$$eval('.sidebar-calendar__day.is-in-range', (cells) => cells.map((c) => c.dataset.date));
+		const result = { inRangeBeforeRelease: await inRangeNow() };
+		if (shot) result.screenshot = await saveScreenshot(page, shot, '.mod-right-split');
+		if (kind === 'drag-cancel') {
+			await page.keyboard.press('Escape');
+			result.inRangeAfterEscape = await inRangeNow();
+		}
 		await page.mouse.up();
 		await page.waitForTimeout(400);
-		console.log(JSON.stringify({ inRangeBeforeRelease: inRange }));
+		console.log(JSON.stringify(result));
 	} else if (kind === 'hover') {
 		// Obsidian shows tooltips after a delay and removes them when the pointer leaves, so read
 		// the tooltip here, in the same connection, instead of in a later snapshot.
@@ -358,13 +374,47 @@ async function press(key) {
 	await browser.close();
 }
 
-async function screenshot(name) {
-	const { browser, page } = await connect();
+async function saveScreenshot(page, name, selector) {
 	const file = path.join(ARTIFACTS, name.endsWith('.png') ? name : `${name}.png`);
 	fs.mkdirSync(path.dirname(file), { recursive: true });
-	await page.screenshot({ path: file });
+	if (selector) await page.locator(selector).first().screenshot({ path: file });
+	else await page.screenshot({ path: file });
+	return file;
+}
+
+async function screenshot(name, selector) {
+	const { browser, page } = await connect();
+	const file = await saveScreenshot(page, name, selector);
 	await browser.close();
 	console.log(file);
+}
+
+/** Resizes the right sidebar the way dragging its edge does, and prints the calendar's width. */
+async function sidebar(px) {
+	const { browser, page } = await connect();
+	const widths = await page.evaluate(async (size) => {
+		app.workspace.rightSplit.setSize(size);
+		await new Promise((r) => setTimeout(r, 400));
+		return {
+			sidebar: app.workspace.rightSplit.containerEl.getBoundingClientRect().width,
+			calendar: document.querySelector('.sidebar-calendar__weeks')?.getBoundingClientRect().width ?? null,
+		};
+	}, px);
+	await browser.close();
+	console.log(JSON.stringify(widths));
+}
+
+/** Switches the base color scheme like Settings → Appearance → Base color scheme. */
+async function theme(mode) {
+	if (mode !== 'light' && mode !== 'dark') die('theme needs light or dark');
+	const { browser, page } = await connect();
+	const body = await page.evaluate(async (name) => {
+		app.changeTheme(name);
+		await new Promise((r) => setTimeout(r, 400));
+		return document.body.className.split(' ').filter((c) => c.startsWith('theme-'));
+	}, mode === 'dark' ? 'obsidian' : 'moonstone');
+	await browser.close();
+	console.log(JSON.stringify({ body }));
 }
 
 /** Saves a readable dump of the calendar's state: month, cells, bars (with color), +N, day list. */
@@ -398,6 +448,15 @@ async function snapshot(name) {
 				opacity: getComputedStyle(b).opacity,
 				continuedBefore: b.classList.contains('is-continued-before'),
 				continuedAfter: b.classList.contains('is-continued-after'),
+				text: text(b.querySelector('.sidebar-calendar__bar-title')),
+				textClipped: (() => {
+					const t = b.querySelector('.sidebar-calendar__bar-title');
+					return t ? t.scrollWidth > t.clientWidth : null;
+				})(),
+				done: b.classList.contains('is-done'),
+				handle: !!b.querySelector('.sidebar-calendar__bar-handle'),
+				height: b.getBoundingClientRect().height,
+				width: Math.round(b.getBoundingClientRect().width),
 			})),
 			more: [...root.querySelectorAll('.sidebar-calendar__more')].map((m) => ({
 				week: [...root.querySelectorAll('.sidebar-calendar__week')].indexOf(m.parentElement),
@@ -408,12 +467,15 @@ async function snapshot(name) {
 				title: text(root.querySelector('.sidebar-calendar__day-list-title')),
 				headerButtons: [...root.querySelectorAll('.sidebar-calendar__day-list-header .clickable-icon')].map((b) => b.getAttribute('aria-label')),
 				items: [...root.querySelectorAll('.sidebar-calendar__event-item')].map((i) => ({
+					event: i.dataset.event,
+					hasBar: !!root.querySelector(`.sidebar-calendar__bar[data-event="${CSS.escape(i.dataset.event)}"]`),
 					title: text(i.querySelector('.sidebar-calendar__event-title')),
 					done: i.classList.contains('is-done'),
 					range: text(i.querySelector('.sidebar-calendar__event-range')),
 				})),
 				empty: text(root.querySelector('.sidebar-calendar__day-list-empty')),
 			},
+			listOnly: app.plugins.plugins['sidebar-calendar'].eventStore.getEvents().filter((e) => !e.onCalendar).map((e) => e.id),
 			activeFile: app.workspace.getActiveFile()?.path ?? null,
 			cursorLine: app.workspace.activeEditor?.editor?.getCursor().line ?? null,
 			modal: text(document.querySelector('.modal-container .modal-title')),
@@ -474,13 +536,17 @@ const HELP = `usage: node verify.cjs <command>
   click '<selector>'     click the first match (CSS or Playwright selector)
   dblclick '<selector>'  double-click the first match
   rightclick '<selector>'  right-click the first match (opens its context menu)
-  drag '<from>' '<to>'   press on the first match of from, drag to the first match of to, release
+  drag '<from>' '<to>' [shot]  press on the first match of from, drag to the first match of to, release
+                         (with shot, saves a screenshot of the sidebar before the release)
+  drag-cancel '<from>' '<to>' [shot]  the same, but press Escape before the release
   press <key>            press a key in the focused element (e.g. Enter, Escape)
   hover '<selector>'     hover the first match and print the tooltip it shows
-  fill '<selector>' <v>  clear the first match and type v like a user
+  fill '<selector>' <v>  clear the first match and type v like a user (a date input is set to v, YYYY-MM-DD)
   select '<selector>' <v>  choose option value v in the first matching <select>, like a user
   snapshot <name>        save calendar state as JSON to the artifacts dir
-  screenshot <name>      save a PNG of the window to the artifacts dir
+  screenshot <name> [s]  save a PNG of the window (or of the first match of selector s) to the artifacts dir
+  sidebar <px>           resize the right sidebar to px wide and print the sidebar and calendar widths
+  theme light|dark       switch the base color scheme
   task-latency <n> <t>   open day n's note, click the checkbox on the line with t, print ms until the list and ring change
   day <n>                print YYYY-MM-DD for day n of the current month
   stop                   stop this run's Obsidian and delete its vault (artifacts are kept)
@@ -496,13 +562,17 @@ env: VERIFY_RUN_ID (default "default"), VERIFY_PORT (default 9333), OBSIDIAN_BIN
 		case 'click': return act('click', arg ?? die('click needs a selector'));
 		case 'dblclick': return act('dblclick', arg ?? die('dblclick needs a selector'));
 		case 'rightclick': return act('rightclick', arg ?? die('rightclick needs a selector'));
-		case 'drag': return act('drag', arg ?? die('drag needs a from selector'), value ?? die('drag needs a to selector'));
+		case 'drag':
+		case 'drag-cancel':
+			return act(cmd, arg ?? die(`${cmd} needs a from selector`), value ?? die(`${cmd} needs a to selector`), ARGS[3]);
 		case 'press': return press(arg ?? die('press needs a key'));
 		case 'hover': return act('hover', arg ?? die('hover needs a selector'));
 		case 'fill': return act('fill', arg ?? die('fill needs a selector'), value ?? die('fill needs a value'));
 		case 'select': return act('select', arg ?? die('select needs a selector'), value ?? die('select needs a value'));
 		case 'snapshot': return snapshot(arg ?? die('snapshot needs a name'));
-		case 'screenshot': return screenshot(arg ?? die('screenshot needs a name'));
+		case 'screenshot': return screenshot(arg ?? die('screenshot needs a name'), value);
+		case 'sidebar': return sidebar(Number(arg ?? die('sidebar needs a width in px')));
+		case 'theme': return theme(arg ?? die('theme needs light or dark'));
 		case 'task-latency': return taskLatency(Number(arg ?? die('task-latency needs a day')), value ?? die('task-latency needs a title'));
 		case 'day': return console.log(day(Number(arg)));
 		case 'stop': return stop();

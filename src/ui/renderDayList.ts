@@ -56,7 +56,7 @@ export function renderDayList(parent: HTMLElement, model: DayListModel, handlers
 	}
 
 	for (const event of model.events) {
-		const item = list.createDiv({ cls: 'sidebar-calendar__event-item' });
+		const item = list.createDiv({ cls: 'sidebar-calendar__event-item', attr: { 'data-event': event.id } });
 		if (event.task === 'done') item.addClass('is-done');
 		const swatch = item.createSpan({ cls: 'sidebar-calendar__event-swatch' });
 		const color = model.colorFor(event);

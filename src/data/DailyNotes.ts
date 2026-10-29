@@ -92,12 +92,15 @@ export class DailyNotes {
 		return file instanceof TFile ? file : null;
 	}
 
-	/** Adds `entry` under the `# kind` section of its start day's note, creating the note if needed. */
-	async addEntry(entry: NewEntry, kind: string): Promise<void> {
+	/**
+	 * Adds `entry` under the `# kind` section of its start day's note, outside its `hiddenSubheading`
+	 * region, creating the note if needed.
+	 */
+	async addEntry(entry: NewEntry, kind: string, hiddenSubheading: string): Promise<void> {
 		const options = this.options();
 		if (!options) return;
 		const file = this.find(entry.start) ?? (await this.create(entry.start, options));
-		await this.app.vault.process(file, (text) => appendScheduleLine(text, kind, entry));
+		await this.app.vault.process(file, (text) => appendScheduleLine(text, kind, entry, hiddenSubheading));
 	}
 
 	private async create(day: DayKey, options: DailyNoteOptions): Promise<TFile> {
