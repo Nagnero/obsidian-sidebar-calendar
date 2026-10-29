@@ -1,6 +1,7 @@
 import type { Weekday } from './date/dayKey';
 import { isListSort, ListSort } from './data/sortEntries';
 import { isSettingsLanguage, SettingsLanguage } from './i18n';
+import { KindColor, NAMED_COLORS, NamedColor, parseKindColor } from './kindColor';
 
 /** An H1 of the daily note template, used as a kind of schedule entry. */
 export interface Kind {
@@ -8,8 +9,7 @@ export interface Kind {
 	name: string;
 	/** Whether entries under this H1 are read and offered when adding. */
 	enabled: boolean;
-	/** CSS color, e.g. `#e5484d`. Empty means the theme's accent color. */
-	color: string;
+	color: KindColor;
 }
 
 export interface SidebarCalendarSettings {
@@ -43,9 +43,6 @@ export const DEFAULT_SETTINGS: SidebarCalendarSettings = {
 export const MIN_LANES = 1;
 export const MAX_LANES = 6;
 
-/** Colors given to new kinds, first unused one first. */
-export const KIND_COLORS = ['#e5484d', '#30a46c', '#0090ff', '#f76b15', '#8e4ec6', '#ffc53d', '#12a594'];
-
 /**
  * Turns whatever was saved in data.json (possibly hand-edited or from an older version) into
  * valid settings. Unknown fields are dropped and malformed values fall back to the defaults.
@@ -66,7 +63,7 @@ export function sanitizeSettings(raw: unknown): SidebarCalendarSettings {
 		kinds.push({
 			name,
 			enabled: typeof k.enabled === 'boolean' ? k.enabled : true,
-			color: typeof k.color === 'string' ? k.color : '',
+			color: parseKindColor(k.color),
 		});
 	}
 
@@ -84,7 +81,7 @@ export function sanitizeSettings(raw: unknown): SidebarCalendarSettings {
 
 /**
  * The stored kinds matched to the template's H1s: one per H1 in template order (a new H1 gets
- * enabled with the first unused preset color), then the stored kinds the template no longer has,
+ * enabled with the first unused named color), then the stored kinds the template no longer has,
  * kept so their settings survive a template edit. Existing kinds keep their object identity.
  */
 export function reconcileKinds(stored: readonly Kind[], templateH1s: readonly string[]): Kind[] {
@@ -106,9 +103,9 @@ export function activeKinds(kinds: readonly Kind[], templateH1s: readonly string
 	return templateH1s.flatMap((name) => kinds.filter((k) => k.name === name && k.enabled).slice(0, 1));
 }
 
-function nextColor(taken: readonly Kind[]): string {
-	const used = new Set(taken.map((k) => k.color.toLowerCase()));
-	return KIND_COLORS.find((c) => !used.has(c)) ?? KIND_COLORS[taken.length % KIND_COLORS.length] ?? '';
+function nextColor(taken: readonly Kind[]): NamedColor {
+	const used = new Set<KindColor>(taken.map((k) => k.color));
+	return NAMED_COLORS.find((c) => !used.has(c)) ?? NAMED_COLORS[taken.length % NAMED_COLORS.length] ?? 'red';
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

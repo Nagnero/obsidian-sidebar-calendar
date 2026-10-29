@@ -1,3 +1,5 @@
+import type { NamedColor } from './kindColor';
+
 /** Languages the settings tab can be shown in. The rest of the plugin is English only. */
 export const SETTINGS_LANGUAGES = ['en', 'ko'] as const;
 export type SettingsLanguage = (typeof SETTINGS_LANGUAGES)[number];
@@ -32,7 +34,19 @@ const en = {
 	staleKind: 'Not in the template. Not read or offered until the template has this heading again.',
 	deleteKind: 'Delete',
 	useAsKind: 'Use as kind',
-	useAccentColor: 'Use theme accent color',
+	color: 'Color',
+	customColor: 'Custom color',
+	colorNames: {
+		'': 'Theme accent',
+		red: 'Red',
+		orange: 'Orange',
+		yellow: 'Yellow',
+		green: 'Green',
+		cyan: 'Cyan',
+		blue: 'Blue',
+		purple: 'Purple',
+		pink: 'Pink',
+	} satisfies Record<'' | NamedColor, string>,
 	calendar: 'Calendar',
 	weekStart: 'Start week on',
 	sunday: 'Sunday',
@@ -65,7 +79,19 @@ const ko: SettingsStrings = {
 	staleKind: '템플릿에서 삭제된 제목입니다. 템플릿에 다시 추가하면 이전 설정 그대로 사용됩니다. 그 전까지는 Calendar에 표시하지 않고, 일정 추가 시 선택할 수도 없습니다.',
 	deleteKind: '삭제',
 	useAsKind: '종류로 사용',
-	useAccentColor: '테마 강조 색상 사용',
+	color: '색상',
+	customColor: '사용자 지정 색상',
+	colorNames: {
+		'': '테마 강조색',
+		red: '빨강',
+		orange: '주황',
+		yellow: '노랑',
+		green: '초록',
+		cyan: '청록',
+		blue: '파랑',
+		purple: '보라',
+		pink: '분홍',
+	},
 	calendar: 'Calendar',
 	weekStart: '주 시작 요일',
 	sunday: '일요일',

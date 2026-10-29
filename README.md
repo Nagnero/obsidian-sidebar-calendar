@@ -39,7 +39,7 @@ The calendar reads the H1 headings of your core **Daily notes** template as kind
 
 With **Daily notes** on in the settings, a dot under a date means that day has a daily note, and a hollow ring next to it means the note has at least one unchecked task (`- [ ]`) under an enabled kind. The ring belongs to the note's date, not to the other days a multi-day task covers. Clicking a date with a note opens it.
 
-In **Settings → Sidebar Calendar**, each kind has a switch and a color. Turn off a heading that is not a schedule, like `Journaling` here, and its list items are not read or offered. An empty color uses the theme's accent color. The settings tab also shows whether the plugin found the template. When you add an H1 to the template, it becomes a kind; when you remove one, its settings are kept until you delete them.
+In **Settings → Sidebar Calendar**, each kind has a switch and a color. Turn off a heading that is not a schedule, like `Journaling` here, and its list items are not read or offered. Click the color dot to choose the theme's accent color or one of Obsidian's named colors, which follow the light or dark theme; the dashed `+` opens your system's color picker for any other color. The settings tab also shows whether the plugin found the template. When you add an H1 to the template, it becomes a kind; when you remove one, its settings are kept until you delete them.
 
 The first row of the settings tab, **Language (언어)**, shows the tab in English (the default) or Korean. Only the settings tab changes language.
 

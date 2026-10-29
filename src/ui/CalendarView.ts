@@ -3,6 +3,7 @@ import { VIEW_TYPE_SIDEBAR_CALENDAR } from '../constants';
 import { DayKey, todayKey, yearMonth } from '../date/dayKey';
 import { eventsOnDay } from '../layout/weekLayout';
 import type { TemplateHeadings } from '../data/DailyNotes';
+import { kindColorCss } from '../kindColor';
 import { sortEntries } from '../data/sortEntries';
 import type SidebarCalendarPlugin from '../main';
 import type { CalendarEvent } from '../types';
@@ -50,8 +51,8 @@ export class CalendarView extends ItemView {
 		root.addClass('sidebar-calendar');
 
 		const kinds = this.plugin.activeKinds();
-		const colors = new Map(kinds.map((k) => [k.name, k.color]));
-		const colorFor = (event: CalendarEvent) => colors.get(event.kind) || null;
+		const colors = new Map(kinds.map((k) => [k.name, kindColorCss(k.color)]));
+		const colorFor = (event: CalendarEvent) => colors.get(event.kind) ?? null;
 		const locale = appLocale();
 		const { settings } = this.plugin;
 		const events = this.plugin.eventStore.getEvents();

@@ -3,12 +3,10 @@ import type { TemplateHeadings } from './data/DailyNotes';
 import { Around, isSettingsLanguage, LANGUAGE_NAMES, SETTINGS_LANGUAGES, SETTINGS_STRINGS, SettingsStrings } from './i18n';
 import { Kind, MAX_LANES, MIN_LANES } from './settingsData';
 import type SidebarCalendarPlugin from './main';
+import { renderKindColorControl } from './ui/kindColorControl';
 
 export { DEFAULT_SETTINGS, sanitizeSettings } from './settingsData';
 export type { SidebarCalendarSettings } from './settingsData';
-
-/** Shown in color pickers when a color is unset; roughly Obsidian's default accent. */
-const PICKER_FALLBACK = '#7f6df2';
 
 export class SidebarCalendarSettingTab extends PluginSettingTab {
 	plugin: SidebarCalendarPlugin;
@@ -146,21 +144,11 @@ export class SidebarCalendarSettingTab extends PluginSettingTab {
 						await plugin.saveSettings();
 					}),
 			)
-			.addColorPicker((picker) =>
-				picker.setValue(kind.color || PICKER_FALLBACK).onChange(async (value) => {
-					kind.color = value;
+			.then((setting) =>
+				renderKindColorControl(setting.controlEl, kind.color, t, async (color) => {
+					kind.color = color;
 					await plugin.saveSettings();
 				}),
-			)
-			.addExtraButton((button) =>
-				button
-					.setIcon('rotate-ccw')
-					.setTooltip(t.useAccentColor)
-					.onClick(async () => {
-						kind.color = '';
-						await plugin.saveSettings();
-						this.render();
-					}),
 			);
 	}
 }

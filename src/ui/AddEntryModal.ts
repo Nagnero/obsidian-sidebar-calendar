@@ -1,4 +1,5 @@
 import { App, Modal } from 'obsidian';
+import { kindColorCss } from '../kindColor';
 import type { Kind } from '../settingsData';
 
 /**
@@ -30,7 +31,8 @@ export class AddEntryModal extends Modal {
 		const buttons = this.kinds.map((kind) => {
 			const button = group.createEl('button', { cls: 'sidebar-calendar__kind-btn', attr: { 'data-kind': kind.name } });
 			const swatch = button.createSpan({ cls: 'sidebar-calendar__kind-swatch' });
-			if (kind.color) swatch.style.setProperty('--sidebar-calendar-bar-color', kind.color);
+			const color = kindColorCss(kind.color);
+			if (color) swatch.style.setProperty('--sidebar-calendar-bar-color', color);
 			button.appendText(kind.name);
 			return button;
 		});

@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { activeKinds, DEFAULT_SETTINGS, Kind, KIND_COLORS, reconcileKinds, sanitizeSettings } from '../src/settingsData';
+import { NAMED_COLORS } from '../src/kindColor';
+import { activeKinds, DEFAULT_SETTINGS, Kind, reconcileKinds, sanitizeSettings } from '../src/settingsData';
 
 test('missing or broken data gives the defaults', () => {
 	for (const raw of [null, undefined, 'x', 42, []]) {
@@ -18,6 +19,7 @@ test('valid values are kept', () => {
 		kinds: [
 			{ name: '업무', enabled: true, color: '#0090ff' },
 			{ name: 'Journaling', enabled: false, color: '' },
+			{ name: '개인', enabled: true, color: 'green' },
 		],
 		lastKind: '업무',
 		listSort: 'unchecked',
@@ -81,14 +83,30 @@ test('result never shares arrays with the defaults', () => {
 	assert.equal(DEFAULT_SETTINGS.kinds.length, 0);
 });
 
-test('reconcile adds new template H1s, enabled, with the first unused preset color', () => {
+test('kind colors keep the accent, named colors and custom hex, and drop anything else', () => {
+	const colors = ['', 'green', 'pink', '#0090FF', '#30a46c', 'Green', 'teal', '#fff', 'var(--color-red)', 3, null];
+	const result = sanitizeSettings({ kinds: colors.map((color, i) => ({ name: `k${i}`, color })) });
+	assert.deepEqual(result.kinds.map((k) => k.color), ['', 'green', 'pink', '#0090ff', '#30a46c', '', '', '', '', '', '']);
+});
+
+test('reconcile adds new template H1s, enabled, with the first unused named color', () => {
 	assert.deepEqual(reconcileKinds([], ['업무', '개인', 'Journaling']), [
-		{ name: '업무', enabled: true, color: KIND_COLORS[0] },
-		{ name: '개인', enabled: true, color: KIND_COLORS[1] },
-		{ name: 'Journaling', enabled: true, color: KIND_COLORS[2] },
+		{ name: '업무', enabled: true, color: 'red' },
+		{ name: '개인', enabled: true, color: 'orange' },
+		{ name: 'Journaling', enabled: true, color: 'yellow' },
 	]);
-	const stored: Kind[] = [{ name: '업무', enabled: true, color: KIND_COLORS[0] ?? '' }];
-	assert.deepEqual(reconcileKinds(stored, ['업무', '개인']).map((k) => k.color), [KIND_COLORS[0], KIND_COLORS[1]]);
+	const stored: Kind[] = [
+		{ name: '업무', enabled: true, color: 'red' },
+		{ name: '옛날', enabled: true, color: 'orange' },
+		{ name: '개인', enabled: true, color: '#e5484d' },
+	];
+	assert.deepEqual(reconcileKinds(stored, ['업무', '개인', '공부']).map((k) => k.color), ['red', '#e5484d', 'yellow', 'orange']);
+});
+
+test('reconcile cycles the named colors once every one is taken', () => {
+	const stored: Kind[] = NAMED_COLORS.map((color) => ({ name: color, enabled: true, color }));
+	const result = reconcileKinds(stored, [...NAMED_COLORS, 'ninth']);
+	assert.equal(result.at(-1)?.color, NAMED_COLORS[0]);
 });
 
 test('reconcile keeps stored settings, follows template order, and keeps stale kinds last', () => {
