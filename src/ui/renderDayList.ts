@@ -74,13 +74,29 @@ function renderGroup(
 	for (const event of events) {
 		const item = list.createDiv({ cls: 'sidebar-calendar__event-item', attr: { 'data-event': event.id } });
 		if (event.task === 'done') item.addClass('is-done');
-		const swatch = item.createSpan({ cls: 'sidebar-calendar__event-swatch' });
 		const color = model.colorFor(event);
-		if (color) swatch.style.setProperty('--sidebar-calendar-bar-color', color);
+		if (color) item.style.setProperty('--sidebar-calendar-bar-color', color);
+		if (event.task === null) {
+			item.createSpan({ cls: 'sidebar-calendar__event-swatch' });
+		} else {
+			const check = item.createSpan({
+				cls: 'sidebar-calendar__event-check',
+				attr: { role: 'checkbox', 'aria-checked': String(event.task === 'done') },
+			});
+			setIcon(check, 'check');
+			check.addEventListener('click', (evt) => {
+				evt.stopPropagation();
+				if (evt.detail <= 1) handlers.onToggleTask(event, event.task !== 'done');
+			});
+			check.addEventListener('dblclick', (evt) => evt.stopPropagation());
+		}
 
 		const text = item.createDiv({ cls: 'sidebar-calendar__event-text' });
 		text.createDiv({ cls: 'sidebar-calendar__event-title', text: event.title });
-		text.createDiv({ cls: 'sidebar-calendar__event-range', text: formatRange(event.start, event.end, model.locale) });
+		// A to-do is meant for its own day, so only one that runs longer shows its dates.
+		if (event.onCalendar || event.start !== event.end) {
+			text.createDiv({ cls: 'sidebar-calendar__event-range', text: formatRange(event.start, event.end, model.locale) });
+		}
 		if (event.task === null) {
 			item.addEventListener('click', (evt) => handlers.onOpenEvent(event, evt));
 		} else {

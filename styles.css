@@ -288,9 +288,40 @@
 .sidebar-calendar__event-swatch {
 	flex: none;
 	width: 4px;
+	margin: 0 5px;
 	align-self: stretch;
 	border-radius: 2px;
 	background-color: var(--sidebar-calendar-bar-color, var(--interactive-accent));
+}
+
+.sidebar-calendar__event-check {
+	flex: none;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 14px;
+	height: 14px;
+	margin-top: 2px;
+	border: 1.5px solid var(--sidebar-calendar-bar-color, var(--interactive-accent));
+	border-radius: 50%;
+	color: transparent;
+	cursor: pointer;
+}
+
+.sidebar-calendar__event-check:hover {
+	background-color: color-mix(in srgb, var(--sidebar-calendar-bar-color, var(--interactive-accent)) 20%, transparent);
+}
+
+.sidebar-calendar__event-check svg {
+	width: 10px;
+	height: 10px;
+	stroke-width: 3;
+}
+
+.sidebar-calendar__event-item.is-done .sidebar-calendar__event-check {
+	background-color: var(--sidebar-calendar-bar-color, var(--interactive-accent));
+	color: var(--text-on-accent);
+	opacity: 0.6;
 }
 
 .sidebar-calendar__event-text {
