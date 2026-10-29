@@ -93,14 +93,19 @@ export class DailyNotes {
 	}
 
 	/**
-	 * Adds `entry` under the `# kind` section of its start day's note, outside its `hiddenSubheading`
-	 * region, creating the note if needed.
+	 * Adds `entry` under the `# kind` section of its start day's note, creating the note if needed:
+	 * an event outside the `hiddenSubheading` region, a to-do under it.
 	 */
-	async addEntry(entry: NewEntry, kind: string, hiddenSubheading: string): Promise<void> {
+	async addEntry(entry: NewEntry, kind: string, hiddenSubheading: string, onCalendar: boolean): Promise<void> {
+		const file = await this.noteFor(entry.start);
+		if (file) await this.app.vault.process(file, (text) => appendScheduleLine(text, kind, entry, hiddenSubheading, onCalendar));
+	}
+
+	/** The daily note for `day`, created from the template if missing. Null when core daily notes is off. */
+	async noteFor(day: DayKey): Promise<TFile | null> {
 		const options = this.options();
-		if (!options) return;
-		const file = this.find(entry.start) ?? (await this.create(entry.start, options));
-		await this.app.vault.process(file, (text) => appendScheduleLine(text, kind, entry, hiddenSubheading));
+		if (!options) return null;
+		return this.find(day) ?? (await this.create(day, options));
 	}
 
 	private async create(day: DayKey, options: DailyNoteOptions): Promise<TFile> {

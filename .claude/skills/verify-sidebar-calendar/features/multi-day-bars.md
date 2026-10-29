@@ -8,6 +8,7 @@ An entry ending in `~MM-DD`, `~M/D` or `~YYYY-MM-DD` runs from its daily note's 
 - `d-lanes` puts an overlapping entry in the next free lane.
 - `d-overflow` shows `+N` when a day has more entries than the lane limit, and keeps every entry in that day's list.
 - `d-hide-one-day` turns off **Show one-day entries**: one-day bars and their `+N` leave the grid, multi-day bars stay, and the day list still lists every entry.
+- `d-trim` hides a last row made only of next month's days, and draws done tasks after the rest of a week so they are the ones `+N` hides.
 
 ## How to get to it (user POV)
 

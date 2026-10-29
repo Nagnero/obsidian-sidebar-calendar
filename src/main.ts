@@ -6,13 +6,14 @@ import { activeKinds, Kind, reconcileKinds } from './settingsData';
 import { DayKey, todayKey } from './date/dayKey';
 import { DailyNotes, TemplateHeadings } from './data/DailyNotes';
 import { EventStore } from './data/EventStore';
-import { parseSchedule, ScheduleRules, setEntryEnd, setEntryTask } from './data/parseSchedule';
+import { parseSchedule, putEntry, ScheduleRules, setEntryEnd, setEntryTask, takeEntry } from './data/parseSchedule';
 import type { CalendarEvent } from './types';
 import { appLocale, CalendarView } from './ui/CalendarView';
 import { DurationModal } from './ui/DurationModal';
+import { MoveModal } from './ui/MoveModal';
 
-/** An entry as the duration dialog and its write need it. */
-type EntryRef = Pick<CalendarEvent, 'path' | 'line' | 'title' | 'start' | 'end'>;
+/** An entry as its context menu, its dialogs and their writes need it. */
+type EntryRef = Pick<CalendarEvent, 'path' | 'line' | 'title' | 'start' | 'end' | 'onCalendar'>;
 
 export default class SidebarCalendarPlugin extends Plugin {
 	settings!: SidebarCalendarSettings;
@@ -68,7 +69,7 @@ export default class SidebarCalendarPlugin extends Plugin {
 			if (!file || day === null) return;
 			const line = editor.getCursor().line;
 			const entry = parseSchedule(editor.getValue(), day, this.scheduleRules()).find((e) => e.line === line);
-			if (entry) this.addDurationItem(menu, { ...entry, path: file.path, start: day });
+			if (entry) this.addEntryItems(menu, { ...entry, path: file.path, start: day });
 		}));
 		this.registerAutoRefresh();
 
@@ -147,13 +148,72 @@ export default class SidebarCalendarPlugin extends Plugin {
 		await this.reloadEvents();
 	}
 
-	/** Adds "Change duration…" for `entry` to a context menu. */
-	addDurationItem(menu: Menu, entry: EntryRef): void {
+	/**
+	 * Adds an entry's items to a context menu: "Change duration…" for an entry on the calendar (a
+	 * to-do is meant for its one day) and "Move to date…" for either.
+	 */
+	addEntryItems(menu: Menu, entry: EntryRef): void {
+		if (entry.onCalendar) {
+			menu.addItem((item) =>
+				item.setTitle('Change duration…').setIcon('calendar-range').onClick(() => {
+					new DurationModal(this.app, entry, appLocale(), (end) => void this.setEntryEnd(entry, end)).open();
+				}),
+			);
+		}
 		menu.addItem((item) =>
-			item.setTitle('Change duration…').setIcon('calendar-range').onClick(() => {
-				new DurationModal(this.app, entry, appLocale(), (end) => void this.setEntryEnd(entry, end)).open();
+			item.setTitle('Move to date…').setIcon('calendar-days').onClick(() => {
+				new MoveModal(this.app, entry, appLocale(), (to) => void this.moveEntry(entry, to)).open();
 			}),
 		);
+	}
+
+	/**
+	 * Moves `entry`, with its indented lines, to the daily note of `to` (created if missing), keeping
+	 * its length, its kind, and whether it is a to-do. The new note gets it first, so a failure
+	 * between the two writes leaves a copy rather than nothing.
+	 */
+	async moveEntry(entry: EntryRef, to: DayKey): Promise<void> {
+		if (to === entry.start) return;
+		const rules = this.scheduleRules();
+		const source = await this.noteText(entry.path);
+		const current = source === null ? undefined : parseSchedule(source, entry.start, rules).find((e) => e.line === entry.line);
+		const taken = current?.title === entry.title && source !== null ? takeEntry(source, entry.start, rules, entry.line, to) : null;
+		if (!taken) {
+			new Notice(`"${entry.title}" changed before it could be moved. Try again.`);
+			return;
+		}
+		const target = await this.dailyNotes.noteFor(to);
+		if (!target) {
+			new Notice('Turn on the core daily notes plugin to move entries.');
+			return;
+		}
+		await this.rewriteNote(target.path, (text) => putEntry(text, taken.block, rules.hiddenSubheading));
+		await this.rewriteNote(entry.path, (text) => takeEntry(text, entry.start, rules, entry.line, to)?.text ?? null);
+	}
+
+	private async noteText(path: string): Promise<string | null> {
+		const editor = this.openEditor(path);
+		if (editor) return editor.getValue();
+		const file = this.app.vault.getFileByPath(path);
+		return file ? this.app.vault.read(file) : null;
+	}
+
+	/** Like `rewriteEntryLine` for a change of any size: an open editor gets only the changed span. */
+	private async rewriteNote(path: string, rewrite: (text: string) => string | null): Promise<void> {
+		const editor = this.openEditor(path);
+		if (editor) {
+			const before = editor.getValue();
+			const next = rewrite(before);
+			if (next === null || next === before) return;
+			let from = 0;
+			while (from < before.length && from < next.length && before[from] === next[from]) from++;
+			let tail = 0;
+			while (tail < before.length - from && tail < next.length - from && before[before.length - 1 - tail] === next[next.length - 1 - tail]) tail++;
+			editor.replaceRange(next.slice(from, next.length - tail), editor.offsetToPos(from), editor.offsetToPos(before.length - tail));
+			return;
+		}
+		const file = this.app.vault.getFileByPath(path);
+		if (file) await this.app.vault.process(file, (text) => rewrite(text) ?? text);
 	}
 
 	/**

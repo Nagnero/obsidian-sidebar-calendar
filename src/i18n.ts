@@ -19,7 +19,7 @@ export interface Around {
 
 const en = {
 	language: 'Language (언어)',
-	languageDesc: 'Applies to this settings tab only.',
+	languageDesc: 'Applies to this settings tab and the group names in the list under the calendar.',
 	template: 'Daily note template',
 	templateOff: 'Turn on the core daily notes plugin. Kinds come from the top-level headings of its template.',
 	templateNone: 'Linked to core daily notes, which has no template. Set one in its settings; its top-level headings become the kinds.',
@@ -65,6 +65,8 @@ const en = {
 	plainItems: 'Show items without a checkbox',
 	plainItemsDesc:
 		'When on, list items without a checkbox outside the hidden sub-heading are entries too. When off, only items with a checkbox (- [ ] or - [x]) are entries.',
+	showOverdue: 'Show overdue to-dos',
+	showOverdueDesc: 'When on, selecting today lists the unchecked to-dos of earlier days under Overdue in the list under the calendar.',
 	dailyNotes: 'Daily notes',
 	dailyNotesDesc:
 		'Mark days that have a daily note with a dot, and with a ring when the note has an unchecked task. Clicking such a day opens its note. Uses the folder, format and template of the core daily notes plugin, which must be turned on.',
@@ -74,7 +76,7 @@ export type SettingsStrings = typeof en;
 
 const ko: SettingsStrings = {
 	language: '언어 (Language)',
-	languageDesc: '이 설정 탭에만 적용됩니다.',
+	languageDesc: '이 설정 탭과 Calendar 아래 목록의 묶음 이름에 적용됩니다.',
 	template: '일일 노트 템플릿',
 	templateOff: "코어 플러그인 '일일 노트'를 켜 주십시오. 종류는 일일 노트 템플릿의 최상위 제목(#)에서 가져옵니다.",
 	templateNone: '일일 노트 템플릿이 지정되지 않았습니다. 일일 노트 설정에서 템플릿을 지정하면 그 템플릿의 최상위 제목(#)이 종류가 됩니다.',
@@ -120,9 +122,24 @@ const ko: SettingsStrings = {
 	plainItems: '체크박스 없는 항목도 표시',
 	plainItemsDesc:
 		'켜면 숨길 소제목 밖에 있는 체크박스 없는 목록 항목도 일정으로 표시합니다. 끄면 체크박스가 있는 항목(- [ ], - [x])만 일정으로 표시합니다.',
+	showOverdue: '지난 할 일 표시',
+	showOverdueDesc: '켜면 오늘을 선택했을 때 지난 날짜의 완료하지 않은 할 일을 Calendar 아래 목록의 지난 할 일 묶음에 표시합니다.',
 	dailyNotes: '일일 노트',
 	dailyNotesDesc:
 		'일일 노트가 있는 날은 점으로, 그 노트에 완료하지 않은 할 일이 있으면 빈 원으로 표시합니다. 그런 날을 클릭하면 노트가 열립니다. 코어 플러그인 일일 노트의 폴더, 형식, 템플릿을 사용하므로 그 플러그인을 켜 두어야 합니다.',
 };
 
 export const SETTINGS_STRINGS: Record<SettingsLanguage, SettingsStrings> = { en, ko };
+
+/** Words of the list under the calendar that follow the language setting. */
+export interface DayListStrings {
+	events: string;
+	none: string;
+	overdue: string;
+	moveToToday: string;
+}
+
+export const DAY_LIST_STRINGS: Record<SettingsLanguage, DayListStrings> = {
+	en: { events: 'Events', none: 'None', overdue: 'Overdue', moveToToday: 'Move to today' },
+	ko: { events: '일정', none: '없음', overdue: '지난 할 일', moveToToday: '오늘로 옮기기' },
+};

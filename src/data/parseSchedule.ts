@@ -1,4 +1,4 @@
-import { DayKey, parseDayKey, yearMonth } from '../date/dayKey';
+import { addDays, DayKey, diffDays, parseDayKey, yearMonth } from '../date/dayKey';
 import type { TaskState } from '../types';
 
 /** One schedule line of a daily note. The store adds the note's path and date. */
@@ -23,6 +23,13 @@ export interface ScheduleRules {
 	hiddenSubheading: string;
 	/** Whether a list item without a task box outside the hidden sub-heading is an entry. */
 	plainItems: boolean;
+}
+
+/** An entry's lines lifted out of a note, ready to be put into another: the item and its indented lines. */
+export interface EntryBlock {
+	lines: string[];
+	kind: string;
+	onCalendar: boolean;
 }
 
 export interface NewEntry {
@@ -86,40 +93,100 @@ export function templateH1s(text: string): string[] {
 }
 
 /**
- * `text` with `entry` written as an open task in the visible part of the first `# kind` section,
- * outside the `hiddenSubheading` region: after its last top-level item and that item's indented
- * lines or, with no such item, after the free text that follows the H1. A note without that H1
- * gets a new `# kind` section at the end.
+ * `text` with `entry` written as an open task in the first `# kind` section. An event goes in the
+ * visible part, outside the `hiddenSubheading` region: after its last top-level item and that
+ * item's indented lines or, with no such item, after the free text that follows the H1. A to-do
+ * (`onCalendar` false) goes under that sub-heading, as `putEntry` puts one. A note without that
+ * H1 gets a new `# kind` section at the end.
  */
-export function appendScheduleLine(text: string, kind: string, entry: NewEntry, hiddenSubheading: string): string {
+export function appendScheduleLine(text: string, kind: string, entry: NewEntry, hiddenSubheading: string, onCalendar = true): string {
+	return putEntry(text, { lines: [formatEntryLine(entry)], kind, onCalendar }, hiddenSubheading);
+}
+
+/**
+ * `text` with `block` put into the first `# kind` section. An entry on the calendar goes where
+ * `appendScheduleLine` puts a new one. A to-do goes after the last item directly under the
+ * `hiddenSubheading` heading, or under a new such heading at the end of the section. A note
+ * without that H1 gets a new `# kind` section at the end.
+ */
+export function putEntry(text: string, block: EntryBlock, hiddenSubheading: string): string {
 	const eol = text.includes('\r\n') ? '\r\n' : '\n';
-	const item = formatEntryLine(entry);
 	const lines = text.split(/\r?\n/);
 	const classes = classify(lines);
-	const section = h1Sections(classes).find((s) => s.h1 === kind);
+	const section = h1Sections(classes).find((s) => s.h1 === block.kind);
+	const subheading = `## ${hiddenSubheading}`;
 
 	if (!section) {
 		const body = text.replace(/(\r?\n)+$/, '');
-		return `${body === '' ? '' : body + eol + eol}# ${kind}${eol}${item}${eol}`;
+		const added = [`# ${block.kind}`, ...(block.onCalendar ? [] : [subheading]), ...block.lines];
+		return `${body === '' ? '' : body + eol + eol}${added.join(eol)}${eol}`;
 	}
 
 	const isText = (i: number) => classes[i]?.kind === 'text';
-	const hidden = hiddenLines(classes, section, hiddenSubheading);
-	let lastItem = -1;
-	for (let i = section.from; i < section.to; i++) {
-		if (!hidden[i - section.from] && isText(i) && ITEM_RE.test(lines[i] ?? '')) lastItem = i;
-	}
-	let at: number;
-	if (lastItem >= 0) {
-		at = lastItem + 1;
+	const isItem = (i: number) => isText(i) && ITEM_RE.test(lines[i] ?? '');
+	/** The line after `item` and its indented lines. */
+	const after = (item: number) => {
+		let at = item + 1;
 		while (at < section.to && isText(at) && CONTINUATION_RE.test(lines[at] ?? '')) at++;
+		return at;
+	};
+	/** The line after the free text that starts at `from`. */
+	const afterText = (from: number) => {
+		let last = from - 1;
+		for (let i = from; i < section.to && isText(i); i++) if ((lines[i] ?? '').trim() !== '') last = i;
+		return last + 1;
+	};
+
+	let at: number;
+	let added = block.lines;
+	if (block.onCalendar) {
+		const hidden = hiddenLines(classes, section, hiddenSubheading);
+		let lastItem = -1;
+		for (let i = section.from; i < section.to; i++) if (!hidden[i - section.from] && isItem(i)) lastItem = i;
+		at = lastItem >= 0 ? after(lastItem) : afterText(section.from);
 	} else {
-		let lastText = section.from - 1;
-		for (let i = section.from; i < section.to && isText(i); i++) if ((lines[i] ?? '').trim() !== '') lastText = i;
-		at = lastText + 1;
+		const wanted = hiddenSubheading.toLowerCase();
+		let heading = -1;
+		for (let i = section.from; i < section.to && heading < 0; i++) {
+			const line = classes[i];
+			if (line?.kind === 'heading' && line.text.toLowerCase() === wanted) heading = i;
+		}
+		if (heading >= 0) {
+			let lastItem = -1;
+			for (let i = heading + 1; i < section.to && classes[i]?.kind !== 'heading'; i++) if (isItem(i)) lastItem = i;
+			at = lastItem >= 0 ? after(lastItem) : afterText(heading + 1);
+		} else {
+			let last = section.from - 1;
+			for (let i = section.from; i < section.to; i++) if ((lines[i] ?? '').trim() !== '') last = i;
+			at = last + 1;
+			added = [subheading, ...block.lines];
+		}
 	}
-	lines.splice(at, 0, item);
+	lines.splice(at, 0, ...added);
 	return lines.join(eol);
+}
+
+/**
+ * `text` without the entry on 0-based `line` of the note dated `day`, and that entry's lines with
+ * its range rewritten to start on `to` and last as many days. Null when the line is not an entry.
+ */
+export function takeEntry(
+	text: string,
+	day: DayKey,
+	rules: ScheduleRules,
+	line: number,
+	to: DayKey,
+): { text: string; block: EntryBlock } | null {
+	const entry = parseSchedule(text, day, rules).find((e) => e.line === line);
+	if (!entry) return null;
+	const eol = text.includes('\r\n') ? '\r\n' : '\n';
+	const lines = text.split(/\r?\n/);
+	const classes = classify(lines);
+	let end = line + 1;
+	while (end < lines.length && classes[end]?.kind === 'text' && CONTINUATION_RE.test(lines[end] ?? '')) end++;
+	const taken = lines.splice(line, end - line);
+	taken[0] = withRange(taken[0] ?? '', to, addDays(to, diffDays(day, entry.end)));
+	return { text: lines.join(eol), block: { lines: taken, kind: entry.kind, onCalendar: entry.onCalendar } };
 }
 
 /**
@@ -131,13 +198,20 @@ export function setEntryEnd(text: string, day: DayKey, rules: ScheduleRules, lin
 	if (!parseSchedule(text, day, rules).some((entry) => entry.line === line)) return null;
 	// Odd indexes hold the line breaks, so every other line keeps its own.
 	const parts = text.split(/(\r?\n)/);
-	const old = parts[2 * line] ?? '';
-	const body = old.trimEnd();
+	parts[2 * line] = withRange(parts[2 * line] ?? '', day, end);
+	return parts.join('');
+}
+
+/**
+ * An entry's `line` with its range token rewritten for an entry from `start` to `end`. A token
+ * just before trailing parentheses is rewritten in place.
+ */
+function withRange(line: string, start: DayKey, end: DayKey): string {
+	const body = line.trimEnd();
 	const paren = RANGE_RE.test(body) ? null : PAREN_RE.exec(body);
 	const tail = paren && RANGE_RE.test(body.slice(0, paren.index)) ? paren[0] : '';
 	const head = body.slice(0, body.length - tail.length).replace(RANGE_RE, '');
-	parts[2 * line] = head + rangeToken(day, end) + tail + old.slice(body.length);
-	return parts.join('');
+	return head + rangeToken(start, end) + tail + line.slice(body.length);
 }
 
 /**

@@ -1,5 +1,6 @@
 import { Menu, setIcon } from 'obsidian';
 import type { DayKey } from '../date/dayKey';
+import type { DayListStrings } from '../i18n';
 import { LIST_SORTS, ListSort } from '../data/sortEntries';
 import type { CalendarEvent } from '../types';
 import { formatLongDay, formatRange } from './renderMonth';
@@ -21,6 +22,9 @@ export interface DayListModel {
 	showDone: boolean;
 	/** Heading of the group of entries that are not on the grid: the hidden sub-heading's name. */
 	offCalendarLabel: string;
+	/** Open to-dos of earlier days, listed when the day is today; empty otherwise. */
+	overdue: readonly CalendarEvent[];
+	strings: DayListStrings;
 	locale: string;
 	colorFor: (event: CalendarEvent) => string | null;
 }
@@ -29,6 +33,9 @@ export interface DayListHandlers {
 	onOpenEvent: (event: CalendarEvent, evt: MouseEvent) => void;
 	onEventMenu: (event: CalendarEvent, evt: MouseEvent) => void;
 	onToggleTask: (event: CalendarEvent, done: boolean) => void;
+	/** A press on a row, which may become a drag onto a day of the calendar. */
+	onStartMove: (event: CalendarEvent, evt: PointerEvent) => void;
+	onMoveToToday: (event: CalendarEvent) => void;
 	onSort: (sort: ListSort) => void;
 	onShowDone: (showDone: boolean) => void;
 }
@@ -55,8 +62,12 @@ export function renderDayList(parent: HTMLElement, model: DayListModel, handlers
 		menu.showAtMouseEvent(evt);
 	});
 
-	renderGroup(list, 'Events', model.events.filter((event) => event.onCalendar), model, handlers);
+	renderGroup(list, model.strings.events, model.events.filter((event) => event.onCalendar), model, handlers);
 	renderGroup(list, model.offCalendarLabel, model.events.filter((event) => !event.onCalendar), model, handlers);
+	if (model.overdue.length > 0) {
+		list.createDiv({ cls: 'sidebar-calendar__day-list-group mod-overdue', text: model.strings.overdue });
+		renderItems(list, model.overdue, model, handlers, true);
+	}
 }
 
 function renderGroup(
@@ -67,10 +78,18 @@ function renderGroup(
 	handlers: DayListHandlers,
 ): void {
 	list.createDiv({ cls: 'sidebar-calendar__day-list-group', text: label });
-	if (events.length === 0) {
-		list.createDiv({ cls: 'sidebar-calendar__day-list-empty', text: 'None' });
-		return;
-	}
+	if (events.length === 0) list.createDiv({ cls: 'sidebar-calendar__day-list-empty', text: model.strings.none });
+	else renderItems(list, events, model, handlers, false);
+}
+
+/** `overdue` rows show their day and a button that moves them to today. */
+function renderItems(
+	list: HTMLElement,
+	events: readonly CalendarEvent[],
+	model: DayListModel,
+	handlers: DayListHandlers,
+	overdue: boolean,
+): void {
 	for (const event of events) {
 		const item = list.createDiv({ cls: 'sidebar-calendar__event-item', attr: { 'data-event': event.id } });
 		if (event.task === 'done') item.addClass('is-done');
@@ -93,8 +112,8 @@ function renderGroup(
 
 		const text = item.createDiv({ cls: 'sidebar-calendar__event-text' });
 		text.createDiv({ cls: 'sidebar-calendar__event-title', text: event.title });
-		// A to-do is meant for its own day, so only one that runs longer shows its dates.
-		if (event.onCalendar || event.start !== event.end) {
+		// A to-do is meant for its own day, so only one that runs longer, or is late, shows its dates.
+		if (event.onCalendar || overdue || event.start !== event.end) {
 			text.createDiv({ cls: 'sidebar-calendar__event-range', text: formatRange(event.start, event.end, model.locale) });
 		}
 		if (event.task === null) {
@@ -111,6 +130,17 @@ function renderGroup(
 				handlers.onToggleTask(event, event.task !== 'done');
 			});
 		}
+		if (overdue) {
+			const toToday = item.createDiv({ cls: 'clickable-icon sidebar-calendar__event-action', attr: { 'aria-label': model.strings.moveToToday } });
+			setIcon(toToday, 'arrow-down-to-line');
+			toToday.addEventListener('click', (evt) => {
+				evt.stopPropagation();
+				handlers.onMoveToToday(event);
+			});
+			toToday.addEventListener('dblclick', (evt) => evt.stopPropagation());
+			toToday.addEventListener('pointerdown', (evt) => evt.stopPropagation());
+		}
 		item.addEventListener('contextmenu', (evt) => handlers.onEventMenu(event, evt));
+		item.addEventListener('pointerdown', (evt) => handlers.onStartMove(event, evt));
 	}
 }

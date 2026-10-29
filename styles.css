@@ -79,6 +79,10 @@
 	user-select: none;
 }
 
+.sidebar-calendar__weeks.is-moving {
+	cursor: grabbing;
+}
+
 .sidebar-calendar.is-compact {
 	display: flex;
 	flex-direction: column;
@@ -346,6 +350,16 @@
 	opacity: 0.6;
 }
 
+.sidebar-calendar__event-action {
+	flex: none;
+	margin-left: auto;
+	padding: var(--size-2-1);
+}
+
+.sidebar-calendar__day-list-group.mod-overdue {
+	color: var(--text-error);
+}
+
 .sidebar-calendar__event-text {
 	min-width: 0;
 }
@@ -385,6 +399,11 @@
 
 .sidebar-calendar__kind-btn {
 	gap: var(--size-4-2);
+}
+
+.sidebar-calendar__kind-btn:disabled {
+	opacity: 0.4;
+	cursor: not-allowed;
 }
 
 .sidebar-calendar__kind-swatch {
