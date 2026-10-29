@@ -56,23 +56,22 @@ test('deeper headings inside a section are part of it; the next H1 ends it', () 
 const onCalendar = (text: string, kinds: readonly string[] = ['Personal']) =>
 	parse(text, DAY, kinds).map((e) => [e.title, e.onCalendar]);
 
-test('items under the To do sub-heading are entries kept off the calendar', () => {
+test('task items under the To do sub-heading are entries kept off the calendar, plain items there are not entries', () => {
 	const text = '# Personal\n- [ ] 18시 기헌이 약속\n## To do\n- [ ] 메리츠증권 자소서 작성\n  - 마감 금요일\n- 장보기\n';
 	assert.deepEqual(parse(text, DAY, ['Personal']).map((e) => [e.line, e.title, e.task, e.kind, e.onCalendar]), [
 		[1, '18시 기헌이 약속', 'open', 'Personal', true],
 		[3, '메리츠증권 자소서 작성', 'open', 'Personal', false],
-		[5, '장보기', null, 'Personal', false],
 	]);
 });
 
 test('the To do region ends at the next heading of the same or a higher level', () => {
-	assert.deepEqual(onCalendar('# Personal\n## To do\n- a\n## Evening\n- b\n'), [['a', false], ['b', true]]);
-	assert.deepEqual(onCalendar('# Personal\n### To do\n- a\n## Evening\n- b\n'), [['a', false], ['b', true]]);
-	assert.deepEqual(onCalendar('# Personal\n## To do\n- a\n# 업무\n- b\n', ['Personal', '업무']), [['a', false], ['b', true]]);
+	assert.deepEqual(onCalendar('# Personal\n## To do\n- [ ] a\n## Evening\n- [ ] b\n'), [['a', false], ['b', true]]);
+	assert.deepEqual(onCalendar('# Personal\n### To do\n- [ ] a\n## Evening\n- [ ] b\n'), [['a', false], ['b', true]]);
+	assert.deepEqual(onCalendar('# Personal\n## To do\n- [ ] a\n# 업무\n- [ ] b\n', ['Personal', '업무']), [['a', false], ['b', true]]);
 });
 
 test('deeper headings inside the To do region stay hidden', () => {
-	assert.deepEqual(onCalendar('# Personal\n## To do\n- a\n### Later\n- b\n#### Much later\n- c\n## Done\n- d\n'), [
+	assert.deepEqual(onCalendar('# Personal\n## To do\n- [ ] a\n### Later\n- [ ] b\n#### Much later\n- [ ] c\n## Done\n- [ ] d\n'), [
 		['a', false],
 		['b', false],
 		['c', false],
@@ -81,15 +80,15 @@ test('deeper headings inside the To do region stay hidden', () => {
 });
 
 test('the To do name matches in any case, as the whole heading text', () => {
-	assert.deepEqual(onCalendar('# Personal\n## TO DO\n- a\n'), [['a', false]]);
-	assert.deepEqual(onCalendar('# Personal\n## to do ##\n- a\n'), [['a', false]]);
-	assert.deepEqual(onCalendar('# Personal\n## To do list\n- a\n## Todo\n- b\n'), [['a', true], ['b', true]]);
-	assert.deepEqual(parseSchedule('# Personal\n## 할 일\n- a\n## To do\n- b\n', DAY, { kinds: ['Personal'], hiddenSubheading: '할 일' })
+	assert.deepEqual(onCalendar('# Personal\n## TO DO\n- [ ] a\n'), [['a', false]]);
+	assert.deepEqual(onCalendar('# Personal\n## to do ##\n- [ ] a\n'), [['a', false]]);
+	assert.deepEqual(onCalendar('# Personal\n## To do list\n- [ ] a\n## Todo\n- [ ] b\n'), [['a', true], ['b', true]]);
+	assert.deepEqual(parseSchedule('# Personal\n## 할 일\n- [ ] a\n## To do\n- [ ] b\n', DAY, { kinds: ['Personal'], hiddenSubheading: '할 일' })
 		.map((e) => [e.title, e.onCalendar]), [['a', false], ['b', true]]);
 });
 
 test('an H1 named To do is a kind, not a hidden region', () => {
-	assert.deepEqual(onCalendar('# To do\n- a\n', ['To do']), [['a', true]]);
+	assert.deepEqual(onCalendar('# To do\n- [ ] a\n', ['To do']), [['a', true]]);
 });
 
 test('an H1 may have closing #s', () => {

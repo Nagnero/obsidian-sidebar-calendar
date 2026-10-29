@@ -18,7 +18,7 @@ This directory is the maintained source for verifying the user-facing behavior o
 | `D(3).md` | `# 개인`, `## Morning` with `- Dentist`, then `# Notes` with `- not an entry` | `D(3).md:3` | One-day entry under a deeper heading inside a kind; a non-kind H1 ends the section |
 | `D(5).md` | `# 업무`, `- [ ] Summer trip ~MM-12` | `D(5).md:1` | 8-day open task that always crosses a week boundary; red kind; ring on D(5) only, not on D(8) which it covers |
 | `D(8).md` | `# 개인`, `- Workshop (hobby) ~MM-09` | `D(8).md:1` | Parentheses stay in the title; overlaps Trip |
-| `D(10).md` | `# 개인`, `- 18시 기헌이 약속`, `## To do`, `- [ ] 메리츠증권 자소서 작성`, `### Later`, `- Renew passport` | `D(10).md:1`, `:3`, `:5` | Items under `## To do` (and `### Later` inside it) are listed without bars; the ring on D(10) comes only from the hidden task |
+| `D(10).md` | `# 개인`, `- 18시 기헌이 약속`, `## To do`, `- [ ] 메리츠증권 자소서 작성`, `### Later`, `- [ ] Renew passport`, `- Plain note, not a to-do` | `D(10).md:1`, `:3`, `:5` | Task items under `## To do` (and `### Later` inside it) are listed under To do with a circle and no bar; the plain item there (line 6) is not an entry; the ring on D(10) comes only from the hidden tasks |
 | `D(15).md` | `Existing daily note` | none | Daily note with no kind H1 |
 | `D(20).md` | `# 업무`, `- Crowded 1` … `- Crowded 4`, an indented `- nested note, not an entry` | `D(20).md:1` … `:4` | Four entries on one day, one more than the 3 lanes; nested item ignored |
 | `D(22).md` | `# 업무`, `- [ ] Report`, `- [x] Groceries`, then `# Journaling` with `- Journal line, not an entry` | `D(22).md:1`, `:2` | Open and done task; a disabled kind is not read; ring until Report is checked |

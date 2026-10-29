@@ -51,7 +51,8 @@ const TEMPLATE_VARIABLE_RE = /{{[^}]*}}/;
 /**
  * The entries of a daily note dated `day`. Each top-level list item under an H1 whose text is
  * one of the kinds is an entry of that kind, including items under deeper headings; the section
- * ends at the next H1. Items under the hidden sub-heading are entries with `onCalendar` false.
+ * ends at the next H1. Task items under the hidden sub-heading are entries with `onCalendar` false;
+ * plain items there are not entries.
  * Indented items, code blocks and frontmatter are ignored.
  */
 export function parseSchedule(text: string, day: DayKey, rules: ScheduleRules): ParsedEntry[] {
@@ -64,7 +65,8 @@ export function parseSchedule(text: string, day: DayKey, rules: ScheduleRules): 
 		for (let i = section.from; i < section.to; i++) {
 			const item = classes[i]?.kind === 'text' ? ITEM_RE.exec(lines[i] ?? '') : null;
 			const entry = item ? parseItem(item[1] ?? '', day) : null;
-			if (entry) entries.push({ line: i, ...entry, kind: section.h1, onCalendar: !hidden[i - section.from] });
+			const onCalendar = !hidden[i - section.from];
+			if (entry && (onCalendar || entry.task !== null)) entries.push({ line: i, ...entry, kind: section.h1, onCalendar });
 		}
 	}
 	return entries;

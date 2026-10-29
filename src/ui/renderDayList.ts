@@ -76,7 +76,7 @@ function renderGroup(
 		if (event.task === 'done') item.addClass('is-done');
 		const color = model.colorFor(event);
 		if (color) item.style.setProperty('--sidebar-calendar-bar-color', color);
-		if (event.task === null) {
+		if (event.onCalendar) {
 			item.createSpan({ cls: 'sidebar-calendar__event-swatch' });
 		} else {
 			const check = item.createSpan({
