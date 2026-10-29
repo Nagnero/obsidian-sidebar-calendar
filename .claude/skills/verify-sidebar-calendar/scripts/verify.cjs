@@ -215,6 +215,8 @@ async function launch() {
 	await page.waitForFunction((id) => !!app.plugins.plugins[id], PLUGIN_ID, { timeout: 20_000 });
 	await page.evaluate((id) => app.commands.executeCommandById(`${id}:open-view`), PLUGIN_ID);
 	await page.locator('.sidebar-calendar__weeks').waitFor({ timeout: 10_000 });
+	// Tall enough for the whole month and the day list, so the calendar starts outside its one-week view.
+	await page.evaluate(() => require('@electron/remote').getCurrentWindow().setSize(1024, 1000));
 	await browser.close();
 	console.log(`verify: ready. run=${RUN_ID} port=${PORT} vault=${VAULT} artifacts=${ARTIFACTS}`);
 }
@@ -467,15 +469,18 @@ async function snapshot(name) {
 			dayList: {
 				title: text(root.querySelector('.sidebar-calendar__day-list-title')),
 				headerButtons: [...root.querySelectorAll('.sidebar-calendar__day-list-header .clickable-icon')].map((b) => b.getAttribute('aria-label')),
+				groups: [...root.querySelectorAll('.sidebar-calendar__day-list-group')].map(text),
 				items: [...root.querySelectorAll('.sidebar-calendar__event-item')].map((i) => ({
 					event: i.dataset.event,
+					marker: i.querySelector('.sidebar-calendar__event-check') ? 'circle' : 'bar',
 					hasBar: !!root.querySelector(`.sidebar-calendar__bar[data-event="${CSS.escape(i.dataset.event)}"]`),
 					title: text(i.querySelector('.sidebar-calendar__event-title')),
 					done: i.classList.contains('is-done'),
 					range: text(i.querySelector('.sidebar-calendar__event-range')),
 				})),
-				empty: text(root.querySelector('.sidebar-calendar__day-list-empty')),
+				empty: [...root.querySelectorAll('.sidebar-calendar__day-list-empty')].map(text),
 			},
+			compact: root.classList.contains('is-compact'),
 			listOnly: app.plugins.plugins['sidebar-calendar'].eventStore.getEvents().filter((e) => !e.onCalendar).map((e) => e.id),
 			activeFile: app.workspace.getActiveFile()?.path ?? null,
 			cursorLine: app.workspace.activeEditor?.editor?.getCursor().line ?? null,
