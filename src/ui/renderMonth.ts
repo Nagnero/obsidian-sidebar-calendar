@@ -55,6 +55,7 @@ export function renderMonth(
 		onSelect: handlers.onAddEntry,
 		onResize: handlers.onResizeEvent,
 		onMove: handlers.onMoveEvent,
+		describe: (start, end) => formatRange(start, end, model.locale),
 	});
 	// A trailing row of only next month's days would crowd the sidebar without showing this month.
 	const weeks = buildMonthGrid(model.year, model.month, model.weekStart).filter((week) =>

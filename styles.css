@@ -79,8 +79,55 @@
 	user-select: none;
 }
 
-.sidebar-calendar__weeks.is-moving {
-	cursor: grabbing;
+.sidebar-calendar__weeks.is-moving .sidebar-calendar__day.is-in-range {
+	background-color: color-mix(in srgb, var(--sidebar-calendar-drag-color) 30%, transparent);
+	box-shadow: inset 0 0 0 2px var(--sidebar-calendar-drag-color);
+}
+
+.is-drag-source {
+	opacity: 0.35;
+}
+
+body.sidebar-calendar-is-moving,
+body.sidebar-calendar-is-moving * {
+	cursor: grabbing !important;
+}
+
+.sidebar-calendar__drag-preview {
+	position: fixed;
+	z-index: var(--layer-tooltip);
+	pointer-events: none;
+	transform: translate(12px, 12px);
+	max-width: 240px;
+	padding: var(--size-2-2) var(--size-4-2);
+	border-radius: var(--radius-s);
+	background-color: var(--sidebar-calendar-bar-color, var(--interactive-accent));
+	color: var(--text-on-accent);
+	box-shadow: var(--shadow-s);
+	font-size: var(--font-ui-small);
+}
+
+.sidebar-calendar__drag-preview.is-flipped {
+	transform: translate(calc(-100% - 12px), 12px);
+}
+
+.sidebar-calendar__drag-preview-title {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	font-weight: var(--font-semibold);
+}
+
+.sidebar-calendar__drag-preview-range {
+	font-size: var(--font-ui-smaller);
+}
+
+.sidebar-calendar__drag-preview.is-off-grid {
+	opacity: 0.6;
+}
+
+.sidebar-calendar__drag-preview.is-off-grid .sidebar-calendar__drag-preview-range {
+	display: none;
 }
 
 .sidebar-calendar.is-compact {
