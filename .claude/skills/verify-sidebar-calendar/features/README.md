@@ -49,10 +49,10 @@ Each feature file starts with an H1 title and one paragraph of user-visible beha
 - [One-day events](./one-day-events.md) (`c-*`) covers short bars for single-day entries and which list items count as entries.
 - [Multi-day event bars](./multi-day-bars.md) (`d-*`) covers bars split across weeks, lane stacking, `+N` overflow, and hiding one-day entries.
 - [Kind colors and settings](./kind-colors.md) (`e-*`) covers kind colors and the color popover, the template status line, turning kinds on and off, and kinds following template edits.
-- [Tooltips and day list](./tooltips-day-list.md) (`f-*`) covers bar tooltips, the selected day's list, done styling, and opening an entry at its line.
+- [Tooltips and day list](./tooltips-day-list.md) (`f-*`) covers bar tooltips, the selected day's list, done entries (plain bars, struck-through list items, hiding them), and opening an entry at its line.
 - [Daily notes](./daily-notes.md) (`g-*`) covers note dots, open-task rings, opening an existing daily note, and the absence of an open or create button.
 - [Adding entries](./add-entries.md) (`h-*`) covers adding an entry by dragging across days or double-clicking a day, choosing its kind.
-- [Sorting the day list](./sort-day-list.md) (`i-*`) covers the sort menu, the four list orders, and the saved choice.
+- [Sorting the day list](./sort-day-list.md) (`i-*`) covers the sort and filter menu, the four list orders, and the saved choice.
 - [Settings language](./settings-language.md) (`j-*`) covers the English / Korean switch at the top of the settings tab and the saved choice.
 - [Changing an entry's duration](./change-duration.md) (`k-*`) covers **Change duration…** in the context menu of bars, day-list items and entry lines in the editor, its dialog, and the open-editor and closed-note write paths.
 

@@ -28,7 +28,7 @@ Preconditions:
 - **Ring follows the file.** Run `sed -i 's/^- \[ \] Report$/- [x] Report/' "<vault>/$(node $V day 22).md"` with the vault path `launch` printed, wait 2 s, and run `node $V snapshot g-ring/after-check`. `taskRings` is `[D(5), D(27)]`, `noteDots` is unchanged, and `markRowHeights` still holds one value.
 - **Open on click.** Run `node $V click ".sidebar-calendar__day[data-date=\"$(node $V day 15)\"]"` and `node $V snapshot g-daily/open-15`. `activeFile` is `D(15).md`.
 - **No create on click.** Run `node $V click ".sidebar-calendar__day[data-date=\"$(node $V day 16)\"]"` and `node $V snapshot g-daily/select-16`. `selected` is D(16) and `activeFile` is still `D(15).md`. Run `node $V eval "return app.vault.getAbstractFileByPath('$(node $V day 16).md') === null"`; it prints `true`.
-- **No button.** Run `node $V eval "return document.querySelectorAll('[aria-label=\"Open daily note\"], [aria-label=\"Create daily note\"]').length"`; it prints `0`. `dayList.headerButtons` in the snapshot is `["Sort entries"]`.
+- **No button.** Run `node $V eval "return document.querySelectorAll('[aria-label=\"Open daily note\"], [aria-label=\"Create daily note\"]').length"`; it prints `0`. `dayList.headerButtons` in the snapshot is `["Sort and filter"]`.
 - **Off.** Open Settings with `node $V click '.clickable-icon:has(svg.lucide-settings)'`, `node $V click --settings '.vertical-tab-nav-item:has-text("Sidebar Calendar")'`, `node $V click --settings '.setting-item:has(.setting-item-name:text-is("Daily notes")) .checkbox-container'`, then `node $V snapshot g-ring/off`. `noteDots` and `taskRings` are both empty.
 - **Proof.** Run `node $V screenshot g-daily/select-16`, then `node $V stop`.
 

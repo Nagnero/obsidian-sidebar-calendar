@@ -394,8 +394,8 @@ async function snapshot(name) {
 				week: [...root.querySelectorAll('.sidebar-calendar__week')].indexOf(b.parentElement),
 				column: b.style.gridColumn,
 				lane: Number(b.style.gridRow) - 2,
-				done: b.classList.contains('is-done'),
 				color: getComputedStyle(b).backgroundColor,
+				opacity: getComputedStyle(b).opacity,
 				continuedBefore: b.classList.contains('is-continued-before'),
 				continuedAfter: b.classList.contains('is-continued-after'),
 			})),
@@ -417,10 +417,11 @@ async function snapshot(name) {
 			activeFile: app.workspace.getActiveFile()?.path ?? null,
 			cursorLine: app.workspace.activeEditor?.editor?.getCursor().line ?? null,
 			modal: text(document.querySelector('.modal-container .modal-title')),
-			menu: [...document.querySelectorAll('.menu .menu-item')].map((i) => ({
-				title: text(i.querySelector('.menu-item-title')),
-				checked: i.classList.contains('mod-checked'),
-			})),
+			menu: [...document.querySelectorAll('.menu .menu-item, .menu .menu-separator')].map((i) =>
+				i.classList.contains('menu-separator')
+					? { separator: true }
+					: { title: text(i.querySelector('.menu-item-title')), checked: i.classList.contains('mod-checked') },
+			),
 		};
 	});
 	await browser.close();
