@@ -265,9 +265,14 @@ async function act(kind, selector, value, shot) {
 	// day on its number, which no bar covers.
 	const onDayNumber = (await target.evaluate((el) => el.matches('.sidebar-calendar__day'))) ? { position: { x: (await target.boundingBox()).width / 2, y: 10 } } : {};
 	if (kind === 'fill') {
-		// Types like a user so Obsidian's change handlers fire.
-		await target.fill('');
-		await target.pressSequentially(value);
+		// Types like a user so Obsidian's change handlers fire. A date input takes no free typing;
+		// Playwright sets it the way the date picker does, firing input and change.
+		if ((await target.getAttribute('type')) === 'date') {
+			await target.fill(value);
+		} else {
+			await target.fill('');
+			await target.pressSequentially(value);
+		}
 		await page.waitForTimeout(600);
 	} else if (kind === 'select') {
 		await target.selectOption(value);
@@ -536,7 +541,7 @@ const HELP = `usage: node verify.cjs <command>
   drag-cancel '<from>' '<to>' [shot]  the same, but press Escape before the release
   press <key>            press a key in the focused element (e.g. Enter, Escape)
   hover '<selector>'     hover the first match and print the tooltip it shows
-  fill '<selector>' <v>  clear the first match and type v like a user
+  fill '<selector>' <v>  clear the first match and type v like a user (a date input is set to v, YYYY-MM-DD)
   select '<selector>' <v>  choose option value v in the first matching <select>, like a user
   snapshot <name>        save calendar state as JSON to the artifacts dir
   screenshot <name> [s]  save a PNG of the window (or of the first match of selector s) to the artifacts dir

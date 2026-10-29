@@ -331,15 +331,43 @@
 .sidebar-calendar__duration {
 	display: flex;
 	align-items: center;
-	gap: var(--size-4-3);
+	gap: var(--size-4-2);
+	margin-bottom: var(--size-4-3);
+}
+
+.sidebar-calendar__duration-label {
+	min-width: 4em;
+	color: var(--text-muted);
+}
+
+.sidebar-calendar__duration-step {
+	min-width: 2.25em;
+	font-size: var(--font-ui-medium);
 }
 
 .sidebar-calendar__duration-input {
-	width: 6em;
+	width: 5em;
+	text-align: center;
+}
+
+.sidebar-calendar__duration-presets {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--size-4-2);
+	margin: 0 0 var(--size-4-3) calc(4em + var(--size-4-2));
+}
+
+.sidebar-calendar__duration-preset {
+	border-radius: var(--radius-l);
+	font-size: var(--font-ui-small);
+}
+
+.sidebar-calendar__duration-preset[aria-pressed="true"] {
+	background-color: var(--interactive-accent);
+	color: var(--text-on-accent);
 }
 
 .sidebar-calendar__duration-preview {
-	margin-top: var(--size-4-3);
 	color: var(--text-muted);
 }
 
