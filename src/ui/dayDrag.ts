@@ -17,6 +17,11 @@ export interface DayDragHandlers {
 }
 
 export interface DayDrag {
+	/**
+	 * Makes `weeksEl` the grid that drags read and highlight. Called on every render, so a drag in
+	 * progress carries on into a newly shown month.
+	 */
+	attach: (weeksEl: HTMLElement) => void;
 	startResize: (event: CalendarEvent, evt: PointerEvent) => void;
 	/** Starts moving an entry from a press on its bar or its row in the day list. */
 	startMove: (event: CalendarEvent, evt: PointerEvent) => void;
@@ -46,17 +51,22 @@ type Drag =
  * same day is left alone so the day's own click handler runs. `startResize`, called from a bar's
  * end handle, drags the entry's end to the day under the pointer instead. `startMove`, from a bar
  * or a day-list row, drags the whole entry; a release off the grid or on its own place does
- * nothing, so the press stays a click. Escape cancels any of them.
+ * nothing, so the press stays a click. Escape cancels any of them. One instance lives as long as
+ * the view, so a drag survives the re-render that shows another month.
  */
-export function enableDayDrag(weeksEl: HTMLElement, handlers: DayDragHandlers): DayDrag {
-	const doc = weeksEl.ownerDocument;
-	const win = doc.defaultView ?? window;
+export function createDayDrag(handlers: DayDragHandlers): DayDrag {
+	let weeksEl: HTMLElement | null = null;
+	let doc = document;
+	let win = window;
 	let drag: Drag | null = null;
 
+	/** Where the pointer was last seen during a drag, to find the day under it after a re-render. */
+	let pointer: { clientX: number; clientY: number } | null = null;
+
 	// Cells span every row of their week, so the cell is under the pointer even over a bar.
-	const dayAt = (evt: MouseEvent): DayKey | null => {
-		const cell = doc.elementsFromPoint(evt.clientX, evt.clientY).find((el) => el.matches(DAY_SELECTOR));
-		return cell instanceof HTMLElement && weeksEl.contains(cell) ? (cell.dataset.date ?? null) : null;
+	const dayAt = (at: { clientX: number; clientY: number }): DayKey | null => {
+		const cell = doc.elementsFromPoint(at.clientX, at.clientY).find((el) => el.matches(DAY_SELECTOR));
+		return cell instanceof HTMLElement && weeksEl?.contains(cell) ? (cell.dataset.date ?? null) : null;
 	};
 
 	const range = (d: Drag): [DayKey, DayKey] | null => {
@@ -74,6 +84,7 @@ export function enableDayDrag(weeksEl: HTMLElement, handlers: DayDragHandlers): 
 	};
 
 	const highlight = () => {
+		if (!weeksEl) return;
 		const shown = drag?.kind !== 'move' || drag.preview !== null;
 		const [from, to] = (drag && shown && range(drag)) || ['', ''];
 		weeksEl.toggleClass('is-resizing', drag?.kind === 'resize');
@@ -82,11 +93,15 @@ export function enableDayDrag(weeksEl: HTMLElement, handlers: DayDragHandlers): 
 			const day = cell.dataset.date ?? '';
 			cell.toggleClass('is-in-range', from <= day && day <= to);
 		});
+		if (drag?.kind === 'move' && drag.preview) {
+			weeksEl.setCssProps({ '--sidebar-calendar-drag-color': drag.color || 'var(--interactive-accent)' });
+			sources(drag.event).forEach((el) => el.addClass('is-drag-source'));
+		}
 	};
 
 	/** The entry's rows and bars, faded while it is being moved. */
 	const sources = (event: CalendarEvent) =>
-		(weeksEl.closest('.sidebar-calendar') ?? weeksEl).querySelectorAll<HTMLElement>(`[data-event="${CSS.escape(event.id)}"]`);
+		doc.querySelectorAll<HTMLElement>(`.sidebar-calendar [data-event="${CSS.escape(event.id)}"]`);
 
 	const showPreview = (d: Extract<Drag, { kind: 'move' }>) => {
 		const card = doc.body.createDiv({ cls: 'sidebar-calendar__drag-preview' });
@@ -94,12 +109,10 @@ export function enableDayDrag(weeksEl: HTMLElement, handlers: DayDragHandlers): 
 		card.createDiv({ cls: 'sidebar-calendar__drag-preview-title', text: d.event.title });
 		card.createDiv({ cls: 'sidebar-calendar__drag-preview-range' });
 		d.preview = card;
-		sources(d.event).forEach((el) => el.addClass('is-drag-source'));
-		weeksEl.setCssProps({ '--sidebar-calendar-drag-color': d.color || 'var(--interactive-accent)' });
 		doc.body.addClass('sidebar-calendar-is-moving');
 	};
 
-	const updatePreview = (d: Extract<Drag, { kind: 'move' }>, evt: PointerEvent) => {
+	const updatePreview = (d: Extract<Drag, { kind: 'move' }>, evt: { clientX: number; clientY: number }) => {
 		if (!d.preview) return;
 		d.preview.style.left = `${evt.clientX}px`;
 		d.preview.style.top = `${evt.clientY}px`;
@@ -117,8 +130,9 @@ export function enableDayDrag(weeksEl: HTMLElement, handlers: DayDragHandlers): 
 		doc.body.removeClass('sidebar-calendar-is-moving');
 	};
 
-	const onMove = (evt: PointerEvent) => {
+	const onMove = (evt: { clientX: number; clientY: number }) => {
 		if (!drag) return;
+		pointer = { clientX: evt.clientX, clientY: evt.clientY };
 		const day = dayAt(evt);
 		if (drag.kind === 'move') {
 			if (!drag.preview) {
@@ -148,8 +162,11 @@ export function enableDayDrag(weeksEl: HTMLElement, handlers: DayDragHandlers): 
 
 	const finish = (evt: PointerEvent | KeyboardEvent) => {
 		if (evt instanceof KeyboardEvent && evt.key !== 'Escape') return;
+		// The release point decides the day, even if no move event reported it.
+		if (evt.type === 'pointerup' && evt instanceof PointerEvent) onMove(evt);
 		const done = drag;
 		drag = null;
+		pointer = null;
 		highlight();
 		if (done) hidePreview(done);
 		win.removeEventListener('pointermove', onMove);
@@ -193,26 +210,37 @@ export function enableDayDrag(weeksEl: HTMLElement, handlers: DayDragHandlers): 
 		win.addEventListener('keydown', finish, { capture: true });
 	};
 
-	weeksEl.addEventListener('pointerdown', (evt) => {
-		const day = evt.button === 0 ? dayAt(evt) : null;
-		if (day !== null) start({ kind: 'select', anchor: day, current: day });
-	});
+	const listen = (el: HTMLElement) => {
+		el.addEventListener('pointerdown', (evt) => {
+			const day = evt.button === 0 ? dayAt(evt) : null;
+			if (day !== null) start({ kind: 'select', anchor: day, current: day });
+		});
 
-	// Not `dblclick`: the first click re-renders the grid, so `dblclick` would target a detached
-	// cell. The second click itself carries the count, and stopping it here keeps the day from
-	// being selected (and its note opened) a second time.
-	weeksEl.addEventListener(
-		'click',
-		(evt) => {
-			const day = evt.detail === 2 ? dayAt(evt) : null;
-			if (day === null) return;
-			evt.stopPropagation();
-			handlers.onSelect(day, day);
-		},
-		{ capture: true },
-	);
+		// Not `dblclick`: the first click re-renders the grid, so `dblclick` would target a detached
+		// cell. The second click itself carries the count, and stopping it here keeps the day from
+		// being selected (and its note opened) a second time.
+		el.addEventListener(
+			'click',
+			(evt) => {
+				const day = evt.detail === 2 ? dayAt(evt) : null;
+				if (day === null) return;
+				evt.stopPropagation();
+				handlers.onSelect(day, day);
+			},
+			{ capture: true },
+		);
+	};
 
 	return {
+		attach: (el) => {
+			weeksEl = el;
+			doc = el.ownerDocument;
+			win = doc.defaultView ?? window;
+			listen(el);
+			highlight();
+			// The grid under a still pointer changed, so read the day under it again.
+			if (drag && pointer) onMove(pointer);
+		},
 		startResize: (event, evt) => {
 			if (evt.button !== 0) return;
 			// Keeps the grid's own pointerdown from starting a range select as well.

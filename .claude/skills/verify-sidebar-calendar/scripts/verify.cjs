@@ -307,6 +307,29 @@ async function act(kind, selector, value, shot) {
 		await page.mouse.up();
 		await page.waitForTimeout(400);
 		console.log(JSON.stringify(result));
+	} else if (kind === 'drag-wheel') {
+		// Press on the source, wheel over the calendar while holding, then drop on `to`, which is
+		// looked up after the wheel so it can name a day of the month the wheel brought in.
+		const [deltaY, toSelector] = value.split('|');
+		const a = await target.boundingBox();
+		const weeks = await page.locator('.sidebar-calendar__weeks').boundingBox();
+		await page.mouse.move(a.x + a.width / 2, a.y + a.height / 2);
+		await page.mouse.down();
+		await page.mouse.move(weeks.x + weeks.width / 2, weeks.y + weeks.height / 2, { steps: 8 });
+		await page.mouse.wheel(0, Number(deltaY));
+		await page.waitForTimeout(500);
+		const b = await page.locator(toSelector).first().boundingBox();
+		await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2, { steps: 8 });
+		const result = {
+			title: await page.$eval('.sidebar-calendar__title', (t) => t.textContent),
+			inRangeBeforeRelease: await page.$$eval('.sidebar-calendar__day.is-in-range', (cells) => cells.map((c) => c.dataset.date)),
+			preview: await page.$eval('.sidebar-calendar__drag-preview', (p) => p.textContent).catch(() => null),
+		};
+		if (shot) result.screenshot = await saveScreenshot(page, shot, '.mod-right-split');
+		result.previewBeforeRelease = await page.$$eval('.sidebar-calendar__drag-preview', (p) => p.length);
+		await page.mouse.up();
+		await page.waitForTimeout(400);
+		console.log(JSON.stringify(result));
 	} else if (kind === 'hover') {
 		// Obsidian shows tooltips after a delay and removes them when the pointer leaves, so read
 		// the tooltip here, in the same connection, instead of in a later snapshot.
@@ -551,6 +574,7 @@ const HELP = `usage: node verify.cjs <command>
   select '<selector>' <v>  choose option value v in the first matching <select>, like a user
   snapshot <name>        save calendar state as JSON to the artifacts dir
   screenshot <name> [s]  save a PNG of the window (or of the first match of selector s) to the artifacts dir
+  drag-wheel <from> '<deltaY>|<to>' [shot]  press on from, wheel over the calendar, drop on to (looked up after the wheel)
   sidebar <px>           resize the right sidebar to px wide and print the sidebar and calendar widths
   theme light|dark       switch the base color scheme
   task-latency <n> <t>   open day n's note, click the checkbox on the line with t, print ms until the list and ring change
@@ -570,6 +594,7 @@ env: VERIFY_RUN_ID (default "default"), VERIFY_PORT (default 9333), OBSIDIAN_BIN
 		case 'rightclick': return act('rightclick', arg ?? die('rightclick needs a selector'));
 		case 'drag':
 		case 'drag-cancel':
+		case 'drag-wheel':
 			return act(cmd, arg ?? die(`${cmd} needs a from selector`), value ?? die(`${cmd} needs a to selector`), ARGS[3]);
 		case 'press': return press(arg ?? die('press needs a key'));
 		case 'hover': return act('hover', arg ?? die('hover needs a selector'));

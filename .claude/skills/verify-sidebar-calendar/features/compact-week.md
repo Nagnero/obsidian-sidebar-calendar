@@ -1,6 +1,6 @@
 # One-week view in a short pane
 
-When the pane is too short for the whole month plus 200 px of day list, the calendar shows one week row and the day list scrolls on its own below it. A wheel or trackpad gesture over the calendar moves one week per gesture (events less than 300 ms apart count as one gesture), crossing into the next or previous month and updating the header. The first week shown is the selected day's; Today goes to today's week and the month arrows to the month's first week. A tall enough pane shows the whole month and scrolls as one piece.
+When the pane is too short for the whole month plus 200 px of day list, the calendar shows one week row and the day list scrolls on its own below it. A wheel or trackpad gesture over the calendar moves one week per gesture (events less than 300 ms apart count as one gesture), crossing into the next or previous month and updating the header. The first week shown is the selected day's; Today goes to today's week and the month arrows to the month's first week. A tall enough pane shows the whole month; there a wheel gesture over the calendar shows the next or previous month, also while dragging an entry, and the month header sticks to the top of the pane when the list scrolls.
 
 ## Sub-features
 

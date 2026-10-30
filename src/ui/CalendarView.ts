@@ -10,12 +10,13 @@ import { visibleEvents } from '../data/visibleEvents';
 import type SidebarCalendarPlugin from '../main';
 import type { CalendarEvent } from '../types';
 import { AddEntryModal } from './AddEntryModal';
+import { createDayDrag, DayDrag } from './dayDrag';
 import { renderDayList } from './renderDayList';
 import { formatRange, NoteMark, renderMonth } from './renderMonth';
 
 /** Below this much room for the day list, the calendar shows one week and the list scrolls on its own. */
 const MIN_LIST_HEIGHT = 200;
-/** One wheel gesture moves one week; events closer together than this belong to the same gesture. */
+/** One wheel gesture moves one week or month; events closer together than this belong to the same gesture. */
 const WHEEL_STEP_MS = 300;
 
 export class CalendarView extends ItemView {
@@ -31,10 +32,18 @@ export class CalendarView extends ItemView {
 	private weeksEl: HTMLElement | null = null;
 	private lastWheelStep = -Infinity;
 	private resizeObserver: ResizeObserver | null = null;
+	/** Lives across renders, so an entry being dragged can be carried into another month. */
+	private drag: DayDrag;
 
 	constructor(leaf: WorkspaceLeaf, plugin: SidebarCalendarPlugin) {
 		super(leaf);
 		this.plugin = plugin;
+		this.drag = createDayDrag({
+			onSelect: (start, end) => void this.promptEntry(start, end),
+			onResize: (event, end) => void this.plugin.setEntryEnd(event, end),
+			onMove: (event, start) => void this.plugin.moveEntry(event, start),
+			describe: (start, end) => formatRange(start, end, appLocale()),
+		});
 		this.selectedDay = todayKey();
 		({ year: this.year, month: this.month } = yearMonth(this.selectedDay));
 	}
@@ -92,7 +101,7 @@ export class CalendarView extends ItemView {
 		};
 
 		const monthEl = root.createDiv({ cls: 'sidebar-calendar__month' });
-		const month = renderMonth(
+		this.weeksEl = renderMonth(
 			monthEl,
 			{
 				year: this.year,
@@ -126,13 +135,9 @@ export class CalendarView extends ItemView {
 				},
 				onOpenEvent: openEvent,
 				onEventMenu: eventMenu,
-				onAddEntry: (start, end) => void this.promptEntry(start, end),
-				onResizeEvent: (event, end) => void this.plugin.setEntryEnd(event, end),
-				onMoveEvent: (event, start) => void this.plugin.moveEntry(event, start),
 			},
+			this.drag,
 		);
-
-		this.weeksEl = month.weeksEl;
 
 		renderDayList(
 			root,
@@ -153,7 +158,7 @@ export class CalendarView extends ItemView {
 				onOpenEvent: openEvent,
 				onEventMenu: eventMenu,
 				onToggleTask: (event, done) => void this.plugin.setEntryTask(event, done),
-				onStartMove: month.drag.startMove,
+				onStartMove: this.drag.startMove,
 				onMoveToToday: (event) => void this.plugin.moveEntry(event, today),
 				onSort: (sort) => {
 					settings.listSort = sort;
@@ -195,12 +200,20 @@ export class CalendarView extends ItemView {
 		weeks.scrollTop = row.offsetTop;
 	}
 
+	/**
+	 * One wheel gesture over the calendar shows the next or previous week in the one-week view, or
+	 * the next or previous month otherwise, also while an entry is being dragged.
+	 */
 	private onWeeksWheel(evt: WheelEvent): void {
-		if (!this.compact || evt.deltaY === 0 || this.shownWeek === null) return;
+		if (evt.deltaY === 0) return;
 		evt.preventDefault();
 		const quiet = evt.timeStamp - this.lastWheelStep >= WHEEL_STEP_MS;
 		this.lastWheelStep = evt.timeStamp;
 		if (!quiet) return;
+		if (!this.compact || this.shownWeek === null) {
+			this.shiftMonth(evt.deltaY > 0 ? 1 : -1);
+			return;
+		}
 		const direction = evt.deltaY > 0 ? 1 : -1;
 		const target = addDays(this.shownWeek, 7 * direction);
 		this.shownWeek = target;

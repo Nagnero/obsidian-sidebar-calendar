@@ -4,7 +4,7 @@ import { buildMonthGrid, weekdayOrder } from '../date/monthGrid';
 import { layoutWeek } from '../layout/weekLayout';
 import type { BarStyle } from '../settingsData';
 import type { CalendarEvent } from '../types';
-import { DayDrag, enableDayDrag } from './dayDrag';
+import type { DayDrag } from './dayDrag';
 
 /** What the marks under a day number show: a dot for a daily note, plus a ring when it has an unchecked task. */
 export type NoteMark = 'none' | 'note' | 'open-tasks';
@@ -32,37 +32,22 @@ export interface MonthViewHandlers {
 	onSelectDay: (day: DayKey, evt: MouseEvent) => void;
 	onOpenEvent: (event: CalendarEvent, evt: MouseEvent) => void;
 	onEventMenu: (event: CalendarEvent, evt: MouseEvent) => void;
-	/** A range of days was dragged across, or one day double-clicked. */
-	onAddEntry: (start: DayKey, end: DayKey) => void;
-	/** The end handle of an entry's bar was dragged to `end`. */
-	onResizeEvent: (event: CalendarEvent, end: DayKey) => void;
-	/** An entry was dragged to start on `start`. */
-	onMoveEvent: (event: CalendarEvent, start: DayKey) => void;
 }
 
-/** Draws the month. Returns the element that holds its week rows, and its drags for other views to start. */
-export function renderMonth(
-	parent: HTMLElement,
-	model: MonthViewModel,
-	handlers: MonthViewHandlers,
-): { weeksEl: HTMLElement; drag: DayDrag } {
+/** Draws the month on `drag`'s grid and returns the element that holds its week rows. */
+export function renderMonth(parent: HTMLElement, model: MonthViewModel, handlers: MonthViewHandlers, drag: DayDrag): HTMLElement {
 	renderHeader(parent, model, handlers);
 	renderWeekdays(parent, model);
 
 	const weeksEl = parent.createDiv({ cls: 'sidebar-calendar__weeks' });
 	weeksEl.toggleClass('is-titled', model.barStyle === 'title');
-	const drag = enableDayDrag(weeksEl, {
-		onSelect: handlers.onAddEntry,
-		onResize: handlers.onResizeEvent,
-		onMove: handlers.onMoveEvent,
-		describe: (start, end) => formatRange(start, end, model.locale),
-	});
 	// A trailing row of only next month's days would crowd the sidebar without showing this month.
 	const weeks = buildMonthGrid(model.year, model.month, model.weekStart).filter((week) =>
 		week.some((day) => yearMonth(day).month === model.month),
 	);
 	for (const week of weeks) renderWeek(weeksEl, week, model, handlers, drag);
-	return { weeksEl, drag };
+	drag.attach(weeksEl);
+	return weeksEl;
 }
 
 function renderHeader(parent: HTMLElement, model: MonthViewModel, handlers: MonthViewHandlers): void {
