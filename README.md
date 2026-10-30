@@ -19,7 +19,7 @@ A monthly calendar in the [Obsidian](https://obsidian.md) sidebar for the schedu
 
 ## Features
 
-- **Multi-day bars.** Entries that span several days are drawn across the dates, with their titles and a color per kind.
+- **Multi-day entries at a glance.** An entry that spans several days is one bar from its first day to its last, with its title and a color per kind.
 - **Events and to-dos.** Events go on the calendar. To-dos stay in the list for their day.
 - **Drag to add and move.** Drag across days to add an entry, drag a bar to move it, drag its end to change its length.
 - **Check off from the list.** Tick tasks in the list under the calendar, from any day an entry covers.
@@ -29,7 +29,7 @@ A monthly calendar in the [Obsidian](https://obsidian.md) sidebar for the schedu
 ## Quick start
 
 1. Turn on the core **Daily notes** plugin and set a template.
-2. Give the template a top-level heading for each kind of entry:
+2. Give the template a top-level heading (an H1, starting with a single `#`) for each kind of entry:
 
    ```markdown
    # Work
@@ -38,11 +38,11 @@ A monthly calendar in the [Obsidian](https://obsidian.md) sidebar for the schedu
    ```
 
 3. Install and enable **Sidebar Calendar** (see [Installation](#installation)). The calendar opens in the right sidebar.
-4. Drag across a few days in the calendar, type a title, and press Enter.
+4. In the calendar, drag across the days the entry should cover, or double-click a single day. A dialog opens: type a title and press Enter. The entry is added to that day's daily note.
 
 ## Writing entries
 
-Each heading of the template is a **kind**. Under it in a daily note, every top-level task is one entry that starts on the note's date.
+Each top-level heading of the template (an H1 like `# Work`) is a **kind**. Under it in a daily note, every top-level task is one entry that starts on the note's date.
 
 ```markdown
 # Work
@@ -56,7 +56,7 @@ Each heading of the template is a **kind**. Under it in a daily note, every top-
 | You write | You get |
 | --- | --- |
 | `- [ ] Title` under `# Work` | An **event**, drawn on the calendar |
-| `- [ ] Title` under `## To do` | A **to-do**, listed for its day only |
+| `- [ ] Title` under a `To do` sub-heading | A **to-do**, listed for its day only. Any level from `##` to `######` works |
 | `~10-23` at the end | An entry that lasts until Oct 23 (`~10/23` and `~2026-10-23` work too) |
 | `10:00`, `9:30`, `18시`, `3pm` at the start | Ordering by time in the day's list |
 | An indented line | A note about the entry, not an entry |
@@ -76,11 +76,13 @@ Drag a bar, or a row from the list, onto another day. Wheel over the calendar wh
 
 <img src="docs/images/move.png" width="320" alt="Moving an entry by dragging">
 
-You can also right-click an entry and choose **Move to date…**.
+You can also right-click an entry and choose **Move to date…**. Pick the new start day; the dialog previews the new range.
+
+<img src="docs/images/menu.png" width="180" alt="Context menu"> <img src="docs/images/move-dialog.png" width="400" alt="Move to date dialog">
 
 ### Change how long it lasts
 
-Drag the right end of a bar, or right-click an event and choose **Change duration…**. To-dos are meant for one day, so they have no duration.
+Drag the right end of a bar, or right-click an event and choose **Change duration…**. To-dos are meant to be finished within their day, so they have no duration.
 
 ### Check off and open notes
 
@@ -95,7 +97,7 @@ When today is selected, **Overdue** lists unchecked to-dos from earlier days. Th
 
 - The wheel over the calendar scrolls a week at a time. The header shows the month of the top row.
 - **‹** and **›** jump by month, and **Today** comes back.
-- When the sidebar is short, the calendar shows one week and the list scrolls on its own.
+- When the Obsidian window is too short to show the whole month and the list below it, the calendar shows one week. The calendar and the list then scroll separately.
 
 | Light | Dark |
 | --- | --- |
@@ -140,7 +142,7 @@ Not yet. Mobile support will come after the desktop version is stable.
 
 ### Does it sync with Google Calendar or other calendars?
 
-No. It only reads and writes your daily notes.
+Not yet. It only reads and writes your daily notes for now; syncing with other calendars is planned.
 
 ## Installation
 
@@ -171,7 +173,7 @@ npm run build    # production build
 npm test && npm run lint
 ```
 
-Clone into `<vault>/.obsidian/plugins/sidebar-calendar` to try it in a vault. `.claude/skills/verify-sidebar-calendar/scripts/readme-shots.sh` rebuilds the screenshots.
+Clone into `<vault>/.obsidian/plugins/sidebar-calendar` to try it in a vault.
 
 ## License
 

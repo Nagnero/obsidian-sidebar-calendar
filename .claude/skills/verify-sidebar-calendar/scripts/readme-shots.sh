@@ -53,6 +53,12 @@ node "$V" screenshot readme/calendar-dark .mod-right-split >/dev/null
 node "$V" theme light >/dev/null
 
 node "$V" drag-cancel ".sidebar-calendar__bar[data-event=\"$(day -2).md:1\"]" ".sidebar-calendar__day[data-date=\"$(day -1)\"]" readme/move >/dev/null
+node "$V" rightclick ".sidebar-calendar__bar[data-event=\"$TODAY.md:2\"]" >/dev/null
+node "$V" screenshot readme/menu .menu >/dev/null
+node "$V" click '.menu .menu-item:has-text("Move to date")' >/dev/null
+node "$V" fill '.modal-container input[type=date]' "$(node "$V" eval "return window.moment().add(3, 'day').format('YYYY-MM-DD')" | tr -d '"')" >/dev/null
+node "$V" screenshot readme/move-dialog .modal >/dev/null
+node "$V" press Escape >/dev/null
 node "$V" drag ".sidebar-calendar__day[data-date=\"$(day -6)\"]" ".sidebar-calendar__day[data-date=\"$(day -5)\"]" >/dev/null
 node "$V" fill '.modal-container input.sidebar-calendar__entry-input' 'Offsite' >/dev/null
 node "$V" screenshot readme/add .modal >/dev/null
@@ -64,5 +70,6 @@ node "$V" --settings screenshot readme/settings >/dev/null
 node "$V" stop >/dev/null
 
 cp "$ART/readme/overview.png" "$ART/readme/calendar-light.png" "$ART/readme/calendar-dark.png" \
-	"$ART/readme/move.png" "$ART/readme/add.png" "$ART/readme/settings.png" "$OUT/"
+	"$ART/readme/move.png" "$ART/readme/add.png" "$ART/readme/settings.png" \
+	"$ART/readme/menu.png" "$ART/readme/move-dialog.png" "$OUT/"
 ls "$OUT"
