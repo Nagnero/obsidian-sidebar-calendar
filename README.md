@@ -21,10 +21,10 @@ A monthly calendar in the [Obsidian](https://obsidian.md) sidebar for the schedu
 
 - **Multi-day bars.** Entries that span several days are drawn across the dates, with their titles and a color per kind.
 - **Events and to-dos.** Events go on the calendar. To-dos stay in the list for their day.
-- **Drag to plan.** Drag across days to add an entry, drag a bar to move it, drag its end to change its length.
-- **Check off anywhere.** Tick tasks in the list under the calendar, from any day an entry covers.
+- **Drag to add and move.** Drag across days to add an entry, drag a bar to move it, drag its end to change its length.
+- **Check off from the list.** Tick tasks in the list under the calendar, from any day an entry covers.
 - **Overdue to-dos.** Unfinished to-dos from earlier days show up on today.
-- **Plain Markdown.** Everything is read from and written back to lines in your daily notes.
+- **Your notes stay Markdown.** Everything is read from and written back to lines in your daily notes.
 
 ## Quick start
 
@@ -82,7 +82,7 @@ You can also right-click an entry and choose **Move to date…**.
 
 Drag the right end of a bar, or right-click an event and choose **Change duration…**. To-dos are meant for one day, so they have no duration.
 
-### Check off and open
+### Check off and open notes
 
 - Click the circle of a to-do, or double-click any task in the list, to check it.
 - Click a bar or a row to open the daily note at that line.
@@ -91,7 +91,7 @@ Drag the right end of a bar, or right-click an event and choose **Change duratio
 
 When today is selected, **Overdue** lists unchecked to-dos from earlier days. The arrow next to one moves it to today.
 
-### Getting around
+### Moving between dates
 
 - The wheel over the calendar scrolls a week at a time. The header shows the month of the top row.
 - **‹** and **›** jump by month, and **Today** comes back.
@@ -144,7 +144,7 @@ No. It only reads and writes your daily notes.
 
 ## Installation
 
-### With BRAT (during the beta)
+### During the beta, with BRAT
 
 1. Install and enable [BRAT](https://github.com/TfTHacker/obsidian42-brat) from the community plugins.
 2. Run **BRAT: Add a beta plugin for testing** and enter `Nagnero/obsidian-sidebar-calendar`.
@@ -160,7 +160,7 @@ BRAT installs new releases for you.
 
 ### From the community plugins
 
-Coming after the beta.
+The plugin is not in the community plugins list yet. It will be submitted after the beta. Once it is accepted, search for **Sidebar Calendar** under **Settings → Community plugins → Browse**.
 
 ## Development
 
