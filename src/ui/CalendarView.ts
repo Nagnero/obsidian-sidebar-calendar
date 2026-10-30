@@ -17,8 +17,10 @@ import { formatRange, NoteMark, renderMonth } from './renderMonth';
 
 /** Below this much room for the day list, the calendar shows one week and the list scrolls on its own. */
 const MIN_LIST_HEIGHT = 200;
-/** One wheel gesture moves one week; events closer together than this belong to the same gesture. */
-const WHEEL_STEP_MS = 300;
+/** Wheel distance in pixels that slides the calendar one week. A mouse wheel notch is about 100. */
+const WHEEL_STEP_PX = 50;
+/** A pause this long between wheel events drops distance left over from the last scroll. */
+const WHEEL_IDLE_MS = 300;
 
 export class CalendarView extends ItemView {
 	private plugin: SidebarCalendarPlugin;
@@ -31,7 +33,10 @@ export class CalendarView extends ItemView {
 	/** The pane is too short for the window: only its top row shows, and the list scrolls on its own. */
 	private compact = false;
 	private weeksEl: HTMLElement | null = null;
-	private lastWheelStep = -Infinity;
+	private wheelDistance = 0;
+	private lastWheel = -Infinity;
+	/** The window when the current drag began, shown again if the drag ends without doing anything. */
+	private windowAtDragStart: WeekWindow | null = null;
 	private resizeObserver: ResizeObserver | null = null;
 	/** Lives across renders, so an entry being dragged can be carried into another month. */
 	private drag: DayDrag;
@@ -44,6 +49,16 @@ export class CalendarView extends ItemView {
 			onResize: (event, end) => void this.plugin.setEntryEnd(event, end),
 			onMove: (event, start) => void this.plugin.moveEntry(event, start),
 			describe: (start, end) => formatRange(start, end, appLocale()),
+			onBegin: () => {
+				this.windowAtDragStart = this.window;
+			},
+			onEnd: (acted) => {
+				const before = this.windowAtDragStart;
+				this.windowAtDragStart = null;
+				if (acted || !before || before.top === this.window.top) return;
+				this.window = before;
+				this.render();
+			},
 		});
 		this.selectedDay = todayKey();
 		this.window = this.monthOf(this.selectedDay);
@@ -210,16 +225,23 @@ export class CalendarView extends ItemView {
 	}
 
 	/**
-	 * One wheel gesture over the calendar slides the window a week down or up, also while an entry
-	 * is being dragged, so the next month's first weeks come in under the current month's last.
+	 * Wheeling over the calendar slides the window a week per `WHEEL_STEP_PX`, also while an entry
+	 * is being dragged, so the next month's first weeks come in under the current month's last. A
+	 * mouse wheel notch is one week; a trackpad moves a week each time its scroll adds up to a step.
 	 */
 	private onWeeksWheel(evt: WheelEvent): void {
 		if (evt.deltaY === 0) return;
 		evt.preventDefault();
-		const quiet = evt.timeStamp - this.lastWheelStep >= WHEEL_STEP_MS;
-		this.lastWheelStep = evt.timeStamp;
-		if (!quiet) return;
-		this.window = { ...this.window, top: addDays(this.window.top, evt.deltaY > 0 ? 7 : -7) };
+		const px = evt.deltaY * (evt.deltaMode === WheelEvent.DOM_DELTA_LINE ? 33 : evt.deltaMode === WheelEvent.DOM_DELTA_PAGE ? 300 : 1);
+		if (evt.timeStamp - this.lastWheel > WHEEL_IDLE_MS || Math.sign(px) !== Math.sign(this.wheelDistance)) {
+			this.wheelDistance = 0;
+		}
+		this.lastWheel = evt.timeStamp;
+		this.wheelDistance += px;
+		if (Math.abs(this.wheelDistance) < WHEEL_STEP_PX) return;
+		const weeks = Math.sign(this.wheelDistance);
+		this.wheelDistance = 0;
+		this.window = { ...this.window, top: addDays(this.window.top, 7 * weeks) };
 		this.render();
 	}
 

@@ -14,6 +14,10 @@ export interface DayDragHandlers {
 	onMove: (event: CalendarEvent, start: DayKey) => void;
 	/** Text for the range an entry would cover, shown on the drag preview. */
 	describe: (start: DayKey, end: DayKey) => string;
+	/** A drag began. */
+	onBegin: () => void;
+	/** A drag ended; `acted` is false when it was cancelled or changed nothing. */
+	onEnd: (acted: boolean) => void;
 }
 
 export interface DayDrag {
@@ -174,35 +178,39 @@ export function createDayDrag(handlers: DayDragHandlers): DayDrag {
 		win.removeEventListener('pointercancel', finish);
 		win.removeEventListener('keydown', finish, { capture: true });
 		if (!done) return;
+		const act = evt instanceof KeyboardEvent ? null : action(done, evt);
 		if (evt instanceof KeyboardEvent) {
 			evt.stopPropagation();
 			// The button is still down on a cancelled resize or move; its release must not open the note.
 			if (done.kind === 'resize' || (done.kind === 'move' && done.preview)) {
 				win.addEventListener('pointerup', swallowNextClick, { capture: true, once: true });
 			}
-			return;
 		}
-		if (done.kind === 'move') {
-			const moved = evt.type === 'pointerup' && done.preview ? range(done) : null;
-			if (!moved || moved[0] === done.event.start) return;
-			swallowNextClick();
-			handlers.onMove(done.event, moved[0]);
-			return;
+		if (act) swallowNextClick();
+		handlers.onEnd(act !== null);
+		act?.();
+	};
+
+	/** What a released drag does, or null when it does nothing and the release stays a plain click. */
+	const action = (done: Drag, evt: PointerEvent): (() => void) | null => {
+		if (evt.type !== 'pointerup') return null;
+		switch (done.kind) {
+			case 'move': {
+				const moved = done.preview ? range(done) : null;
+				return moved && moved[0] !== done.event.start ? () => handlers.onMove(done.event, moved[0]) : null;
+			}
+			case 'resize': {
+				const [, end] = range(done) ?? [done.event.start, done.event.end];
+				return end !== done.event.end ? () => handlers.onResize(done.event, end) : null;
+			}
+			case 'select':
+				return done.anchor !== done.current ? () => handlers.onSelect(...ordered(done.anchor, done.current)) : null;
 		}
-		if (done.kind === 'resize') {
-			if (evt.type !== 'pointerup') return;
-			swallowNextClick();
-			const [, end] = range(done) ?? [done.event.start, done.event.end];
-			if (end !== done.event.end) handlers.onResize(done.event, end);
-			return;
-		}
-		if (evt.type !== 'pointerup' || done.anchor === done.current) return;
-		swallowNextClick();
-		handlers.onSelect(...ordered(done.anchor, done.current));
 	};
 
 	const start = (next: Drag) => {
 		drag = next;
+		handlers.onBegin();
 		highlight();
 		win.addEventListener('pointermove', onMove);
 		win.addEventListener('pointerup', finish);
