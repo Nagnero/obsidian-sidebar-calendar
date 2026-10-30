@@ -3,8 +3,8 @@
 	"name": "Sidebar Calendar",
 	"version": "0.1.0",
 	"minAppVersion": "1.7.2",
-	"description": "Monthly calendar in the sidebar that shows the schedule in your daily notes as multi-day colored bars.",
+	"description": "Monthly calendar in the sidebar for the schedule in your daily notes, with multi-day bars, to-dos, and dragging to add or move entries.",
 	"author": "Nagnero",
 	"authorUrl": "https://github.com/Nagnero",
-	"isDesktopOnly": false
+	"isDesktopOnly": true
 }

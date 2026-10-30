@@ -1,62 +1,156 @@
 # Sidebar Calendar
 
-A monthly calendar for the Obsidian sidebar. Your schedule lives in your daily notes, and entries that span several days are drawn as colored bars across the date cells. Requires the core **Daily notes** plugin with a template.
+[한국어](README.ko.md)
 
-## Schedule in daily notes
+A monthly calendar for the Obsidian sidebar that shows the schedule you keep in your daily notes. Entries that span several days are drawn as colored bars across the dates, and to-dos for the day sit in a list under the calendar.
 
-The calendar reads the H1 headings of your core **Daily notes** template as kinds of entries. For example, with this template:
+Your notes stay plain Markdown. The plugin reads list items under the headings of your daily note template, and everything you do in the calendar (adding, moving, checking, changing durations) is written back to those lines.
+
+![Daily note and the calendar side by side](docs/images/overview.png)
+
+> **Beta.** This is version 0.1, tested on Windows and Linux desktops with Obsidian 1.14. It is desktop only for now. Please report problems on the [issue tracker](https://github.com/Nagnero/obsidian-sidebar-calendar/issues).
+
+## Features
+
+- Multi-day entries as bars with their titles, colored by kind, light and dark themes.
+- Events and to-dos: events are drawn on the calendar; to-dos under a `## To do` heading are listed for their day only.
+- Add an entry by dragging across days or double-clicking a day.
+- Move an entry by dragging its bar or its row onto another day, even into another month.
+- Change a duration by dragging the end of a bar or from the context menu.
+- Check tasks off from the list under the calendar, from any day an entry covers.
+- Overdue to-dos from earlier days listed on today, with a button to move them to today.
+- Dots for days with a daily note, and a ring when the note has unchecked tasks.
+- Week-by-week scrolling, and a one-week view when the sidebar is short.
+- Settings in English or Korean.
+
+## Requirements
+
+- Obsidian 1.7.2 or later, on desktop.
+- The core **Daily notes** plugin, turned on, with a template.
+
+## Installation
+
+### During the beta, with BRAT
+
+1. Install and enable [BRAT](https://github.com/TfTHacker/obsidian42-brat) from the community plugins.
+2. Run the command **BRAT: Add a beta plugin for testing** and enter `Nagnero/obsidian-sidebar-calendar`.
+3. Enable **Sidebar Calendar** under **Settings → Community plugins**.
+
+BRAT keeps the plugin up to date with new releases.
+
+### Manually
+
+1. Download `main.js`, `manifest.json` and `styles.css` from the [latest release](https://github.com/Nagnero/obsidian-sidebar-calendar/releases/latest).
+2. Put them in `<your vault>/.obsidian/plugins/sidebar-calendar/`.
+3. Reload Obsidian and enable **Sidebar Calendar** under **Settings → Community plugins**.
+
+### From the community plugins
+
+Not yet. Once the plugin is accepted, search for **Sidebar Calendar** under **Settings → Community plugins → Browse**.
+
+## Getting started
+
+### 1. Set up the template
+
+The calendar takes its **kinds** of entries from the top-level headings (`#`) of your daily note template. For example:
 
 ```markdown
-# 업무
+# Work
 
-# 개인
+# Personal
 
-# Journaling
-오늘은…
+# Journal
 ```
 
-`업무`, `개인` and `Journaling` are kinds. In a daily note, each top-level list item under a kind's H1 is one entry starting on that note's date:
+`Work`, `Personal` and `Journal` become kinds. In **Settings → Sidebar Calendar**, give each kind a color, and turn off headings that are not a schedule, like `Journal`.
+
+### 2. Write entries in daily notes
+
+Each top-level task under a kind's heading is one entry, starting on the note's date:
 
 ```markdown
-# 업무
-- [ ] 보고서 제출
-- [x] 부산 출장 ~10-23
-  - 숙소 예약 완료
-## 오후
-- 14:00 회의
+# Work
+- [ ] 10:00 Design review
+- [ ] Conference trip ~10-23
+  - Hotel booked
+## To do
+- [ ] Review pull requests
 
-# 개인
-- 14:00 치과
-
-# Journaling
-오늘은 바빴다.
+# Personal
+- [x] 19:00 Dinner with Mina
 ```
 
-- A section runs from the H1 to the next H1. Deeper headings inside it, like `## 오후`, do not end it.
-- `[ ]` and `[x]` make an entry a task. Done entries are struck through in the list under the calendar.
-- `~10-23`, `~10/23` or `~2026-10-23` at the end sets the last day. A month and day earlier than the note's date means next year. Parentheses are part of the title, and a range just before trailing parentheses (`출장 ~10-23 (회의)`) still counts.
-- Indented items are notes about the entry and do not show on the calendar.
-- Items under a `## To do` sub-heading inside a kind are listed for their day but get no bar. The region runs to the next heading of the same or a higher level, so `### Later` inside it is hidden too and a following `## 저녁` is not. Unchecked ones still count for the ring. Change the name under **Sub-heading hidden from the calendar** in the settings; it is not case-sensitive.
+- **Events** are tasks directly under the kind's heading. They are drawn on the calendar.
+- **To-dos** are tasks under the `## To do` sub-heading. They are meant for their own day: they are listed under the calendar but not drawn on it.
+- `~10-23`, `~10/23` or `~2026-10-23` at the end of a line makes the entry last until that day.
+- A time at the start of the title (`9:30`, `14:00`, `18시`, `오후 3시`, `3pm`) orders the day's entries.
+- Indented lines are notes about the entry and are not read.
+- Only items with a checkbox (`- [ ]` or `- [x]`) are entries. Turn on **Show items without a checkbox** to read plain list items as events too.
 
-With **Daily notes** on in the settings, a dot under a date means that day has a daily note, and a hollow ring next to it means the note has at least one unchecked task (`- [ ]`) under an enabled kind. The ring belongs to the note's date, not to the other days a multi-day task covers. Clicking a date with a note opens it.
+A section runs from its `#` heading to the next `#` heading, so deeper headings like `## Afternoon` stay part of it. The `## To do` region ends at the next heading of the same or a higher level.
 
-In **Settings → Sidebar Calendar**, each kind has a switch and a color. Turn off a heading that is not a schedule, like `Journaling` here, and its list items are not read or offered. Click the color dot to choose the theme's accent color or one of Obsidian's named colors, which follow the light or dark theme; the dashed `+` opens your system's color picker for any other color. The settings tab also shows whether the plugin found the template. When you add an H1 to the template, it becomes a kind; when you remove one, its settings are kept until you delete them.
+## Using the calendar
 
-The first row of the settings tab, **Language (언어)**, shows the tab in English (the default) or Korean. Only the settings tab changes language.
+Open it from the ribbon icon or the command **Sidebar Calendar: Open calendar**.
 
-Each bar shows the entry's title inside it, cut with `…` when the day is too narrow, and a done task's title is struck through. Set **Bar style** to **Line** for thin bars without text.
+| Do this | To |
+| --- | --- |
+| Click a date | See its events, to-dos and (on today) overdue to-dos below the calendar, and open its daily note if it has one |
+| Drag across dates, or double-click a date | Add an entry. Pick its kind, and **Event** or **To do** |
+| Drag a bar, or a row from the list, onto a date | Move the entry to that day. Wheel over the calendar while dragging to reach other weeks. Escape cancels |
+| Drag the right end of a bar | Change when the entry ends |
+| Click the circle of a to-do, or double-click a task in the list | Check or uncheck it |
+| Click a bar or a row in the list | Open the daily note at that line |
+| Right-click a bar, a row, or an entry line in a daily note | **Change duration…** (events) or **Move to date…** |
+| Wheel over the calendar | Scroll a week at a time; the header names the month of the top row |
 
-Turn off **Show one-day entries** to draw only entries that span several days on the calendar. The list under the calendar still shows every entry of the selected day.
+![Adding an entry](docs/images/add.png)
 
-To add an entry from the calendar, drag across days or double-click a day, pick a kind, type a title, and press Enter. The entry is written as an open task, `- [ ] <title>` (with `~MM-DD` for a range), under that kind's H1 in the first day's daily note, after its last item outside the `## To do` region. A missing note is created from your template first, so the entry lands inside its structure. The kind you picked last is preselected next time. Clicking a bar or a list entry opens its daily note at that line.
+![Moving an entry by dragging](docs/images/move.png)
 
-To make an entry last several days, drag the right edge of its bar (where the entry ends) to another day; Escape cancels. Or right-click its bar, its entry in the list, or its line in the daily note, choose **Change duration…**, and set the number of days with the field or `−` and `+`, a chip (**1 day** to **1 week**), or the end date, then click **Apply** or press Enter. The `~MM-DD` at the end of the line is written, changed or removed for you. In a note that is open, the change goes through the editor, so you can undo it there.
+On today, **Overdue** lists unchecked to-dos from earlier days. The arrow next to one moves it to today.
 
-The sort and filter button at the right of the list header orders the selected day's entries by **Start date** (the default: earlier start first, longer entries first, then title), **Note order** (as written in the daily notes), **Unchecked first** (open tasks, then plain items, then done tasks), or **Kind** (the template's heading order). The choice is saved and affects only the list, not the bars. Uncheck **Show completed** in the same menu to hide done tasks from both the list and the calendar; the choice is saved.
+The button at the right of the list header sorts the list (**Start date**, **Note order**, **Unchecked first**, **Kind**) and can hide completed entries.
+
+When the sidebar is too short to show the month and the list together, the calendar shows one week and the list scrolls on its own.
+
+| Light | Dark |
+| --- | --- |
+| ![Calendar in the light theme](docs/images/calendar-light.png) | ![Calendar in the dark theme](docs/images/calendar-dark.png) |
+
+## Settings
+
+![Settings](docs/images/settings.png)
+
+| Setting | What it does |
+| --- | --- |
+| **Language (언어)** | English or Korean for the settings tab and the group names in the list |
+| **Kinds** | One row per template heading: use it as a kind or not, and its color |
+| **Start week on** | Sunday or Monday |
+| **Bar rows per week** | Bars shown per week before the rest are counted as `+N` |
+| **Bar style** | **Title** draws filled bars with titles; **Line** draws thin bars |
+| **Show one-day entries** | Off draws only entries that span several days |
+| **Sub-heading hidden from the calendar** | The sub-heading for to-dos, `To do` by default |
+| **Show items without a checkbox** | Also read plain list items as events |
+| **Show overdue to-dos** | List earlier days' unchecked to-dos on today |
+| **Daily notes** | Dots and rings for days with notes |
+
+## Good to know
+
+- Changes to a note that is open go through its editor, so you can undo them there. Moving an entry changes two notes; undo them one at a time.
+- A note for a day that has none is created from your template when you add or move an entry there.
+- The plugin only reads and writes daily notes. It does not sync with other calendars.
 
 ## Development
 
 1. Clone this repository into `<your vault>/.obsidian/plugins/sidebar-calendar`.
-2. `npm install` (Node 18+).
-3. `npm run dev` to rebuild `main.js` on every change, or `npm run build` for a production build.
-4. In Obsidian, reload (or restart), then enable **Sidebar Calendar** under Settings → Community plugins.
+2. `npm install` (Node 20 or later).
+3. `npm run dev` rebuilds `main.js` on every change; `npm run build` makes a production build.
+4. `npm test` and `npm run lint` run the tests and the linter.
+5. In Obsidian, reload and enable **Sidebar Calendar** under **Settings → Community plugins**.
+
+`.claude/skills/verify-sidebar-calendar/scripts/readme-shots.sh` rebuilds the screenshots in `docs/images` from a sample vault.
+
+## License
+
+[MIT](LICENSE)
