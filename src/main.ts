@@ -19,7 +19,9 @@ export default class SidebarCalendarPlugin extends Plugin {
 	settings!: SidebarCalendarSettings;
 	eventStore!: EventStore;
 	dailyNotes!: DailyNotes;
-	/** The template as last read by `syncKinds`. */
+	/** The tail of the queue of entry edits; see `queue`. */
+	private edits: Promise<void> = Promise.resolve();
+		/** The template as last read by `syncKinds`. */
 	template: TemplateHeadings = { status: 'off', h1s: [] };
 
 	async onload() {
@@ -174,21 +176,24 @@ export default class SidebarCalendarPlugin extends Plugin {
 	 */
 	async moveEntry(entry: EntryRef, to: DayKey): Promise<void> {
 		if (to === entry.start) return;
-		const rules = this.scheduleRules();
-		const source = await this.noteText(entry.path);
-		const current = source === null ? undefined : parseSchedule(source, entry.start, rules).find((e) => e.line === entry.line);
-		const taken = current?.title === entry.title && source !== null ? takeEntry(source, entry.start, rules, entry.line, to) : null;
-		if (!taken) {
-			new Notice(`"${entry.title}" changed before it could be moved. Try again.`);
-			return;
-		}
-		const target = await this.dailyNotes.noteFor(to);
-		if (!target) {
-			new Notice('Turn on the core daily notes plugin to move entries.');
-			return;
-		}
-		await this.rewriteNote(target.path, (text) => putEntry(text, taken.block, rules.hiddenSubheading));
-		await this.rewriteNote(entry.path, (text) => takeEntry(text, entry.start, rules, entry.line, to)?.text ?? null);
+		await this.queue(async () => {
+			const rules = this.scheduleRules();
+			const source = await this.noteText(entry.path);
+			const taken = source !== null && this.holds(source, entry) ? takeEntry(source, entry.start, rules, entry.line, to) : null;
+			if (!taken) {
+				new Notice(`"${entry.title}" changed before it could be moved. Try again.`);
+				return;
+			}
+			const target = await this.dailyNotes.noteFor(to);
+			if (!target) {
+				new Notice('Turn on the core daily notes plugin to move entries.');
+				return;
+			}
+			await this.rewriteNote(target.path, (text) => putEntry(text, taken.block, rules.hiddenSubheading));
+			await this.rewriteNote(entry.path, (text) =>
+				this.holds(text, entry) ? (takeEntry(text, entry.start, rules, entry.line, to)?.text ?? null) : null,
+			);
+		});
 	}
 
 	private async noteText(path: string): Promise<string | null> {
@@ -222,23 +227,39 @@ export default class SidebarCalendarPlugin extends Plugin {
 	 * `editor-change` at once. A closed note is edited on disk.
 	 */
 	async setEntryEnd(entry: EntryRef, end: DayKey): Promise<void> {
-		await this.rewriteEntryLine(entry, (text) => setEntryEnd(text, entry.start, this.scheduleRules(), entry.line, end));
+		await this.queue(() => this.rewriteEntryLine(entry, (text) => setEntryEnd(text, entry.start, this.scheduleRules(), entry.line, end)));
 	}
 
 	/** Checks or unchecks `entry`'s task box, by the same write path as `setEntryEnd`. */
 	async setEntryTask(entry: EntryRef, done: boolean): Promise<void> {
-		await this.rewriteEntryLine(entry, (text) => setEntryTask(text, entry.start, this.scheduleRules(), entry.line, done));
+		await this.queue(() => this.rewriteEntryLine(entry, (text) => setEntryTask(text, entry.start, this.scheduleRules(), entry.line, done)));
+	}
+
+	/**
+	 * Runs entry edits one after another. Each one reads the note it changes when it runs, so a
+	 * second edit of the same entry sees the first one's result rather than the line it started from.
+	 */
+	private queue(edit: () => Promise<void>): Promise<void> {
+		const run = this.edits.then(edit);
+		this.edits = run.catch(() => undefined);
+		return run;
+	}
+
+	/** Whether `text` still has `entry` on its line; a stale line may now hold another entry or none. */
+	private holds(text: string, entry: EntryRef): boolean {
+		return parseSchedule(text, entry.start, this.scheduleRules()).some((e) => e.line === entry.line && e.title === entry.title);
 	}
 
 	private async rewriteEntryLine(entry: EntryRef, rewrite: (text: string) => string | null): Promise<void> {
+		const checked = (text: string) => (this.holds(text, entry) ? rewrite(text) : null);
 		const editor = this.openEditor(entry.path);
 		if (editor) {
-			const next = rewrite(editor.getValue());
+			const next = checked(editor.getValue());
 			if (next !== null) editor.setLine(entry.line, next.split(/\r?\n/)[entry.line] ?? '');
 			return;
 		}
 		const file = this.app.vault.getFileByPath(entry.path);
-		if (file) await this.app.vault.process(file, (text) => rewrite(text) ?? text);
+		if (file) await this.app.vault.process(file, (text) => checked(text) ?? text);
 	}
 
 	/** The editor of a view that has the note at `path` open, if any. */
