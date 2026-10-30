@@ -148,11 +148,6 @@ body.sidebar-calendar-is-moving * {
 	flex: none;
 }
 
-.sidebar-calendar.is-compact .sidebar-calendar__weeks {
-	height: var(--sidebar-calendar-week-height);
-	overflow: hidden;
-}
-
 .sidebar-calendar.is-compact .sidebar-calendar__day-list {
 	flex: 1 1 auto;
 	min-height: 0;

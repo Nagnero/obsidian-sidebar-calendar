@@ -1,6 +1,7 @@
 import { ItemView, Keymap, Menu, moment, Notice, TFile, WorkspaceLeaf } from 'obsidian';
 import { VIEW_TYPE_SIDEBAR_CALENDAR } from '../constants';
 import { addDays, DayKey, todayKey, yearMonth } from '../date/dayKey';
+import { monthWindow, startOfWeek, WeekWindow, windowMonth, windowWeeks } from '../date/weekWindow';
 import { eventsOnDay } from '../layout/weekLayout';
 import type { TemplateHeadings } from '../data/DailyNotes';
 import { DAY_LIST_STRINGS } from '../i18n';
@@ -16,19 +17,19 @@ import { formatRange, NoteMark, renderMonth } from './renderMonth';
 
 /** Below this much room for the day list, the calendar shows one week and the list scrolls on its own. */
 const MIN_LIST_HEIGHT = 200;
-/** One wheel gesture moves one week or month; events closer together than this belong to the same gesture. */
+/** One wheel gesture moves one week; events closer together than this belong to the same gesture. */
 const WHEEL_STEP_MS = 300;
 
 export class CalendarView extends ItemView {
 	private plugin: SidebarCalendarPlugin;
-	private year: number;
-	/** 1-based. */
-	private month: number;
+	/**
+	 * The weeks in view. It starts as a month's own rows; the wheel slides it a week at a time, and
+	 * its top row names the month in the header.
+	 */
+	private window: WeekWindow;
 	private selectedDay: DayKey;
-	/** The pane is too short for the whole month: one week row shows at a time. */
+	/** The pane is too short for the window: only its top row shows, and the list scrolls on its own. */
 	private compact = false;
-	/** First day of the week row shown while compact; null shows the selected day's week. */
-	private shownWeek: DayKey | null = null;
 	private weeksEl: HTMLElement | null = null;
 	private lastWheelStep = -Infinity;
 	private resizeObserver: ResizeObserver | null = null;
@@ -45,7 +46,7 @@ export class CalendarView extends ItemView {
 			describe: (start, end) => formatRange(start, end, appLocale()),
 		});
 		this.selectedDay = todayKey();
-		({ year: this.year, month: this.month } = yearMonth(this.selectedDay));
+		this.window = this.monthOf(this.selectedDay);
 	}
 
 	getViewType(): string {
@@ -100,12 +101,17 @@ export class CalendarView extends ItemView {
 			return openTaskDays.has(day) ? 'open-tasks' : 'note';
 		};
 
+		// A changed week start would leave the window starting mid-week.
+		this.window = { ...this.window, top: startOfWeek(this.window.top, settings.weekStart) };
+		const { year, month } = windowMonth(this.window);
+		const weeks = windowWeeks(this.compact ? { ...this.window, rows: 1 } : this.window);
 		const monthEl = root.createDiv({ cls: 'sidebar-calendar__month' });
 		this.weeksEl = renderMonth(
 			monthEl,
 			{
-				year: this.year,
-				month: this.month,
+				year,
+				month,
+				weeks,
 				today,
 				weekStart: settings.weekStart,
 				locale,
@@ -121,8 +127,7 @@ export class CalendarView extends ItemView {
 				onNext: () => this.shiftMonth(1),
 				onToday: () => {
 					this.selectedDay = todayKey();
-					this.shownWeek = null;
-					({ year: this.year, month: this.month } = yearMonth(this.selectedDay));
+					this.window = this.monthOf(this.selectedDay);
 					this.render();
 				},
 				onSelectDay: (day, evt) => {
@@ -177,32 +182,36 @@ export class CalendarView extends ItemView {
 		this.fitToPane();
 	}
 
-	/** Shows one week row at a time when the whole month would leave the day list too little room. */
+	/**
+	 * Shows only the window's top row when all of its rows would leave the day list too little room.
+	 * The decision uses the window's full height, so showing one row never flips it back.
+	 */
 	private fitToPane(): void {
 		const weeks = this.weeksEl;
 		const month = weeks?.parentElement;
-		if (!weeks || !month) return;
-		const fullMonthHeight = month.offsetHeight - weeks.clientHeight + weeks.scrollHeight;
-		this.compact = this.contentEl.clientHeight < fullMonthHeight + MIN_LIST_HEIGHT;
-		this.contentEl.toggleClass('is-compact', this.compact);
-		if (!this.compact) {
-			weeks.scrollTop = 0;
-			return;
+		const row = weeks?.querySelector<HTMLElement>('.sidebar-calendar__week');
+		if (!weeks || !month || !row) return;
+		const fullHeight = month.offsetHeight - weeks.offsetHeight + row.offsetHeight * this.window.rows;
+		const compact = this.contentEl.clientHeight < fullHeight + MIN_LIST_HEIGHT;
+		this.contentEl.toggleClass('is-compact', compact);
+		if (compact === this.compact) return;
+		this.compact = compact;
+		const { weekStart } = this.plugin.settings;
+		const selectedRow = startOfWeek(this.selectedDay, weekStart);
+		if (compact) {
+			// The single row shown is the selected day's week when that week is in the window.
+			if (windowWeeks(this.window).some((w) => w[0] === selectedRow)) this.window = { ...this.window, top: selectedRow };
+		} else {
+			// Back to all rows: the whole month the one row was in.
+			const { year, month } = windowMonth(this.window);
+			this.window = monthWindow(year, month, weekStart);
 		}
-		const rows = Array.from(weeks.querySelectorAll<HTMLElement>('.sidebar-calendar__week'));
-		const row =
-			rows.find((r) => firstDay(r) === this.shownWeek) ??
-			rows.find((r) => r.querySelector(`[data-date="${this.selectedDay}"]`)) ??
-			rows[0];
-		if (!row) return;
-		this.shownWeek = firstDay(row);
-		weeks.setCssProps({ '--sidebar-calendar-week-height': `${row.offsetHeight}px` });
-		weeks.scrollTop = row.offsetTop;
+		this.render();
 	}
 
 	/**
-	 * One wheel gesture over the calendar shows the next or previous week in the one-week view, or
-	 * the next or previous month otherwise, also while an entry is being dragged.
+	 * One wheel gesture over the calendar slides the window a week down or up, also while an entry
+	 * is being dragged, so the next month's first weeks come in under the current month's last.
 	 */
 	private onWeeksWheel(evt: WheelEvent): void {
 		if (evt.deltaY === 0) return;
@@ -210,30 +219,24 @@ export class CalendarView extends ItemView {
 		const quiet = evt.timeStamp - this.lastWheelStep >= WHEEL_STEP_MS;
 		this.lastWheelStep = evt.timeStamp;
 		if (!quiet) return;
-		if (!this.compact || this.shownWeek === null) {
-			this.shiftMonth(evt.deltaY > 0 ? 1 : -1);
-			return;
-		}
-		const direction = evt.deltaY > 0 ? 1 : -1;
-		const target = addDays(this.shownWeek, 7 * direction);
-		this.shownWeek = target;
-		// A row holding none of this month's days belongs to the next or previous month.
-		const inMonth = [0, 6].some((offset) => {
-			const { year, month } = yearMonth(addDays(target, offset));
-			return year === this.year && month === this.month;
-		});
-		if (inMonth) this.fitToPane();
-		else this.shiftMonth(direction, true);
+		this.window = { ...this.window, top: addDays(this.window.top, evt.deltaY > 0 ? 7 : -7) };
+		this.render();
+	}
+
+	/** The window of `day`'s month; in the one-row view, the row of `day` itself. */
+	private monthOf(day: DayKey): WeekWindow {
+		const { year, month } = yearMonth(day);
+		const { weekStart } = this.plugin.settings;
+		const window = monthWindow(year, month, weekStart);
+		return this.compact ? { ...window, top: startOfWeek(day, weekStart) } : window;
 	}
 
 	/** Called when the date rolls over. Follows today if the user was looking at it. */
 	onDayChanged(previous: DayKey, today: DayKey): void {
 		if (this.selectedDay === previous) {
-			const shown = yearMonth(previous);
 			this.selectedDay = today;
-			if (shown.year === this.year && shown.month === this.month) {
-				({ year: this.year, month: this.month } = yearMonth(today));
-			}
+			const shown = windowWeeks(this.window).flat();
+			if (shown.includes(previous) && !shown.includes(today)) this.window = this.monthOf(today);
 		}
 		this.render();
 	}
@@ -262,17 +265,13 @@ export class CalendarView extends ItemView {
 		}).open();
 	}
 
-	private shiftMonth(delta: number, keepWeek = false): void {
-		if (!keepWeek) this.shownWeek = null;
-		const index = this.year * 12 + (this.month - 1) + delta;
-		this.year = Math.floor(index / 12);
-		this.month = (index % 12) + 1;
+	private shiftMonth(delta: number): void {
+		const { year, month } = windowMonth(this.window);
+		const index = year * 12 + (month - 1) + delta;
+		const { weekStart } = this.plugin.settings;
+		this.window = monthWindow(Math.floor(index / 12), (index % 12) + 1, weekStart);
 		this.render();
 	}
-}
-
-function firstDay(row: HTMLElement): DayKey | null {
-	return row.querySelector<HTMLElement>('.sidebar-calendar__day')?.dataset.date ?? null;
 }
 
 /** Why there is no kind to add an entry to, and what to do about it. */

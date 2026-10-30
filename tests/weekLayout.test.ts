@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { addDays } from '../src/date/dayKey';
-import { buildMonthGrid } from '../src/date/monthGrid';
+import { windowWeeks } from '../src/date/weekWindow';
 import { eventsOnDay, layoutWeek, splitIntoWeek } from '../src/layout/weekLayout';
 import type { CalendarEvent } from '../src/types';
 
@@ -56,7 +56,7 @@ test('longer event goes first when two start the same day', () => {
 });
 
 test('an event crossing weeks is split and flagged at the cut', () => {
-	const grid = buildMonthGrid(2026, 10, 0);
+	const grid = windowWeeks({ top: '2026-09-27', rows: 6 });
 	const trip = ev('trip', '2026-10-30', '2026-11-02');
 	const thisWeek = splitIntoWeek(grid[4]!, [trip]);
 	const nextWeek = splitIntoWeek(grid[5]!, [trip]);

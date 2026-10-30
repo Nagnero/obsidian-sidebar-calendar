@@ -1,6 +1,6 @@
 import { setIcon, setTooltip } from 'obsidian';
 import { DayKey, makeDayKey, Weekday, yearMonth } from '../date/dayKey';
-import { buildMonthGrid, weekdayOrder } from '../date/monthGrid';
+import { weekdayOrder } from '../date/monthGrid';
 import { layoutWeek } from '../layout/weekLayout';
 import type { BarStyle } from '../settingsData';
 import type { CalendarEvent } from '../types';
@@ -10,9 +10,12 @@ import type { DayDrag } from './dayDrag';
 export type NoteMark = 'none' | 'note' | 'open-tasks';
 
 export interface MonthViewModel {
+	/** The month in the header; days outside it are dimmed. */
 	year: number;
 	/** 1-based. */
 	month: number;
+	/** The week rows to draw, in order. */
+	weeks: readonly DayKey[][];
 	today: DayKey;
 	weekStart: Weekday;
 	locale: string;
@@ -41,11 +44,7 @@ export function renderMonth(parent: HTMLElement, model: MonthViewModel, handlers
 
 	const weeksEl = parent.createDiv({ cls: 'sidebar-calendar__weeks' });
 	weeksEl.toggleClass('is-titled', model.barStyle === 'title');
-	// A trailing row of only next month's days would crowd the sidebar without showing this month.
-	const weeks = buildMonthGrid(model.year, model.month, model.weekStart).filter((week) =>
-		week.some((day) => yearMonth(day).month === model.month),
-	);
-	for (const week of weeks) renderWeek(weeksEl, week, model, handlers, drag);
+	for (const week of model.weeks) renderWeek(weeksEl, week, model, handlers, drag);
 	drag.attach(weeksEl);
 	return weeksEl;
 }
