@@ -1,7 +1,7 @@
 {
 	"name": "obsidian-sidebar-calendar",
 	"version": "0.1.0",
-	"description": "Obsidian sidebar calendar that shows the schedule in your daily notes as multi-day bars",
+	"description": "Monthly calendar in the sidebar for the schedule in your daily notes, with multi-day bars, to-dos, and dragging to add or move entries.",
 	"main": "main.js",
 	"type": "module",
 	"scripts": {
