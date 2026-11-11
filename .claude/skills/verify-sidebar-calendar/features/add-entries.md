@@ -36,6 +36,8 @@ Preconditions:
 
 - **Event or to-do.** Double-click D(15), click `.modal-container .sidebar-calendar__kind-btn[data-type="todo"]` and the `개인` kind, fill `은행 가기` and press Enter. `D(15).md` is `Existing daily note\n\n# 개인\n## To do\n- [ ] 은행 가기\n`, and the D(15) list shows it under `To do` with a circle. A drag from D(16) to D(17) opens the dialog with `Event` pressed and `To do` disabled, since a to-do is for one day.
 
+- **Default kind is the one written.** With `lastKind` empty (a fresh install) or naming a kind that is turned off, the dialog presses the first kind, and Enter writes under that kind's H1, never under an empty `# ` heading or a disabled kind. Double-click D(16), fill a title, press Enter: `D(16).md` gets the line right after `# 업무`. Set `lastKind` to `Journaling` with `eval` and repeat on D(17): `업무` is pressed and the line lands under `# 업무`.
+
 ## Gotchas
 
 - The drag must be real mouse down, move and up; `drag` does that. Clicking two cells is two plain clicks, not a drag.

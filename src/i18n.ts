@@ -137,9 +137,10 @@ export interface DayListStrings {
 	none: string;
 	overdue: string;
 	moveToToday: string;
+	moreOverdue: (count: number) => string;
 }
 
 export const DAY_LIST_STRINGS: Record<SettingsLanguage, DayListStrings> = {
-	en: { events: 'Events', none: 'None', overdue: 'Overdue', moveToToday: 'Move to today' },
-	ko: { events: '일정', none: '없음', overdue: '지난 할 일', moveToToday: '오늘로 옮기기' },
+	en: { events: 'Events', none: 'None', overdue: 'Overdue', moveToToday: 'Move to today', moreOverdue: (n) => `Show ${n} more` },
+	ko: { events: '일정', none: '없음', overdue: '지난 할 일', moveToToday: '오늘로 옮기기', moreOverdue: (n) => `${n}개 더 보기` },
 };

@@ -1,7 +1,7 @@
 {
 	"id": "sidebar-calendar",
 	"name": "Sidebar Calendar",
-	"version": "0.1.0",
+	"version": "0.1.1",
 	"minAppVersion": "1.7.2",
 	"description": "Monthly calendar in the sidebar for the schedule in your daily notes, with multi-day bars, to-dos, and dragging to add or move entries.",
 	"author": "Nagnero",

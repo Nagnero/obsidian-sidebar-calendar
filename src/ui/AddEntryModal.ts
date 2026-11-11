@@ -12,7 +12,7 @@ export class AddEntryModal extends Modal {
 		app: App,
 		private range: string,
 		private kinds: readonly Kind[],
-		private kind: string,
+		private lastKind: string,
 		private multiDay: boolean,
 		private onSubmit: (title: string, kind: string, onCalendar: boolean) => void,
 	) {
@@ -26,13 +26,15 @@ export class AddEntryModal extends Modal {
 			cls: 'sidebar-calendar__entry-input',
 			attr: { placeholder: 'Title' },
 		});
-		const kindIndex = Math.max(0, this.kinds.findIndex((k) => k.name === this.kind));
+		// The kind written is always the one shown pressed: the last one chosen if it is still offered,
+		// else the first.
+		let kindIndex = Math.max(0, this.kinds.findIndex((k) => k.name === this.lastKind));
 		buttonRow(this.contentEl, 'Kind', this.kinds.map((kind) => ({
 			label: kind.name,
 			attr: { 'data-kind': kind.name },
 			color: kindColorCss(kind.color),
 		})), kindIndex, (i) => {
-			this.kind = this.kinds[i]?.name ?? this.kind;
+			kindIndex = i;
 			input.focus();
 		});
 
@@ -50,8 +52,9 @@ export class AddEntryModal extends Modal {
 			if (evt.key !== 'Enter' || evt.isComposing) return;
 			evt.preventDefault();
 			const title = input.value.trim();
+			const kind = this.kinds[kindIndex]?.name;
 			this.close();
-			if (title) this.onSubmit(title, this.kind, onCalendar);
+			if (title && kind) this.onSubmit(title, kind, onCalendar);
 		});
 		input.focus();
 	}
