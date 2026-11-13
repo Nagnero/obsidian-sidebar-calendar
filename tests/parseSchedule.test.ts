@@ -396,3 +396,12 @@ test('a new to-do goes under the To do sub-heading', () => {
 		'# 개인\n- [ ] 약속\n## To do\n- [ ] 자소서\n',
 	);
 });
+
+test('a short end before the start means next year only for a range across New Year', () => {
+	const ends = (text: string, day: string) => parse(`# 업무\n${text}\n`, day).map((e) => e.end);
+	assert.deepEqual(ends('- [ ] 휴가 ~01-02', '2026-12-30'), ['2027-01-02']);
+	assert.deepEqual(ends('- [ ] 출장 ~03-31', '2026-11-15'), ['2027-03-31']);
+	assert.deepEqual(ends('- [ ] 오타 ~10-20', '2026-10-23'), ['2026-10-23']);
+	assert.deepEqual(ends('- [ ] 오타 ~09-01', '2026-10-23'), ['2026-10-23']);
+	assert.deepEqual(ends('- [ ] 긴 일정 ~2027-10-20', '2026-10-23'), ['2027-10-20']);
+});

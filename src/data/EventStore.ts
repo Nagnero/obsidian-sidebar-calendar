@@ -40,7 +40,9 @@ export class EventStore {
 		});
 		const saved = await Promise.all(notes.map(async ({ file }) => {
 			const headings = metadataCache.getFileCache(file)?.headings ?? [];
-			return headings.some((h) => h.level === 1 && rules.kinds.includes(h.heading.trim())) ? vault.cachedRead(file) : null;
+			if (!headings.some((h) => h.level === 1 && rules.kinds.includes(h.heading.trim()))) return null;
+			// A note deleted or unreadable since it was listed drops out instead of failing the reload.
+			return vault.cachedRead(file).catch(() => null);
 		}));
 		if (generation !== this.generation) return;
 

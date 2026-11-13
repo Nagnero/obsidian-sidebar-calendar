@@ -6,7 +6,7 @@ import { activeKinds, Kind, reconcileKinds } from './settingsData';
 import { DayKey, todayKey } from './date/dayKey';
 import { DailyNotes, TemplateHeadings } from './data/DailyNotes';
 import { EventStore } from './data/EventStore';
-import { parseSchedule, putEntry, ScheduleRules, setEntryEnd, setEntryTask, takeEntry } from './data/parseSchedule';
+import { NewEntry, parseSchedule, putEntry, ScheduleRules, setEntryEnd, setEntryTask, takeEntry } from './data/parseSchedule';
 import type { CalendarEvent } from './types';
 import { appLocale, CalendarView } from './ui/CalendarView';
 import { DurationModal } from './ui/DurationModal';
@@ -240,9 +240,18 @@ export default class SidebarCalendarPlugin extends Plugin {
 	 * second edit of the same entry sees the first one's result rather than the line it started from.
 	 */
 	private queue(edit: () => Promise<void>): Promise<void> {
-		const run = this.edits.then(edit);
-		this.edits = run.catch(() => undefined);
+		// A failed write (a note deleted or locked by a sync meanwhile) is shown, not left in the console.
+		const run = this.edits.then(edit).catch((error: unknown) => {
+			console.error('Sidebar Calendar: could not save a change', error);
+			new Notice(`Sidebar Calendar could not save the change: ${error instanceof Error ? error.message : String(error)}`);
+		});
+		this.edits = run;
 		return run;
+	}
+
+	/** Writes a new entry into its start day's note, created from the template if missing. */
+	async addEntry(entry: NewEntry, kind: string, onCalendar: boolean): Promise<void> {
+		await this.queue(() => this.dailyNotes.addEntry(entry, kind, this.settings.hiddenSubheading, onCalendar));
 	}
 
 	/** Whether `text` still has `entry` on its line; a stale line may now hold another entry or none. */
