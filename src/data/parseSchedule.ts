@@ -54,6 +54,8 @@ const CONTINUATION_RE = /^[ \t]+\S/;
 const TASK_RE = /^\[([^\]])\](?:[ \t]+(.*))?$/;
 const BOX_RE = /^([-*+][ \t]+)\[[^\]]\]/;
 const RANGE_RE = /\s*~(?:(\d{4})-(\d{1,2})-(\d{1,2})|(\d{1,2})[-/](\d{1,2}))$/;
+/** Longest range a short `~MM-DD` before the start may make by meaning next year. */
+const NEXT_YEAR_MAX_DAYS = 183;
 const PAREN_RE = /\s*\([^()]*\)$/;
 const TEMPLATE_VARIABLE_RE = /{{[^}]*}}/;
 
@@ -333,7 +335,12 @@ function resolveEnd(match: RegExpExecArray, start: DayKey): DayKey {
 	} else {
 		const { year } = yearMonth(start);
 		end = dayKey(year, Number(shortM), Number(shortD));
-		if (end !== null && end < start) end = dayKey(year + 1, Number(shortM), Number(shortD));
+		if (end !== null && end < start) {
+			end = dayKey(year + 1, Number(shortM), Number(shortD));
+			// Next year is meant for a range across New Year; a date far behind the start is a slip
+			// that would otherwise draw a bar for most of a year.
+			if (end !== null && diffDays(start, end) > NEXT_YEAR_MAX_DAYS) end = null;
+		}
 	}
 	return end !== null && end >= start ? end : start;
 }

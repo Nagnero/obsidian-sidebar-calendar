@@ -13,6 +13,8 @@ const SORT_LABELS: Record<ListSort, string> = {
 };
 
 const DOUBLE_CLICK_MS = 250;
+/** Overdue to-dos listed before a "Show more" row. */
+const OVERDUE_SHOWN = 10;
 
 export interface DayListModel {
 	day: DayKey;
@@ -22,8 +24,10 @@ export interface DayListModel {
 	showDone: boolean;
 	/** Heading of the group of entries that are not on the grid: the hidden sub-heading's name. */
 	offCalendarLabel: string;
-	/** Open to-dos of earlier days, listed when the day is today; empty otherwise. */
+	/** Open to-dos of earlier days, most recent first, listed when the day is today; empty otherwise. */
 	overdue: readonly CalendarEvent[];
+	/** Show every overdue to-do rather than the most recent few. */
+	allOverdue: boolean;
 	strings: DayListStrings;
 	locale: string;
 	colorFor: (event: CalendarEvent) => string | null;
@@ -36,6 +40,7 @@ export interface DayListHandlers {
 	/** A press on a row, which may become a drag onto a day of the calendar. */
 	onStartMove: (event: CalendarEvent, evt: PointerEvent) => void;
 	onMoveToToday: (event: CalendarEvent) => void;
+	onShowAllOverdue: () => void;
 	onSort: (sort: ListSort) => void;
 	onShowDone: (showDone: boolean) => void;
 }
@@ -66,7 +71,14 @@ export function renderDayList(parent: HTMLElement, model: DayListModel, handlers
 	renderGroup(list, model.offCalendarLabel, model.events.filter((event) => !event.onCalendar), model, handlers);
 	if (model.overdue.length > 0) {
 		list.createDiv({ cls: 'sidebar-calendar__day-list-group mod-overdue', text: model.strings.overdue });
-		renderItems(list, model.overdue, model, handlers, true);
+		// Years of unchecked to-dos would be thousands of rows, slow to draw and to read.
+		const shown = model.allOverdue ? model.overdue : model.overdue.slice(0, OVERDUE_SHOWN);
+		renderItems(list, shown, model, handlers, true);
+		const hidden = model.overdue.length - shown.length;
+		if (hidden > 0) {
+			const more = list.createDiv({ cls: 'sidebar-calendar__day-list-more', text: model.strings.moreOverdue(hidden) });
+			more.addEventListener('click', handlers.onShowAllOverdue);
+		}
 	}
 }
 

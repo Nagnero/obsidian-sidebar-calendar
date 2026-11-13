@@ -342,6 +342,17 @@ body.sidebar-calendar-is-moving * {
 	margin-top: 0;
 }
 
+.sidebar-calendar__day-list-more {
+	padding: var(--size-4-1) var(--size-4-2);
+	font-size: var(--font-ui-small);
+	color: var(--text-accent);
+	cursor: pointer;
+}
+
+.sidebar-calendar__day-list-more:hover {
+	text-decoration: underline;
+}
+
 .sidebar-calendar__day-list-empty {
 	padding: var(--size-4-1) var(--size-4-2);
 	font-size: var(--font-ui-small);

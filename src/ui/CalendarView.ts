@@ -33,6 +33,8 @@ export class CalendarView extends ItemView {
 	/** The pane is too short for the window: only its top row shows, and the list scrolls on its own. */
 	private compact = false;
 	private weeksEl: HTMLElement | null = null;
+	/** The user asked to see every overdue to-do, not only the most recent ones. */
+	private allOverdue = false;
 	private wheelDistance = 0;
 	private lastWheel = -Infinity;
 	/** The window when the current drag began, shown again if the drag ends without doing anything. */
@@ -168,8 +170,9 @@ export class CalendarView extends ItemView {
 				showDone: settings.showDone,
 				offCalendarLabel: settings.hiddenSubheading,
 				overdue: settings.showOverdue && this.selectedDay === today
-					? events.filter((e) => !e.onCalendar && e.task === 'open' && e.start < today).sort(compareByStart)
+					? events.filter((e) => !e.onCalendar && e.task === 'open' && e.start < today).sort((a, b) => compareByStart(b, a))
 					: [],
+				allOverdue: this.allOverdue,
 				strings: DAY_LIST_STRINGS[settings.settingsLanguage],
 				locale,
 				colorFor,
@@ -180,6 +183,10 @@ export class CalendarView extends ItemView {
 				onToggleTask: (event, done) => void this.plugin.setEntryTask(event, done),
 				onStartMove: this.drag.startMove,
 				onMoveToToday: (event) => void this.plugin.moveEntry(event, today),
+				onShowAllOverdue: () => {
+					this.allOverdue = true;
+					this.render();
+				},
 				onSort: (sort) => {
 					settings.listSort = sort;
 					void this.plugin.saveData(settings);
@@ -283,7 +290,7 @@ export class CalendarView extends ItemView {
 		new AddEntryModal(this.app, range, kinds, settings.lastKind, start !== end, (title, kind, onCalendar) => {
 			settings.lastKind = kind;
 			void plugin.saveData(settings);
-			void plugin.dailyNotes.addEntry({ title, start, end }, kind, settings.hiddenSubheading, onCalendar);
+			void plugin.addEntry({ title, start, end }, kind, onCalendar);
 		}).open();
 	}
 

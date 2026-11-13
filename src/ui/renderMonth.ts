@@ -176,7 +176,10 @@ function formatToday(locale: string): string {
 
 /** "10월 20일 (화)" or "10월 20일 (화) – 10월 23일 (금)", in the app language. */
 export function formatRange(start: DayKey, end: DayKey, locale: string): string {
+	// A date in another year, such as an old overdue to-do, would read as this year's without it.
+	const thisYear = new Date().getFullYear();
 	const format = new Intl.DateTimeFormat(locale, {
+		year: yearMonth(start).year !== thisYear || yearMonth(end).year !== thisYear ? 'numeric' : undefined,
 		month: 'short',
 		day: 'numeric',
 		weekday: 'short',
